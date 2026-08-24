@@ -288,8 +288,16 @@
   grid-column: 1 / -1;
 }
 
+.fullWidthActionRow {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .primaryButton,
-.primaryLinkButton {
+.primaryLinkButton,
+.dangerButton {
   border: 1px solid #0284c7;
   border-radius: 6px;
   font-weight: 800;
@@ -297,6 +305,11 @@
   font: inherit;
   background: #0284c7;
   color: white;
+}
+
+.dangerButton {
+  border-color: #dc2626;
+  background: #dc2626;
 }
 
 .primaryLinkButton {
@@ -308,6 +321,14 @@
 
 .primaryButton:disabled {
   opacity: 0.7;
+}
+
+.dangerForm {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #fee2e2;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .smallButton {

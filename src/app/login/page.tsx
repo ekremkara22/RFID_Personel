@@ -15,7 +15,7 @@ const panelScopes = [
   },
   {
     title: "Firma girişi",
-    description: "Personel, QR cihazı, giriş-çıkış kaydı ve rapor ekranlarına odaklanır.",
+    description: "Personel, RFID cihazı, giriş-çıkış kaydı ve rapor ekranlarına odaklanır.",
     icon: Database,
   },
   {

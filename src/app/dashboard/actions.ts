@@ -3,14 +3,22 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
-import { buildNextQrWindow } from "@/lib/device-qr";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeOptionalEmail(email: string) {
+  return email ? email.toLowerCase() : null;
+}
+
+function normalizeOptionalRfidCardId(cardId: string) {
+  return cardId ? cardId.toUpperCase() : null;
 }
 
 export async function createCompanyAction(formData: FormData) {
@@ -33,13 +41,7 @@ export async function createCompanyAction(formData: FormData) {
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
   const adminPassword = getString(formData, "adminPassword");
 
-  if (
-    !companyName ||
-    !adminFirstName ||
-    !adminLastName ||
-    !adminEmail ||
-    !adminPassword
-  ) {
+  if (!companyName || !adminFirstName || !adminLastName || !adminEmail || !adminPassword) {
     throw new Error("Sirket ve firma yoneticisi bilgileri eksik.");
   }
 
@@ -76,6 +78,88 @@ export async function createCompanyAction(formData: FormData) {
   revalidatePath("/dashboard/companies");
 }
 
+export async function updateCompanyAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "SUPERADMIN") {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const companyId = getString(formData, "companyId");
+  const adminId = getString(formData, "adminId");
+  const companyName = getString(formData, "companyName");
+  const contactName = getString(formData, "contactName");
+  const contactEmail = getString(formData, "contactEmail").toLowerCase();
+  const contactPhone = getString(formData, "contactPhone");
+  const address = getString(formData, "address");
+  const city = getString(formData, "city");
+  const district = getString(formData, "district");
+  const category = getString(formData, "category");
+  const adminFirstName = getString(formData, "adminFirstName");
+  const adminLastName = getString(formData, "adminLastName");
+  const adminEmail = getString(formData, "adminEmail").toLowerCase();
+  const adminPassword = getString(formData, "adminPassword");
+  const isActive = formData.get("isActive") === "on";
+
+  if (!companyId || !companyName || !adminId || !adminFirstName || !adminLastName || !adminEmail) {
+    throw new Error("Firma ve admin bilgileri eksik.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.company.update({
+      where: { id: companyId },
+      data: {
+        name: companyName,
+        contactName: contactName || null,
+        contactEmail: contactEmail || null,
+        contactPhone: contactPhone || null,
+        address: address || null,
+        city: city || null,
+        district: district || null,
+        category: category || null,
+        isActive,
+      },
+    });
+
+    await tx.user.update({
+      where: { id: adminId },
+      data: {
+        name: `${adminFirstName} ${adminLastName}`.trim(),
+        firstName: adminFirstName,
+        lastName: adminLastName,
+        email: adminEmail,
+        ...(adminPassword ? { password: await bcrypt.hash(adminPassword, 10) } : {}),
+      },
+    });
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/companies");
+  revalidatePath(`/dashboard/companies/${companyId}`);
+}
+
+export async function deleteCompanyAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "SUPERADMIN") {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const companyId = getString(formData, "companyId");
+
+  if (!companyId) {
+    throw new Error("Firma bilgisi eksik.");
+  }
+
+  await prisma.company.delete({
+    where: { id: companyId },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/companies");
+  redirect("/dashboard/companies");
+}
+
 export async function createCompanyCategoryAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
@@ -90,9 +174,7 @@ export async function createCompanyCategoryAction(formData: FormData) {
   }
 
   await prisma.companyCategory.create({
-    data: {
-      name,
-    },
+    data: { name },
   });
 
   revalidatePath("/dashboard/settings/company-categories");
@@ -116,10 +198,7 @@ export async function updateCompanyCategoryAction(formData: FormData) {
 
   await prisma.companyCategory.update({
     where: { id: categoryId },
-    data: {
-      name,
-      isActive,
-    },
+    data: { name, isActive },
   });
 
   revalidatePath("/dashboard/settings/company-categories");
@@ -135,47 +214,25 @@ export async function createEmployeeAction(formData: FormData) {
 
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
-  const email = getString(formData, "email").toLowerCase();
+  const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const department = getString(formData, "department");
-  const ageValue = getString(formData, "age");
-  const latitudeValue = getString(formData, "allowedLatitude");
-  const longitudeValue = getString(formData, "allowedLongitude");
-  const radiusValue = getString(formData, "allowedRadiusM");
-  const age = Number(ageValue);
-  const allowedLatitude = Number(latitudeValue);
-  const allowedLongitude = Number(longitudeValue);
-  const allowedRadiusM = Number(radiusValue);
+  const rfidCardId = normalizeOptionalRfidCardId(getString(formData, "rfidCardId"));
+  const age = Number(getString(formData, "age"));
 
-  if (
-    !firstName ||
-    !lastName ||
-    !email ||
-    !password ||
-    !department ||
-    !Number.isFinite(age) ||
-    age < 16 ||
-    !Number.isFinite(allowedLatitude) ||
-    !Number.isFinite(allowedLongitude) ||
-    !Number.isFinite(allowedRadiusM) ||
-    allowedRadiusM <= 0
-  ) {
+  if (!firstName || !lastName || !department || !Number.isFinite(age) || age < 16) {
     throw new Error("Personel bilgileri gecersiz.");
   }
-
-  const passwordHash = await bcrypt.hash(password, 10);
 
   await prisma.employee.create({
     data: {
       firstName,
       lastName,
       email,
-      password: passwordHash,
+      password: password ? await bcrypt.hash(password, 10) : null,
       department,
       age,
-      allowedLatitude,
-      allowedLongitude,
-      allowedRadiusM,
+      rfidCardId,
       companyId: user.companyId,
     },
   });
@@ -194,28 +251,14 @@ export async function updateEmployeeAction(formData: FormData) {
   const employeeId = getString(formData, "employeeId");
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
-  const email = getString(formData, "email").toLowerCase();
+  const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const department = getString(formData, "department");
+  const rfidCardId = normalizeOptionalRfidCardId(getString(formData, "rfidCardId"));
   const age = Number(getString(formData, "age"));
-  const allowedLatitude = Number(getString(formData, "allowedLatitude"));
-  const allowedLongitude = Number(getString(formData, "allowedLongitude"));
-  const allowedRadiusM = Number(getString(formData, "allowedRadiusM"));
   const isActive = formData.get("isActive") === "on";
 
-  if (
-    !employeeId ||
-    !firstName ||
-    !lastName ||
-    !email ||
-    !department ||
-    !Number.isFinite(age) ||
-    age < 16 ||
-    !Number.isFinite(allowedLatitude) ||
-    !Number.isFinite(allowedLongitude) ||
-    !Number.isFinite(allowedRadiusM) ||
-    allowedRadiusM <= 0
-  ) {
+  if (!employeeId || !firstName || !lastName || !department || !Number.isFinite(age) || age < 16) {
     throw new Error("Personel bilgileri gecersiz.");
   }
 
@@ -230,9 +273,7 @@ export async function updateEmployeeAction(formData: FormData) {
       email,
       department,
       age,
-      allowedLatitude,
-      allowedLongitude,
-      allowedRadiusM,
+      rfidCardId,
       isActive,
       ...(password ? { password: await bcrypt.hash(password, 10) } : {}),
     },
@@ -242,31 +283,80 @@ export async function updateEmployeeAction(formData: FormData) {
   revalidatePath("/dashboard/employees");
 }
 
-export async function createDeviceAction(formData: FormData) {
+export async function deleteEmployeeAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const employeeId = getString(formData, "employeeId");
+
+  if (!employeeId) {
+    throw new Error("Personel bilgisi eksik.");
+  }
+
+  await prisma.employee.deleteMany({
+    where: {
+      id: employeeId,
+      companyId: user.companyId,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/employees");
+}
+
+export async function createCompanyDeviceAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "SUPERADMIN") {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const companyId = getString(formData, "companyId");
   const name = getString(formData, "name");
   const macAddress = getString(formData, "macAddress");
 
-  if (!name) {
-    throw new Error("Cihaz adi zorunludur.");
+  if (!companyId || !name || !macAddress) {
+    throw new Error("Cihaz adi ve MAC adresi zorunludur.");
   }
 
   await prisma.device.create({
     data: {
       name,
-      macAddress: macAddress || null,
-      companyId: user.companyId,
-      ...buildNextQrWindow(),
+      macAddress,
+      companyId,
     },
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/devices");
+  revalidatePath(`/dashboard/companies/${companyId}`);
+}
+
+export async function updateCompanyDeviceAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "SUPERADMIN") {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const companyId = getString(formData, "companyId");
+  const deviceId = getString(formData, "deviceId");
+  const name = getString(formData, "name");
+  const macAddress = getString(formData, "macAddress");
+
+  if (!companyId || !deviceId || !name || !macAddress) {
+    throw new Error("Cihaz bilgileri eksik.");
+  }
+
+  await prisma.device.updateMany({
+    where: { id: deviceId, companyId },
+    data: { name, macAddress },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/companies/${companyId}`);
 }
 
 export async function updateDeviceAction(formData: FormData) {
@@ -278,10 +368,9 @@ export async function updateDeviceAction(formData: FormData) {
 
   const deviceId = getString(formData, "deviceId");
   const name = getString(formData, "name");
-  const macAddress = getString(formData, "macAddress");
 
   if (!deviceId || !name) {
-    throw new Error("Cihaz bilgileri eksik.");
+    throw new Error("Cihaz adi zorunludur.");
   }
 
   await prisma.device.updateMany({
@@ -289,72 +378,11 @@ export async function updateDeviceAction(formData: FormData) {
       id: deviceId,
       companyId: user.companyId,
     },
-    data: {
-      name,
-      macAddress: macAddress || null,
-    },
+    data: { name },
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/devices");
-}
-
-export async function updateCompanyAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "SUPERADMIN") {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = getString(formData, "companyId");
-  const adminId = getString(formData, "adminId");
-  const companyName = getString(formData, "companyName");
-  const contactName = getString(formData, "contactName");
-  const contactEmail = getString(formData, "contactEmail").toLowerCase();
-  const contactPhone = getString(formData, "contactPhone");
-  const address = getString(formData, "address");
-  const city = getString(formData, "city");
-  const district = getString(formData, "district");
-  const category = getString(formData, "category");
-  const adminFirstName = getString(formData, "adminFirstName");
-  const adminLastName = getString(formData, "adminLastName");
-  const adminEmail = getString(formData, "adminEmail").toLowerCase();
-  const adminPassword = getString(formData, "adminPassword");
-
-  if (!companyId || !companyName || !adminId || !adminFirstName || !adminLastName || !adminEmail) {
-    throw new Error("Firma ve admin bilgileri eksik.");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.company.update({
-      where: { id: companyId },
-      data: {
-        name: companyName,
-        contactName: contactName || null,
-        contactEmail: contactEmail || null,
-        contactPhone: contactPhone || null,
-        address: address || null,
-        city: city || null,
-        district: district || null,
-        category: category || null,
-      },
-    });
-
-    await tx.user.update({
-      where: { id: adminId },
-      data: {
-        name: `${adminFirstName} ${adminLastName}`.trim(),
-        firstName: adminFirstName,
-        lastName: adminLastName,
-        email: adminEmail,
-        ...(adminPassword ? { password: await bcrypt.hash(adminPassword, 10) } : {}),
-      },
-    });
-  });
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/companies");
-  revalidatePath(`/dashboard/companies/${companyId}`);
 }
 
 export async function logoutAction() {

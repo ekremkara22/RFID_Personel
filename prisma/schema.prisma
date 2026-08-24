@@ -71,9 +71,7 @@ model Employee {
   password          String?
   department        String
   age               Int
-  allowedLatitude   Float?
-  allowedLongitude  Float?
-  allowedRadiusM    Int?
+  rfidCardId        String?         @unique
   isActive          Boolean         @default(true)
   companyId         String
   company           Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -87,9 +85,6 @@ model Device {
   name            String
   macAddress      String?         @unique
   secretKey       String          @default(uuid())
-  activeQrToken   String?         @unique
-  qrUpdatedAt     DateTime?
-  qrExpiresAt     DateTime?
   lastSeenAt      DateTime?
   companyId       String
   company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -106,9 +101,5 @@ model AttendanceLog {
   device            Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   scannedAt         DateTime       @default(now())
   type              AttendanceType
-  qrTokenUsed       String?
-  locationLatitude  Float?
-  locationLongitude Float?
-  locationValid     Boolean?
-  qrMatched         Boolean?
+  rfidCardId        String?
 }

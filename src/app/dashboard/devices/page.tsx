@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createDeviceAction, updateDeviceAction } from "@/app/dashboard/actions";
+import { Eye, Search } from "lucide-react";
+import { updateDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -56,144 +57,111 @@ export default async function DevicesPage(props: {
     orderBy: { createdAt: "desc" },
   });
   const selectedDevice =
-    devices.find((device) => device.id === selectedDeviceId) ?? devices[0] ?? null;
+    devices.find((device) => device.id === selectedDeviceId) ?? null;
 
   return (
     <div className={styles.page}>
       <section className={`glass-panel ${styles.heroCard}`}>
         <div>
           <p className={styles.eyebrow}>RFID Cihazlar</p>
-          <h1 className={styles.title}>Cihaz Yonetimi</h1>
+          <h1 className={styles.title}>Atanan Cihazlar</h1>
           <p className={styles.subtitle}>
-            Cihazlari listbox mantigiyla arayabilir, secili ESP32 cihazinin detayini gorup
-            guncelleyebilirsin.
+            Cihazlari super admin firmana atar. Bu ekranda cihaz bilgilerini gorebilir ve kendi
+            kullanacagin cihaz adini duzenleyebilirsin.
           </p>
         </div>
       </section>
 
-      <section className={styles.mainGrid}>
-        <div className={styles.primaryColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Kayitli Cihazlar</p>
-                <h2 className={styles.sectionTitle}>Cihaz Listesi</h2>
-              </div>
-            </div>
-
-            <form className={styles.searchForm}>
-              <input name="q" defaultValue={query} placeholder="Cihaz arama textboxu" />
-              <button type="submit">Arama</button>
-            </form>
-
-            <div className={styles.listBox}>
-              {devices.length === 0 ? (
-                <p className={styles.emptyState}>Aramana uygun cihaz bulunamadi.</p>
-              ) : (
-                devices.map((device) => (
-                  <Link
-                    key={device.id}
-                    href={buildDeviceUrl(query, device.id)}
-                    className={selectedDevice?.id === device.id ? styles.listItemActive : styles.listItemLink}
-                  >
-                    <div>
-                      <p className={styles.logTitle}>{device.name}</p>
-                      <p className={styles.logMeta}>MAC: {device.macAddress ?? "-"}</p>
-                    </div>
-                    <div className={styles.logMetaRight}>
-                      <p>{device.lastSeenAt ? "Online" : "Bekleniyor"}</p>
-                      <p>{device.qrExpiresAt ? `Token: ${formatDate(device.qrExpiresAt)}` : "Token yok"}</p>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Yeni Cihaz</p>
-                <h2 className={styles.sectionTitle}>ESP32 Kaydi</h2>
-              </div>
-            </div>
-
-            <form action={createDeviceAction} className={styles.formGrid}>
-              <label className={styles.field}>
-                <span>Cihaz Adi</span>
-                <input name="name" required placeholder="On Kapi ESP32" />
-              </label>
-
-              <label className={styles.field}>
-                <span>MAC Adresi</span>
-                <input name="macAddress" placeholder="AA-BB-CC-DD-EE-FF" />
-              </label>
-
-              <div className={styles.fullWidth}>
-                <SubmitButton
-                  idleLabel="Cihazi Kaydet"
-                  pendingLabel="Kaydediliyor..."
-                  className={styles.primaryButton}
-                />
-              </div>
-            </form>
-          </section>
+      <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <Search size={18} />
+            <input name="q" defaultValue={query} placeholder="Cihaz arama: ad, MAC veya secret key" />
+            <button type="submit">Ara</button>
+          </form>
         </div>
 
-        <aside className={styles.sideColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Cihaz Detayi</p>
-                <h2 className={styles.sectionTitle}>Secili Cihaz</h2>
-              </div>
-            </div>
-
-            {selectedDevice ? (
-              <form action={updateDeviceAction} className={styles.formGridSingle}>
-                <input type="hidden" name="deviceId" value={selectedDevice.id} />
-
-                <label className={styles.field}>
-                  <span>Cihaz Adi</span>
-                  <input name="name" defaultValue={selectedDevice.name} required />
-                </label>
-
-                <label className={styles.field}>
-                  <span>MAC Adresi</span>
-                  <input name="macAddress" defaultValue={selectedDevice.macAddress ?? ""} />
-                </label>
-
-                <div className={styles.detailList}>
-                  <p>
-                    <span>Secret Key</span>
-                    {selectedDevice.secretKey}
-                  </p>
-                  <p>
-                    <span>Aktif Cihaz Token</span>
-                    {selectedDevice.activeQrToken ?? "UUID bekleniyor"}
-                  </p>
-                  <p>
-                    <span>Token Bitis</span>
-                    {selectedDevice.qrExpiresAt ? formatDate(selectedDevice.qrExpiresAt) : "Sure yok"}
-                  </p>
-                  <p>
-                    <span>Son Gorulme</span>
-                    {selectedDevice.lastSeenAt ? formatDate(selectedDevice.lastSeenAt) : "Henuz yok"}
-                  </p>
-                </div>
-
-                <SubmitButton
-                  idleLabel="Cihazi Guncelle"
-                  pendingLabel="Guncelleniyor..."
-                  className={styles.primaryButton}
-                />
-              </form>
-            ) : (
-              <p className={styles.emptyState}>Detay icin listeden cihaz sec.</p>
-            )}
-          </section>
-        </aside>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Cihaz Adi</th>
+                <th>MAC Adresi</th>
+                <th>Secret Key</th>
+                <th>Son Gorulme</th>
+                <th>Islem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className={styles.emptyCell}>
+                    Firmana atanmis cihaz bulunamadi.
+                  </td>
+                </tr>
+              ) : (
+                devices.map((device) => (
+                  <tr key={device.id}>
+                    <td>{device.name}</td>
+                    <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
+                    <td className={styles.monoCell}>{device.secretKey}</td>
+                    <td>{device.lastSeenAt ? formatDate(device.lastSeenAt) : "Henuz yok"}</td>
+                    <td>
+                      <Link href={buildDeviceUrl(query, device.id)} className={styles.inlineAction}>
+                        <Eye size={16} />
+                        <span>Incele</span>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
+
+      {selectedDevice ? (
+        <section className={`glass-panel ${styles.sectionCard}`}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.sectionEyebrow}>Cihaz Detayi</p>
+              <h2 className={styles.sectionTitle}>{selectedDevice.name}</h2>
+            </div>
+          </div>
+
+          <form action={updateDeviceAction} className={styles.formGrid}>
+            <input type="hidden" name="deviceId" value={selectedDevice.id} />
+
+            <label className={styles.field}>
+              <span>Cihaz Adi</span>
+              <input name="name" defaultValue={selectedDevice.name} required />
+            </label>
+
+            <label className={styles.field}>
+              <span>MAC Adresi</span>
+              <input value={selectedDevice.macAddress ?? ""} readOnly />
+            </label>
+
+            <label className={styles.field}>
+              <span>Secret Key</span>
+              <input value={selectedDevice.secretKey} readOnly />
+            </label>
+
+            <label className={styles.field}>
+              <span>Son Gorulme</span>
+              <input value={selectedDevice.lastSeenAt ? formatDate(selectedDevice.lastSeenAt) : "Henuz yok"} readOnly />
+            </label>
+
+            <div className={styles.fullWidth}>
+              <SubmitButton
+                idleLabel="Cihaz Adini Guncelle"
+                pendingLabel="Guncelleniyor..."
+                className={styles.primaryButton}
+              />
+            </div>
+          </form>
+        </section>
+      ) : null}
     </div>
   );
 }

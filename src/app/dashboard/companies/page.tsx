@@ -47,6 +47,7 @@ export default async function CompaniesPage(props: {
       _count: {
         select: {
           employees: true,
+          devices: true,
         },
       },
     },
@@ -93,9 +94,10 @@ export default async function CompaniesPage(props: {
                   <th>Firma id</th>
                   <th>Firma Adi</th>
                   <th>Firma Admini</th>
-                  <th>Personel Sayisi</th>
+                  <th>Personel</th>
+                  <th>Cihaz</th>
                   <th>Statu</th>
-                  <th>Duzelt</th>
+                  <th>Islem</th>
                 </tr>
               </thead>
               <tbody>
@@ -120,6 +122,7 @@ export default async function CompaniesPage(props: {
                         : "Firma admini tanimlanmadi"}
                     </td>
                     <td>{company._count.employees}</td>
+                    <td>{company._count.devices}</td>
                     <td>
                       <span className={company.isActive ? styles.statusActive : styles.statusPassive}>
                         {company.isActive ? "Aktif" : "Pasif"}

@@ -212,7 +212,7 @@ export default async function DashboardPage() {
           <p className={styles.subtitle}>
             {isSuperadmin
               ? "Tüm firmalar, yöneticiler, cihazlar ve personel hareketleri için yoğun veri izleme ve raporlama ekranı."
-              : "Firmanızın personel giriş-çıkış kayıtları, QR cihazları, GPS doğrulama durumu ve günlük rapor akışı."}
+              : "Firmanızın personel giriş-çıkış kayıtları, RFID cihazları ve günlük rapor akışı."}
           </p>
         </div>
 
@@ -298,7 +298,7 @@ export default async function DashboardPage() {
                     <th>Personel</th>
                     <th>Firma</th>
                     <th>Departman</th>
-                    <th>Konum Alanı</th>
+                    <th>RFID Kart</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -317,10 +317,7 @@ export default async function DashboardPage() {
                         <td>{employee.company.name}</td>
                         <td>{employee.department}</td>
                         <td>
-                          {employee.allowedLatitude ?? "-"}, {employee.allowedLongitude ?? "-"}
-                          <div className={styles.mutedRow}>
-                            {employee.allowedRadiusM ? `${employee.allowedRadiusM} m` : "-"}
-                          </div>
+                          {employee.rfidCardId ?? "Kart atanmadi"}
                         </td>
                       </tr>
                     ))
@@ -361,8 +358,8 @@ export default async function DashboardPage() {
           <section className={`glass-panel ${styles.sectionCard}`}>
             <div className={styles.sectionHeader}>
               <div>
-                <p className={styles.sectionEyebrow}>QR cihazlar</p>
-                <h2 className={styles.sectionTitle}>Aktif UUID Durumu</h2>
+                <p className={styles.sectionEyebrow}>RFID cihazlar</p>
+                <h2 className={styles.sectionTitle}>Cihaz Durumu</h2>
               </div>
             </div>
 
@@ -377,12 +374,8 @@ export default async function DashboardPage() {
                       <p className={styles.logMeta}>Secret Key: {device.secretKey}</p>
                     </div>
                     <div className={styles.logMetaRight}>
-                      <p>{device.activeQrToken ?? "UUID bekleniyor"}</p>
-                      <p>
-                        {device.qrExpiresAt
-                          ? `Bitiş: ${formatDate(device.qrExpiresAt)}`
-                          : "Süre yok"}
-                      </p>
+                      <p>{device.lastSeenAt ? "Online" : "Bekleniyor"}</p>
+                      <p>{device.lastSeenAt ? formatDate(device.lastSeenAt) : "Henuz yok"}</p>
                     </div>
                   </article>
                 ))
@@ -401,8 +394,7 @@ export default async function DashboardPage() {
             <div className={styles.logList}>
               {recentLogs.length === 0 ? (
                 <p className={styles.emptyState}>
-                  Henüz kayıtlı hareket yok. Giriş ve çıkış hareketlerinde QR ve konum
-                  teyitleri burada görünecek.
+                  Henüz kayıtlı hareket yok. RFID kartla giriş ve çıkış hareketleri burada görünecek.
                 </p>
               ) : (
                 recentLogs.map((log) => (
@@ -414,12 +406,7 @@ export default async function DashboardPage() {
                       <p className={styles.logMeta}>
                         {attendanceLabels[log.type]} - {log.employee.company.name}
                       </p>
-                      {log.type === "ENTRY" || log.type === "EXIT" ? (
-                        <p className={styles.mutedRow}>
-                          QR: {log.qrMatched ? "Doğrulandı" : "Yok"} | Konum:{" "}
-                          {log.locationValid ? "Uygun" : "Yok"}
-                        </p>
-                      ) : null}
+                      <p className={styles.mutedRow}>RFID Kart: {log.rfidCardId ?? "Kart bilgisi yok"}</p>
                     </div>
                     <div className={styles.logMetaRight}>
                       <p>{formatDate(log.scannedAt)}</p>

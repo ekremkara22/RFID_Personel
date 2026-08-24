@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createEmployeeAction, updateEmployeeAction } from "@/app/dashboard/actions";
+import { Eye, Pencil, Search } from "lucide-react";
+import {
+  createEmployeeAction,
+  deleteEmployeeAction,
+  updateEmployeeAction,
+} from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -44,6 +49,7 @@ export default async function EmployeesPage(props: {
               { lastName: { contains: query } },
               { email: { contains: query } },
               { department: { contains: query } },
+              { rfidCardId: { contains: query } },
             ],
           }
         : {}),
@@ -51,7 +57,7 @@ export default async function EmployeesPage(props: {
     orderBy: { createdAt: "desc" },
   });
   const selectedEmployee =
-    employees.find((employee) => employee.id === selectedEmployeeId) ?? employees[0] ?? null;
+    employees.find((employee) => employee.id === selectedEmployeeId) ?? null;
 
   return (
     <div className={styles.page}>
@@ -60,212 +66,209 @@ export default async function EmployeesPage(props: {
           <p className={styles.eyebrow}>Personeller</p>
           <h1 className={styles.title}>Personel Yonetimi</h1>
           <p className={styles.subtitle}>
-            Personelleri listbox mantigiyla arayabilir, secili personelin detay bilgilerini inceleyip
-            guncelleyebilirsin.
+            Personelleri tam sayfa tabloda arayabilir, secili kaydin bilgilerini inceleyebilir,
+            duzenleyebilir veya silebilirsin.
           </p>
         </div>
       </section>
 
-      <section className={styles.mainGrid}>
-        <div className={styles.primaryColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Kayitli Liste</p>
-                <h2 className={styles.sectionTitle}>Personeller</h2>
-              </div>
-            </div>
-
-            <form className={styles.searchForm}>
-              <input name="q" defaultValue={query} placeholder="Personel arama textboxu" />
-              <button type="submit">Arama</button>
-            </form>
-
-            <div className={styles.listBox}>
-              {employees.length === 0 ? (
-                <p className={styles.emptyState}>Aramana uygun personel bulunamadi.</p>
-              ) : (
-                employees.map((employee) => (
-                  <Link
-                    key={employee.id}
-                    href={buildEmployeeUrl(query, employee.id)}
-                    className={selectedEmployee?.id === employee.id ? styles.listItemActive : styles.listItemLink}
-                  >
-                    <div>
-                      <p className={styles.logTitle}>
-                        {employee.firstName} {employee.lastName}
-                      </p>
-                      <p className={styles.logMeta}>
-                        {employee.department} | {employee.age} yas
-                      </p>
-                    </div>
-                    <div className={styles.logMetaRight}>
-                      <p>{employee.email ?? "-"}</p>
-                      <p>{employee.isActive ? "Aktif" : "Pasif"}</p>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Yeni Kayit</p>
-                <h2 className={styles.sectionTitle}>Personel Ekle</h2>
-              </div>
-            </div>
-
-            <form action={createEmployeeAction} className={styles.formGrid}>
-              <label className={styles.field}>
-                <span>Isim</span>
-                <input name="firstName" required placeholder="Ahmet" />
-              </label>
-
-              <label className={styles.field}>
-                <span>Soyisim</span>
-                <input name="lastName" required placeholder="Yilmaz" />
-              </label>
-
-              <label className={styles.field}>
-                <span>Mobil Uygulama E-postasi</span>
-                <input name="email" type="email" required placeholder="ahmet@firma.com" />
-              </label>
-
-              <label className={styles.field}>
-                <span>Mobil Uygulama Sifresi</span>
-                <input name="password" type="password" required placeholder="Personel sifresi" />
-              </label>
-
-              <label className={styles.field}>
-                <span>Departman</span>
-                <input name="department" required placeholder="Uretim" />
-              </label>
-
-              <label className={styles.field}>
-                <span>Yas</span>
-                <input name="age" type="number" min="16" max="90" required />
-              </label>
-
-              <label className={styles.field}>
-                <span>Izinli Enlem</span>
-                <input name="allowedLatitude" type="number" step="0.000001" required />
-              </label>
-
-              <label className={styles.field}>
-                <span>Izinli Boylam</span>
-                <input name="allowedLongitude" type="number" step="0.000001" required />
-              </label>
-
-              <label className={styles.field}>
-                <span>Izinli Alan (metre)</span>
-                <input name="allowedRadiusM" type="number" min="10" required />
-              </label>
-
-              <div className={styles.fullWidth}>
-                <SubmitButton
-                  idleLabel="Personeli Kaydet"
-                  pendingLabel="Kaydediliyor..."
-                  className={styles.primaryButton}
-                />
-              </div>
-            </form>
-          </section>
+      <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <Search size={18} />
+            <input
+              name="q"
+              defaultValue={query}
+              placeholder="Personel arama: ad, soyad, departman, e-posta veya RFID kart"
+            />
+            <button type="submit">Ara</button>
+          </form>
         </div>
 
-        <aside className={styles.sideColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Personel Detayi</p>
-                <h2 className={styles.sectionTitle}>Secili Personel</h2>
-              </div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Personel</th>
+                <th>Departman</th>
+                <th>RFID Kart ID</th>
+                <th>E-posta</th>
+                <th>Statu</th>
+                <th>Islem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employees.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className={styles.emptyCell}>
+                    Aramana uygun personel bulunamadi.
+                  </td>
+                </tr>
+              ) : (
+                employees.map((employee) => (
+                  <tr key={employee.id}>
+                    <td>
+                      <strong>
+                        {employee.firstName} {employee.lastName}
+                      </strong>
+                      <p className={styles.tableSubText}>{employee.age} yas</p>
+                    </td>
+                    <td>{employee.department}</td>
+                    <td className={styles.monoCell}>{employee.rfidCardId ?? "Kart atanmadi"}</td>
+                    <td>{employee.email ?? "-"}</td>
+                    <td>
+                      <span className={employee.isActive ? styles.statusActive : styles.statusPassive}>
+                        {employee.isActive ? "Aktif" : "Pasif"}
+                      </span>
+                    </td>
+                    <td>
+                      <Link
+                        href={buildEmployeeUrl(query, employee.id)}
+                        className={styles.inlineAction}
+                      >
+                        <Eye size={16} />
+                        <span>Incele</span>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {selectedEmployee ? (
+        <section className={`glass-panel ${styles.sectionCard}`}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.sectionEyebrow}>Secili Personel</p>
+              <h2 className={styles.sectionTitle}>
+                {selectedEmployee.firstName} {selectedEmployee.lastName}
+              </h2>
             </div>
+          </div>
 
-            {selectedEmployee ? (
-              <form action={updateEmployeeAction} className={styles.formGridSingle}>
-                <input type="hidden" name="employeeId" value={selectedEmployee.id} />
+          <form action={updateEmployeeAction} className={styles.formGrid}>
+            <input type="hidden" name="employeeId" value={selectedEmployee.id} />
 
-                <label className={styles.field}>
-                  <span>Isim</span>
-                  <input name="firstName" defaultValue={selectedEmployee.firstName} required />
-                </label>
+            <label className={styles.field}>
+              <span>Isim</span>
+              <input name="firstName" defaultValue={selectedEmployee.firstName} required />
+            </label>
 
-                <label className={styles.field}>
-                  <span>Soyisim</span>
-                  <input name="lastName" defaultValue={selectedEmployee.lastName} required />
-                </label>
+            <label className={styles.field}>
+              <span>Soyisim</span>
+              <input name="lastName" defaultValue={selectedEmployee.lastName} required />
+            </label>
 
-                <label className={styles.field}>
-                  <span>E-posta</span>
-                  <input name="email" type="email" defaultValue={selectedEmployee.email ?? ""} required />
-                </label>
+            <label className={styles.field}>
+              <span>E-posta</span>
+              <input name="email" type="email" defaultValue={selectedEmployee.email ?? ""} />
+            </label>
 
-                <label className={styles.field}>
-                  <span>Yeni Sifre</span>
-                  <input name="password" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
-                </label>
+            <label className={styles.field}>
+              <span>Yeni Sifre</span>
+              <input name="password" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
+            </label>
 
-                <label className={styles.field}>
-                  <span>Departman</span>
-                  <input name="department" defaultValue={selectedEmployee.department} required />
-                </label>
+            <label className={styles.field}>
+              <span>Departman</span>
+              <input name="department" defaultValue={selectedEmployee.department} required />
+            </label>
 
-                <label className={styles.field}>
-                  <span>Yas</span>
-                  <input name="age" type="number" defaultValue={selectedEmployee.age} min="16" max="90" required />
-                </label>
+            <label className={styles.field}>
+              <span>Yas</span>
+              <input name="age" type="number" defaultValue={selectedEmployee.age} min="16" max="90" required />
+            </label>
 
-                <label className={styles.field}>
-                  <span>Izinli Enlem</span>
-                  <input
-                    name="allowedLatitude"
-                    type="number"
-                    step="0.000001"
-                    defaultValue={selectedEmployee.allowedLatitude ?? ""}
-                    required
-                  />
-                </label>
+            <label className={styles.field}>
+              <span>RFID Kart ID</span>
+              <input
+                name="rfidCardId"
+                defaultValue={selectedEmployee.rfidCardId ?? ""}
+                placeholder="Kart okutuldugunda gelen UID"
+              />
+            </label>
 
-                <label className={styles.field}>
-                  <span>Izinli Boylam</span>
-                  <input
-                    name="allowedLongitude"
-                    type="number"
-                    step="0.000001"
-                    defaultValue={selectedEmployee.allowedLongitude ?? ""}
-                    required
-                  />
-                </label>
+            <label className={`${styles.checkField} ${styles.formActionAlign}`}>
+              <input name="isActive" type="checkbox" defaultChecked={selectedEmployee.isActive} />
+              <span>Personel aktif</span>
+            </label>
 
-                <label className={styles.field}>
-                  <span>Izinli Alan (metre)</span>
-                  <input
-                    name="allowedRadiusM"
-                    type="number"
-                    min="10"
-                    defaultValue={selectedEmployee.allowedRadiusM ?? ""}
-                    required
-                  />
-                </label>
+            <div className={styles.fullWidthActionRow}>
+              <SubmitButton
+                idleLabel="Personeli Guncelle"
+                pendingLabel="Guncelleniyor..."
+                className={styles.primaryButton}
+              />
+            </div>
+          </form>
 
-                <label className={styles.checkField}>
-                  <input name="isActive" type="checkbox" defaultChecked={selectedEmployee.isActive} />
-                  <span>Personel aktif</span>
-                </label>
+          <form action={deleteEmployeeAction} className={styles.dangerForm}>
+            <input type="hidden" name="employeeId" value={selectedEmployee.id} />
+            <SubmitButton
+              idleLabel="Personeli Sil"
+              pendingLabel="Siliniyor..."
+              className={styles.dangerButton}
+            />
+          </form>
+        </section>
+      ) : null}
 
-                <SubmitButton
-                  idleLabel="Personeli Guncelle"
-                  pendingLabel="Guncelleniyor..."
-                  className={styles.primaryButton}
-                />
-              </form>
-            ) : (
-              <p className={styles.emptyState}>Detay icin listeden personel sec.</p>
-            )}
-          </section>
-        </aside>
+      <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.sectionEyebrow}>Yeni Kayit</p>
+            <h2 className={styles.sectionTitle}>Personel Ekle</h2>
+          </div>
+          <Pencil size={18} />
+        </div>
+
+        <form action={createEmployeeAction} className={styles.formGrid}>
+          <label className={styles.field}>
+            <span>Isim</span>
+            <input name="firstName" required placeholder="Ahmet" />
+          </label>
+
+          <label className={styles.field}>
+            <span>Soyisim</span>
+            <input name="lastName" required placeholder="Yilmaz" />
+          </label>
+
+          <label className={styles.field}>
+            <span>E-posta</span>
+            <input name="email" type="email" placeholder="ahmet@firma.com" />
+          </label>
+
+          <label className={styles.field}>
+            <span>Sifre</span>
+            <input name="password" type="password" placeholder="Opsiyonel personel sifresi" />
+          </label>
+
+          <label className={styles.field}>
+            <span>Departman</span>
+            <input name="department" required placeholder="Uretim" />
+          </label>
+
+          <label className={styles.field}>
+            <span>Yas</span>
+            <input name="age" type="number" min="16" max="90" required />
+          </label>
+
+          <label className={`${styles.field} ${styles.fullWidth}`}>
+            <span>RFID Kart ID</span>
+            <input name="rfidCardId" placeholder="Kart okutuldugunda gelen UID" />
+          </label>
+
+          <div className={styles.fullWidth}>
+            <SubmitButton
+              idleLabel="Personeli Kaydet"
+              pendingLabel="Kaydediliyor..."
+              className={styles.primaryButton}
+            />
+          </div>
+        </form>
       </section>
     </div>
   );

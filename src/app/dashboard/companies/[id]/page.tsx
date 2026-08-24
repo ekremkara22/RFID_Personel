@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { updateCompanyAction } from "@/app/dashboard/actions";
+import {
+  createCompanyDeviceAction,
+  deleteCompanyAction,
+  updateCompanyAction,
+  updateCompanyDeviceAction,
+} from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -41,7 +46,7 @@ function buildCompanyUrl(companyId: string, tab: TabKey, extra?: Record<string, 
 
 export default async function CompanyDetailPage(props: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; employeeQ?: string; employeeId?: string }>;
+  searchParams: Promise<{ tab?: string; employeeQ?: string; employeeId?: string; deviceId?: string }>;
 }) {
   const { user } = await requireSessionUser();
 
@@ -56,6 +61,7 @@ export default async function CompanyDetailPage(props: {
     : "general";
   const employeeQuery = typeof searchParams.employeeQ === "string" ? searchParams.employeeQ.trim() : "";
   const selectedEmployeeId = typeof searchParams.employeeId === "string" ? searchParams.employeeId : "";
+  const selectedDeviceId = typeof searchParams.deviceId === "string" ? searchParams.deviceId : "";
 
   const [company, categories] = await Promise.all([
     prisma.company.findUnique({
@@ -73,6 +79,7 @@ export default async function CompanyDetailPage(props: {
                   { lastName: { contains: employeeQuery } },
                   { email: { contains: employeeQuery } },
                   { department: { contains: employeeQuery } },
+                  { rfidCardId: { contains: employeeQuery } },
                 ],
               }
             : undefined,
@@ -102,6 +109,8 @@ export default async function CompanyDetailPage(props: {
   const companyAdmin = company.users[0] ?? null;
   const selectedEmployee =
     company.employees.find((employee) => employee.id === selectedEmployeeId) ?? company.employees[0] ?? null;
+  const selectedDevice =
+    company.devices.find((device) => device.id === selectedDeviceId) ?? company.devices[0] ?? null;
 
   return (
     <div className={styles.page}>
@@ -149,6 +158,11 @@ export default async function CompanyDetailPage(props: {
             <label className={styles.field}>
               <span>Firma Adi</span>
               <input name="companyName" defaultValue={company.name} required />
+            </label>
+
+            <label className={`${styles.checkField} ${styles.formActionAlign}`}>
+              <input name="isActive" type="checkbox" defaultChecked={company.isActive} />
+              <span>Firma aktif</span>
             </label>
 
             <label className={styles.field}>
@@ -235,6 +249,15 @@ export default async function CompanyDetailPage(props: {
               />
             </div>
           </form>
+
+          <form action={deleteCompanyAction} className={styles.dangerForm}>
+            <input type="hidden" name="companyId" value={company.id} />
+            <SubmitButton
+              idleLabel="Firmayi Sil"
+              pendingLabel="Siliniyor..."
+              className={styles.dangerButton}
+            />
+          </form>
         </section>
       ) : null}
 
@@ -313,14 +336,8 @@ export default async function CompanyDetailPage(props: {
                     {selectedEmployee.email ?? "-"}
                   </p>
                   <p>
-                    <span>Konum Alani</span>
-                    {selectedEmployee.allowedLatitude && selectedEmployee.allowedLongitude
-                      ? `${selectedEmployee.allowedLatitude}, ${selectedEmployee.allowedLongitude}`
-                      : "-"}
-                  </p>
-                  <p>
-                    <span>Yaricap</span>
-                    {selectedEmployee.allowedRadiusM ? `${selectedEmployee.allowedRadiusM} m` : "-"}
+                    <span>RFID Kart ID</span>
+                    {selectedEmployee.rfidCardId ?? "Kart atanmadi"}
                   </p>
                 </div>
               ) : (
@@ -332,38 +349,132 @@ export default async function CompanyDetailPage(props: {
       ) : null}
 
       {activeTab === "devices" ? (
-        <section className={`glass-panel ${styles.sectionCard}`}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.sectionEyebrow}>Cihazlar</p>
-              <h2 className={styles.sectionTitle}>Firma RFID Cihazlari</h2>
-            </div>
+        <section className={styles.mainGrid}>
+          <div className={styles.primaryColumn}>
+            <section className={`glass-panel ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Cihazlar</p>
+                  <h2 className={styles.sectionTitle}>Firma RFID Cihazlari</h2>
+                </div>
+              </div>
+
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Cihaz Adi</th>
+                      <th>MAC</th>
+                      <th>Secret Key</th>
+                      <th>Son Gorulme</th>
+                      <th>Islem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {company.devices.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className={styles.emptyCell}>
+                          Bu firmaya tanimli cihaz yok.
+                        </td>
+                      </tr>
+                    ) : (
+                      company.devices.map((device) => (
+                        <tr key={device.id}>
+                          <td>{device.name}</td>
+                          <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
+                          <td className={styles.monoCell}>{device.secretKey}</td>
+                          <td>{device.lastSeenAt ? device.lastSeenAt.toLocaleString("tr-TR") : "-"}</td>
+                          <td>
+                            <Link
+                              href={buildCompanyUrl(company.id, "devices", { deviceId: device.id })}
+                              className={styles.inlineAction}
+                            >
+                              Incele
+                            </Link>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className={`glass-panel ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Yeni Cihaz</p>
+                  <h2 className={styles.sectionTitle}>MAC ile Cihaz Tanimi</h2>
+                </div>
+              </div>
+
+              <form action={createCompanyDeviceAction} className={styles.formGrid}>
+                <input type="hidden" name="companyId" value={company.id} />
+                <label className={styles.field}>
+                  <span>Cihaz Adi</span>
+                  <input name="name" required placeholder="On Kapi RFID Okuyucu" />
+                </label>
+                <label className={styles.field}>
+                  <span>MAC Adresi</span>
+                  <input name="macAddress" required placeholder="AA-BB-CC-DD-EE-FF" />
+                </label>
+                <div className={styles.fullWidth}>
+                  <SubmitButton
+                    idleLabel="Cihazi Firmaya Tanimla"
+                    pendingLabel="Kaydediliyor..."
+                    className={styles.primaryButton}
+                  />
+                </div>
+              </form>
+            </section>
           </div>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Cihaz Adi</th>
-                  <th>MAC</th>
-                  <th>Secret Key</th>
-                  <th>Aktif Token</th>
-                  <th>Son Gorulme</th>
-                </tr>
-              </thead>
-              <tbody>
-                {company.devices.map((device) => (
-                  <tr key={device.id}>
-                    <td>{device.name}</td>
-                    <td>{device.macAddress ?? "-"}</td>
-                    <td className={styles.monoCell}>{device.secretKey}</td>
-                    <td className={styles.monoCell}>{device.activeQrToken ?? "Bekleniyor"}</td>
-                    <td>{device.lastSeenAt ? device.lastSeenAt.toLocaleString("tr-TR") : "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <aside className={styles.sideColumn}>
+            <section className={`glass-panel ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Cihaz Detayi</p>
+                  <h2 className={styles.sectionTitle}>Secili Cihaz</h2>
+                </div>
+              </div>
+
+              {selectedDevice ? (
+                <form action={updateCompanyDeviceAction} className={styles.formGridSingle}>
+                  <input type="hidden" name="companyId" value={company.id} />
+                  <input type="hidden" name="deviceId" value={selectedDevice.id} />
+
+                  <label className={styles.field}>
+                    <span>Cihaz Adi</span>
+                    <input name="name" defaultValue={selectedDevice.name} required />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>MAC Adresi</span>
+                    <input name="macAddress" defaultValue={selectedDevice.macAddress ?? ""} required />
+                  </label>
+
+                  <div className={styles.detailList}>
+                    <p>
+                      <span>Secret Key</span>
+                      {selectedDevice.secretKey}
+                    </p>
+                    <p>
+                      <span>Son Gorulme</span>
+                      {selectedDevice.lastSeenAt ? selectedDevice.lastSeenAt.toLocaleString("tr-TR") : "Henuz yok"}
+                    </p>
+                  </div>
+
+                  <SubmitButton
+                    idleLabel="Cihazi Guncelle"
+                    pendingLabel="Guncelleniyor..."
+                    className={styles.primaryButton}
+                  />
+                </form>
+              ) : (
+                <p className={styles.emptyState}>Detay icin listeden cihaz sec.</p>
+              )}
+            </section>
+          </aside>
         </section>
       ) : null}
 

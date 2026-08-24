@@ -100,6 +100,7 @@ async function main() {
       email: "ahmet@demosirketi.com",
       department: "Uretim",
       age: 29,
+      rfidCardId: "RFID-0001",
     },
     {
       firstName: "Elif",
@@ -107,6 +108,7 @@ async function main() {
       email: "elif@demosirketi.com",
       department: "Muhasebe",
       age: 34,
+      rfidCardId: "RFID-0002",
     },
     {
       firstName: "Can",
@@ -114,6 +116,7 @@ async function main() {
       email: "can@demosirketi.com",
       department: "Sevkiyat",
       age: 26,
+      rfidCardId: "RFID-0003",
     },
   ];
 
@@ -142,9 +145,7 @@ async function main() {
           password: employeePassword,
           department: demoEmployee.department,
           age: demoEmployee.age,
-          allowedLatitude: 41.0082,
-          allowedLongitude: 28.9784,
-          allowedRadiusM: 250,
+          rfidCardId: demoEmployee.rfidCardId,
           isActive: true,
         },
       });
@@ -157,9 +158,7 @@ async function main() {
           password: employeePassword,
           department: demoEmployee.department,
           age: demoEmployee.age,
-          allowedLatitude: 41.0082,
-          allowedLongitude: 28.9784,
-          allowedRadiusM: 250,
+          rfidCardId: demoEmployee.rfidCardId,
           companyId: company.id,
         },
       });
@@ -176,18 +175,12 @@ async function main() {
     update: {
       name: "Demo Giris Cihazi",
       companyId: company.id,
-      activeQrToken: crypto.randomUUID(),
-      qrUpdatedAt: new Date(),
-      qrExpiresAt: new Date(Date.now() + 5_000),
       lastSeenAt: new Date(),
     },
     create: {
       name: "Demo Giris Cihazi",
       macAddress: "DEMO-DEVICE-001",
       companyId: company.id,
-      activeQrToken: crypto.randomUUID(),
-      qrUpdatedAt: new Date(),
-      qrExpiresAt: new Date(Date.now() + 5_000),
       lastSeenAt: new Date(),
     },
   });
@@ -205,36 +198,42 @@ async function main() {
           employeeId: firstEmployee.id,
           deviceId: device.id,
           type: AttendanceType.ENTRY,
+          rfidCardId: firstEmployee.rfidCardId,
           scannedAt: subHours(new Date(), 7),
         },
         {
           employeeId: firstEmployee.id,
           deviceId: device.id,
           type: AttendanceType.MEAL_START,
+          rfidCardId: firstEmployee.rfidCardId,
           scannedAt: subHours(new Date(), 3),
         },
         {
           employeeId: firstEmployee.id,
           deviceId: device.id,
           type: AttendanceType.MEAL_END,
+          rfidCardId: firstEmployee.rfidCardId,
           scannedAt: subHours(new Date(), 2),
         },
         {
           employeeId: secondEmployee.id,
           deviceId: device.id,
           type: AttendanceType.ENTRY,
+          rfidCardId: secondEmployee.rfidCardId,
           scannedAt: subHours(new Date(), 8),
         },
         {
           employeeId: secondEmployee.id,
           deviceId: device.id,
           type: AttendanceType.BREAK_START,
+          rfidCardId: secondEmployee.rfidCardId,
           scannedAt: subHours(new Date(), 4),
         },
         {
           employeeId: secondEmployee.id,
           deviceId: device.id,
           type: AttendanceType.BREAK_END,
+          rfidCardId: secondEmployee.rfidCardId,
           scannedAt: subHours(new Date(), 3),
         },
       ],
