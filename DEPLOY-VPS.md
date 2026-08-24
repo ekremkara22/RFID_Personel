@@ -1,4 +1,4 @@
-# CheckInQR VPS Deployment
+# RFID Personel Takip VPS Deployment
 
 ## Sunucu hedefi
 
@@ -36,13 +36,13 @@ pm2 -v
 ```bash
 mkdir -p /var/www
 cd /var/www
-git clone https://github.com/ekremkara22/checkinqr-app.git checkinqr
-cd /var/www/checkinqr
+git clone https://github.com/ekremkara22/RFID_Personel.git rfid-personel-takip
+cd /var/www/rfid-personel-takip
 ```
 
 ## 5. Ortam degiskenleri
 
-`/var/www/checkinqr/.env` dosyasi:
+`/var/www/rfid-personel-takip/.env` dosyasi:
 
 ```env
 DATABASE_URL="mysql://DB_USER:DB_PASSWORD@DB_HOST:3306/DB_NAME"
@@ -53,7 +53,7 @@ NODE_ENV="production"
 ## 6. Uygulama kurulumu
 
 ```bash
-cd /var/www/checkinqr
+cd /var/www/rfid-personel-takip
 npm install
 npm run build
 pm2 start ecosystem.config.cjs
@@ -63,14 +63,14 @@ pm2 startup
 
 ## 7. Nginx reverse proxy
 
-`/etc/nginx/sites-available/checkinqr`:
+`/etc/nginx/sites-available/rfid-personel-takip`:
 
 ```nginx
 server {
     server_name flodeka.com www.flodeka.com;
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -85,7 +85,7 @@ server {
 Etkinlestirme:
 
 ```bash
-ln -s /etc/nginx/sites-available/checkinqr /etc/nginx/sites-enabled/checkinqr
+ln -s /etc/nginx/sites-available/rfid-personel-takip /etc/nginx/sites-enabled/rfid-personel-takip
 nginx -t
 systemctl restart nginx
 ```
@@ -99,9 +99,9 @@ certbot --nginx -d flodeka.com -d www.flodeka.com
 ## 9. Guncelleme akisi
 
 ```bash
-cd /var/www/checkinqr
+cd /var/www/rfid-personel-takip
 git pull
 npm install
 npm run build
-pm2 restart checkinqr
+pm2 restart rfid-personel-takip
 ```

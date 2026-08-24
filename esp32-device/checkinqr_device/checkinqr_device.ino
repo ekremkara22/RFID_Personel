@@ -62,18 +62,18 @@ String getApSsid() {
   uint64_t chipId = ESP.getEfuseMac();
   char suffix[7];
   snprintf(suffix, sizeof(suffix), "%06X", (uint32_t)(chipId & 0xFFFFFF));
-  return "CheckInQR-" + String(suffix);
+  return "RFIDPersonel-" + String(suffix);
 }
 
 void loadWifiCredentials() {
-  preferences.begin("checkinqr", true);
+  preferences.begin("rfidpersonel", true);
   savedWifiSsid = preferences.getString("wifi_ssid", DEFAULT_WIFI_SSID);
   savedWifiPassword = preferences.getString("wifi_pass", DEFAULT_WIFI_PASSWORD);
   preferences.end();
 }
 
 void saveWifiCredentials(const String& ssid, const String& password) {
-  preferences.begin("checkinqr", false);
+  preferences.begin("rfidpersonel", false);
   preferences.putString("wifi_ssid", ssid);
   preferences.putString("wifi_pass", password);
   preferences.end();
@@ -160,7 +160,7 @@ void drawQrCode(const String& token) {
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 54);
-    display.print(currentDeviceName.length() > 0 ? currentDeviceName : "CheckInQR Device");
+    display.print(currentDeviceName.length() > 0 ? currentDeviceName : "RFID Device");
   }
 
   display.display();
@@ -227,13 +227,13 @@ String buildWifiOptionsHtml() {
 void handleConfigRoot() {
   String html = "<!doctype html><html lang=\"tr\"><head><meta charset=\"utf-8\">";
   html += "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">";
-  html += "<title>CheckInQR Wi-Fi Kurulum</title>";
+  html += "<title>RFID Personel Wi-Fi Kurulum</title>";
   html += "<style>body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:#0f172a}";
   html += ".wrap{max-width:520px;margin:0 auto;padding:24px}.card{background:#fff;border-radius:10px;padding:22px}";
   html += "h1{font-size:24px;margin:0 0 8px}p{color:#475569;line-height:1.5}label{display:block;margin-top:14px;font-weight:700}";
   html += "select,input,button{width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border-radius:6px;border:1px solid #cbd5e1;font-size:16px}";
   html += "button{background:#0284c7;color:#fff;border:0;font-weight:700;margin-top:18px}.hint{font-size:13px;color:#64748b}</style></head><body>";
-  html += "<main class=\"wrap\"><section class=\"card\"><h1>CheckInQR Wi-Fi Kurulum</h1>";
+  html += "<main class=\"wrap\"><section class=\"card\"><h1>RFID Personel Wi-Fi Kurulum</h1>";
   html += "<p>ESP32'nin baglanacagi Wi-Fi agini secin ve sifresini girin. Kayit sonrasi cihazdaki reset tusuna basin.</p>";
   html += "<form method=\"post\" action=\"/save\"><label>Wi-Fi Agi</label><select name=\"ssid\" required>";
   html += buildWifiOptionsHtml();
@@ -401,7 +401,7 @@ bool syncQrToken() {
   }
 
   const char* qrToken = responseJson["qrToken"] | "";
-  const char* deviceName = responseJson["deviceName"] | "CheckInQR Device";
+  const char* deviceName = responseJson["deviceName"] | "RFID Device";
 
   currentDeviceName = String(deviceName);
 
@@ -439,7 +439,7 @@ void setup() {
   display.clearDisplay();
   display.display();
 
-  drawStatusScreen("CheckInQR", "ESP32 basladi");
+  drawStatusScreen("RFID Personel", "ESP32 basladi");
   delay(1000);
 
   loadWifiCredentials();

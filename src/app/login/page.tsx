@@ -72,7 +72,7 @@ export default function LoginPage() {
       >
         <div className={styles.formPanel}>
           <div className={styles.header}>
-            <p className={styles.eyebrow}>Flodeka CheckInQR</p>
+            <p className={styles.eyebrow}>RFID Personel Takip</p>
             <h1>Yönetim Paneli Girişi</h1>
             <p className={styles.subtitle}>
               Admin ve firma kullanıcıları için yoğun veri yönetimi, kayıt inceleme ve raporlama paneli.

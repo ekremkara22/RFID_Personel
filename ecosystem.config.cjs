@@ -1,13 +1,13 @@
 module.exports = {
   apps: [
     {
-      name: "checkinqr",
-      cwd: "/var/www/checkinqr",
+      name: "rfid-personel-takip",
+      cwd: "/var/www/rfid-personel-takip",
       script: "npm",
       args: "run start",
       env: {
         NODE_ENV: "production",
-        PORT: 3000,
+        PORT: 3002,
       },
     },
   ],

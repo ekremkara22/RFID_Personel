@@ -62,7 +62,7 @@ export default async function DevicesPage(props: {
     <div className={styles.page}>
       <section className={`glass-panel ${styles.heroCard}`}>
         <div>
-          <p className={styles.eyebrow}>QR Cihazlar</p>
+          <p className={styles.eyebrow}>RFID Cihazlar</p>
           <h1 className={styles.title}>Cihaz Yonetimi</h1>
           <p className={styles.subtitle}>
             Cihazlari listbox mantigiyla arayabilir, secili ESP32 cihazinin detayini gorup
@@ -102,7 +102,7 @@ export default async function DevicesPage(props: {
                     </div>
                     <div className={styles.logMetaRight}>
                       <p>{device.lastSeenAt ? "Online" : "Bekleniyor"}</p>
-                      <p>{device.qrExpiresAt ? `QR: ${formatDate(device.qrExpiresAt)}` : "QR yok"}</p>
+                      <p>{device.qrExpiresAt ? `Token: ${formatDate(device.qrExpiresAt)}` : "Token yok"}</p>
                     </div>
                   </Link>
                 ))
@@ -169,11 +169,11 @@ export default async function DevicesPage(props: {
                     {selectedDevice.secretKey}
                   </p>
                   <p>
-                    <span>Aktif QR Token</span>
+                    <span>Aktif Cihaz Token</span>
                     {selectedDevice.activeQrToken ?? "UUID bekleniyor"}
                   </p>
                   <p>
-                    <span>QR Bitis</span>
+                    <span>Token Bitis</span>
                     {selectedDevice.qrExpiresAt ? formatDate(selectedDevice.qrExpiresAt) : "Sure yok"}
                   </p>
                   <p>

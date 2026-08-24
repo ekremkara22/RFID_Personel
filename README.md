@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RFID Personel Takip
+
+RFID kart tabanli personel takip paneli. Bu repo web paneli, veritabani modeli ve ESP32/RFID cihaz entegrasyonu icin kullanilir; eski mobil uygulama kodlari devre disi birakilmistir.
 
 ## Getting Started
 
@@ -14,7 +16,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result locally.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

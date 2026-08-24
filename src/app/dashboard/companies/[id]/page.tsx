@@ -336,7 +336,7 @@ export default async function CompanyDetailPage(props: {
           <div className={styles.sectionHeader}>
             <div>
               <p className={styles.sectionEyebrow}>Cihazlar</p>
-              <h2 className={styles.sectionTitle}>Firma QR Cihazlari</h2>
+              <h2 className={styles.sectionTitle}>Firma RFID Cihazlari</h2>
             </div>
           </div>
 
@@ -347,7 +347,7 @@ export default async function CompanyDetailPage(props: {
                   <th>Cihaz Adi</th>
                   <th>MAC</th>
                   <th>Secret Key</th>
-                  <th>Aktif QR</th>
+                  <th>Aktif Token</th>
                   <th>Son Gorulme</th>
                 </tr>
               </thead>

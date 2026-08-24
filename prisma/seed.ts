@@ -53,7 +53,7 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { email: "admin@checkinqr.local" },
+    where: { email: "admin@rfidpersonel.local" },
     update: {
       name: "Super Admin",
       firstName: "Super",
@@ -63,7 +63,7 @@ async function main() {
       companyId: null,
     },
     create: {
-      email: "admin@checkinqr.local",
+      email: "admin@rfidpersonel.local",
       name: "Super Admin",
       firstName: "Super",
       lastName: "Admin",
@@ -73,7 +73,7 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { email: "firmaadmin@checkinqr.local" },
+    where: { email: "firmaadmin@rfidpersonel.local" },
     update: {
       name: "Firma Yoneticisi",
       firstName: "Firma",
@@ -83,7 +83,7 @@ async function main() {
       companyId: company.id,
     },
     create: {
-      email: "firmaadmin@checkinqr.local",
+      email: "firmaadmin@rfidpersonel.local",
       name: "Firma Yoneticisi",
       firstName: "Firma",
       lastName: "Yoneticisi",
@@ -242,8 +242,8 @@ async function main() {
   }
 
   console.log("Seed tamamlandi.");
-  console.log("Super Admin: admin@checkinqr.local / Admin123!");
-  console.log("Firma Admin: firmaadmin@checkinqr.local / Firma123!");
+  console.log("Super Admin: admin@rfidpersonel.local / Admin123!");
+  console.log("Firma Admin: firmaadmin@rfidpersonel.local / Firma123!");
   console.log("Personel: ahmet@demosirketi.com / Personel123!");
 }
 

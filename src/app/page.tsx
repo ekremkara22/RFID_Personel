@@ -19,13 +19,12 @@ import {
   MapPin,
   MessageCircle,
   Phone,
-  QrCode,
   Rocket,
   ShieldCheck,
-  Smartphone,
   Store,
   Warehouse,
   X,
+  IdCard,
 } from "lucide-react";
 import Link from "next/link";
 import styles from "./page.module.css";
@@ -33,7 +32,7 @@ import styles from "./page.module.css";
 const audienceCards = [
   {
     title: "Fabrikalar",
-    description: "Vardiyalı ekiplerin giriş-çıkışlarını QR kodlu personel takip sistemi ile anlık izleyin.",
+    description: "Vardiyalı ekiplerin giriş-çıkışlarını RFID kart takip sistemi ile anlık izleyin.",
     icon: Factory,
   },
   {
@@ -43,7 +42,7 @@ const audienceCards = [
   },
   {
     title: "Şantiyeler",
-    description: "Saha personelini GPS doğrulamalı personel takip ile doğru lokasyonda kontrol edin.",
+    description: "Saha personelini RFID okuyucu ve merkezi panel ile doğru noktada takip edin.",
     icon: HardHat,
   },
   {
@@ -53,25 +52,25 @@ const audienceCards = [
   },
   {
     title: "Depolar",
-    description: "Giriş yoğunluğu yüksek operasyonlarda hızlı QR ile yoklama sistemi kullanın.",
+    description: "Giriş yoğunluğu yüksek operasyonlarda hızlı RFID kart okuma akışı kullanın.",
     icon: Warehouse,
   },
   {
     title: "KOBİ'ler",
-    description: "Ek donanım maliyeti olmadan mobil PDKS deneyimine kısa sürede geçin.",
+    description: "Kart okuyucu tabanlı PDKS deneyimine kısa sürede geçin.",
     icon: BriefcaseBusiness,
   },
 ];
 
 const featureCards = [
   {
-    title: "Dinamik QR Kod",
-    description: "Her 10 saniyede bir yenilenir.",
-    icon: QrCode,
+    title: "RFID Kart Okuma",
+    description: "Personel kartları hızlı ve temassız okunur.",
+    icon: IdCard,
   },
   {
-    title: "Konum Doğrulama",
-    description: "GPS tabanlı sahte giriş engeli sağlar.",
+    title: "Cihaz Noktası",
+    description: "Her okuyucu ilgili iş yeri veya giriş noktasıyla eşleştirilir.",
     icon: MapPin,
   },
   {
@@ -97,30 +96,30 @@ const featureCards = [
 ];
 
 const workflowSteps = [
-  "İş yerine dinamik QR ekranı yerleştirilir.",
-  "Personel mobil uygulama ile QR kodu okutur.",
+  "İş yerine RFID okuyucu cihaz yerleştirilir.",
+  "Personel RFID kartını okuyucuya yaklaştırır.",
   "Giriş-çıkış bilgileri yönetici panelinde anlık görüntülenir.",
 ];
 
 const trustItems = [
   "Turnike maliyetine alternatif",
   "Hızlı kurulum",
-  "Mobil kullanım",
+  "RFID kart takibi",
   "Web yönetim paneli",
-  "GPS doğrulama",
+  "Cihaz bazlı doğrulama",
   "Bulut tabanlı yapı",
 ];
 
 const faqItems = [
   {
-    question: "Personelin internet bağlantısı kesilirse ne olur?",
+    question: "Cihazın internet bağlantısı kesilirse ne olur?",
     answer:
-      "Mobil uygulama bağlantı durumunu kullanıcıya bildirir. İnternet erişimi geri geldiğinde kayıt akışı tekrar devam eder; kritik senaryolar için işletmenize uygun çalışma kuralı demo sırasında belirlenir.",
+      "RFID okuyucu cihaz bağlantı durumunu bildirir. İnternet erişimi geri geldiğinde kayıt akışı tekrar devam eder; kritik senaryolar için işletmenize uygun çalışma kuralı demo sırasında belirlenir.",
   },
   {
-    question: "QR cihazı için özel bir donanım almak gerekiyor mu?",
+    question: "RFID kart sistemi için özel donanım gerekiyor mu?",
     answer:
-      "Hayır. Flodeka CheckInQR, tablet, ekran veya uygun bir cihaz üzerinden dinamik QR gösterebilir. İhtiyaç varsa size hazır cihaz seçeneği de sunulabilir.",
+      "Evet. RFID okuyucu cihaz ve personel kartları gerekir. İhtiyaç varsa cihaz ve kart kurulum modeli demo sırasında birlikte netleştirilir.",
   },
   {
     question: "Verilerim güvende mi, KVKK uyumlu musunuz?",
@@ -219,8 +218,8 @@ export default function Home() {
     <main className={styles.main}>
       <nav className={styles.navbar}>
         <div className={`container ${styles.navContainer}`}>
-          <Link href="#" className={styles.logo} aria-label="Flodeka CheckInQR ana sayfa">
-            Flodeka <span className="text-gradient">CheckInQR</span>
+          <Link href="#" className={styles.logo} aria-label="RFID Personel Takip ana sayfa">
+            RFID <span className="text-gradient">Personel Takip</span>
           </Link>
           <div className={styles.navLinks}>
             <Link href="#hedef-kitle" className={styles.navLink}>
@@ -247,15 +246,15 @@ export default function Home() {
         <div className="container">
           <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
             <motion.p variants={fadeUp} className={styles.heroEyebrow}>
-              Turnikesiz PDKS ve mobil yoklama çözümü
+              RFID kartlı PDKS ve web yönetim paneli
             </motion.p>
             <motion.h1 variants={fadeUp} className={styles.heroTitle}>
-              Turnike maliyetine son verin, personel giriş-çıkışlarını{" "}
-              <span className="text-gradient">QR ile dijital yönetin</span>
+              Personel giriş-çıkışlarını{" "}
+              <span className="text-gradient">RFID kart ile dijital yönetin</span>
             </motion.h1>
             <motion.p variants={fadeUp} className={styles.heroSubtitle}>
-              Flodeka CheckInQR; QR kodlu personel takip sistemi, mobil PDKS ve GPS
-              doğrulamalı personel takip özelliklerini tek bulut tabanlı panelde birleştirir.
+              RFID Personel Takip; kart okuyucu cihazlar, personel kartları ve web
+              yönetim panelini tek bulut tabanlı sistemde birleştirir.
             </motion.p>
             <motion.div variants={fadeUp} className={styles.heroBtns}>
               <button className="btn-primary" onClick={openDemoModal}>
@@ -309,7 +308,7 @@ export default function Home() {
               Öne çıkan <span className="text-gradient">özellikler</span>
             </h2>
             <p className={styles.sectionSubtitle}>
-              QR ile yoklama sistemi için ihtiyaç duyulan temel kontroller tek yerde.
+              RFID kartlı personel takip sistemi için ihtiyaç duyulan temel kontroller tek yerde.
             </p>
           </div>
           <motion.div
@@ -342,7 +341,7 @@ export default function Home() {
               Ürün nasıl <span className="text-gradient">çalışır?</span>
             </h2>
             <p className={styles.sectionSubtitle}>
-              Flodeka CheckInQR ile kurulum ve günlük kullanım üç adımda tamamlanır.
+              RFID Personel Takip ile kurulum ve günlük kullanım üç adımda tamamlanır.
             </p>
           </div>
           <div className={styles.workflowGrid}>
@@ -363,7 +362,7 @@ export default function Home() {
               <p className={styles.sectionEyebrow}>Dijital dönüşüm</p>
               <h2>Flodeka ile işletmenizi dijitalleştirin</h2>
               <p>
-                Turnikesiz PDKS yaklaşımıyla maliyetleri azaltın, mobil kullanım ve web yönetim paneliyle
+                RFID kartlı PDKS yaklaşımıyla kayıtları standartlaştırın, cihazlar ve web yönetim paneliyle
                 personel süreçlerini daha görünür hale getirin.
               </p>
             </div>
@@ -383,7 +382,7 @@ export default function Home() {
         <div className="container">
           <div className={styles.referenceBox}>
             <h2>Referanslarımız yakında burada yer alacak.</h2>
-            <p>Flodeka CheckInQR kullanan işletmelerden örnekleri kısa süre içinde paylaşacağız.</p>
+            <p>RFID Personel Takip kullanan işletmelerden örnekleri kısa süre içinde paylaşacağız.</p>
           </div>
         </div>
       </section>
@@ -438,7 +437,7 @@ export default function Home() {
                   <CheckCircle2 size={18} /> 50 personele kadar
                 </li>
                 <li>
-                  <CheckCircle2 size={18} /> 1 adet QR cihazı lisansı
+                  <CheckCircle2 size={18} /> 1 adet RFID cihazı lisansı
                 </li>
                 <li>
                   <CheckCircle2 size={18} /> Temel raporlama
@@ -466,13 +465,13 @@ export default function Home() {
                   <CheckCircle2 size={18} /> Sınırsız personel
                 </li>
                 <li>
-                  <CheckCircle2 size={18} /> Sınırsız QR cihazı lisansı
+                  <CheckCircle2 size={18} /> Sınırsız RFID cihazı lisansı
                 </li>
                 <li>
                   <CheckCircle2 size={18} /> Gelişmiş Excel ve PDF çıktı
                 </li>
                 <li>
-                  <CheckCircle2 size={18} /> Konum tabanlı GPS doğrulama
+                  <CheckCircle2 size={18} /> Cihaz bazlı geçiş doğrulama
                 </li>
                 <li>
                   <CheckCircle2 size={18} /> 7/24 öncelikli destek
@@ -490,15 +489,15 @@ export default function Home() {
         <div className="container">
           <div className={styles.footerTop}>
             <div className={styles.footerBrand}>
-              <h2>Flodeka CheckInQR</h2>
+              <h2>RFID Personel Takip</h2>
               <p>
-                QR kodlu personel takip sistemi, mobil PDKS ve web yönetim paneliyle
+                RFID kartlı personel takip sistemi, cihaz entegrasyonu ve web yönetim paneliyle
                 işletmenizin giriş-çıkış süreçlerini dijitalleştirir.
               </p>
             </div>
             <div className={styles.footerContact}>
-              <a href="mailto:info@checkinqr.com">
-                <Mail size={18} /> info@checkinqr.com
+              <a href="mailto:info@rfidpersoneltakip.com">
+                <Mail size={18} /> info@rfidpersoneltakip.com
               </a>
               <a href="tel:+905550000000">
                 <Phone size={18} /> +90 555 000 00 00
@@ -523,7 +522,7 @@ export default function Home() {
             <Link href="#iletisim">İletişim</Link>
           </div>
           <p className={styles.copyright}>
-            © {new Date().getFullYear()} Flodeka CheckInQR PDKS. Tüm Hakları Saklıdır.
+            © {new Date().getFullYear()} RFID Personel Takip PDKS. Tüm Hakları Saklıdır.
           </p>
         </div>
       </footer>
@@ -552,10 +551,10 @@ export default function Home() {
               <X size={20} />
             </button>
             <div className={styles.modalHeader}>
-              <p className={styles.modalEyebrow}>Flodeka CheckInQR Demo</p>
+              <p className={styles.modalEyebrow}>RFID Personel Takip Demo</p>
               <h2 id="demo-modal-title">Demo Talep Et</h2>
               <p>
-                Bilgilerinizi bırakın, ekibimiz işletmeniz için en uygun QR personel
+                Bilgilerinizi bırakın, ekibimiz işletmeniz için en uygun RFID personel
                 takip kurulumunu anlatsın.
               </p>
             </div>

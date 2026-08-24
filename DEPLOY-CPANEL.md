@@ -1,21 +1,21 @@
-# CheckInQR cPanel Deployment
+# RFID Personel Takip cPanel Deployment
 
 ## cPanel Application Manager
 
 Use these values:
 
 ```text
-Application Name: checkinqr
+Application Name: rfid-personel-takip
 Deployment Domain: flodeka.com
 Base Application URL: /
-Application Path: checkinqr
+Application Path: rfid-personel-takip
 Deployment Environment: Production
 Startup File: app.js
 ```
 
 ## Files to upload
 
-Upload the project contents into the `~/checkinqr` folder.
+Upload the project contents into the `~/rfid-personel-takip` folder.
 
 Do not upload local build/cache folders:
 
@@ -23,12 +23,11 @@ Do not upload local build/cache folders:
 .next
 .next-build
 node_modules
-mobile/android/build
 ```
 
 ## Environment variables
 
-Create a `.env` file in `~/checkinqr`:
+Create a `.env` file in `~/rfid-personel-takip`:
 
 ```env
 DATABASE_URL="mysql://DB_USER:DB_PASSWORD@DB_HOST:3306/DB_NAME"
@@ -38,7 +37,7 @@ NODE_ENV="production"
 
 ## First deployment commands
 
-Run these commands from the `~/checkinqr` folder:
+Run these commands from the `~/rfid-personel-takip` folder:
 
 ```bash
 npm install

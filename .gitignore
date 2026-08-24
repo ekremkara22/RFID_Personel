@@ -33,6 +33,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+sunucubilgileri.txt
 
 # vercel
 .vercel
@@ -46,10 +47,4 @@ next-env.d.ts
 # local release artifacts
 *.apk
 *.zip
-/checkinqr/
-
-# mobile local artifacts
-mobile/android/.kotlin/
-mobile/*.log
-mobile/*.png
-mobile/android/app/debug.keystore
+/rfid-personel-takip/

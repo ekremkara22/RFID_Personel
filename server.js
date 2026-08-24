@@ -12,6 +12,6 @@ app.prepare().then(() => {
   createServer((req, res) => {
     handle(req, res);
   }).listen(port, hostname, () => {
-    console.log(`CheckInQR is running on http://${hostname}:${port}`);
+    console.log(`RFID Personel Takip is running on http://${hostname}:${port}`);
   });
 });

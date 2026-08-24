@@ -1,6 +1,6 @@
 import { JWTPayload, SignJWT, jwtVerify } from "jose";
 
-export const AUTH_COOKIE_NAME = "checkinqr_session";
+export const AUTH_COOKIE_NAME = "rfid_personel_session";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "super-secret-default-key-for-dev-only",

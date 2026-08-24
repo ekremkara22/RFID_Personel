@@ -50,7 +50,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       ? [{ href: "/dashboard/companies", label: "Firmalar", icon: Building2 }]
       : [
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
-          { href: "/dashboard/devices", label: "QR Cihazları", icon: MonitorSmartphone },
+          { href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone },
         ]),
   ];
   const definitionItems = [
@@ -62,7 +62,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ""}`}>
         <div className={styles.brand}>
           <div>
-            <p className={styles.brandEyebrow}>Flodeka CheckInQR</p>
+            <p className={styles.brandEyebrow}>RFID Personel Takip</p>
             <h2 className={styles.brandTitle}>Veri Yönetim Paneli</h2>
           </div>
           <button

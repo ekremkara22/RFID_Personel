@@ -1,4 +1,4 @@
-# CheckInQR ESP32 QR Device
+# RFID Personel ESP32 Device
 
 Bu klasor, firma girisine koyulacak ESP32 + OLED cihazinin firmware taslagini icerir.
 
@@ -10,7 +10,7 @@ Cihaz artik Wi-Fi adini ve sifresini koda sabitlemek zorunda degil.
 2. Kayitli bilgi varsa bu aga baglanmayi dener.
 3. Baglanabilirse `https://flodeka.com/api/device/qr/sync` endpoint'inden QR token almaya devam eder.
 4. Kayitli bilgi yoksa veya aga baglanamazsa kendi kurulum agini acar.
-5. OLED ekranda kurulum agi gorunur: `CheckInQR-XXXXXX`.
+5. OLED ekranda kurulum agi gorunur: `RFIDPersonel-XXXXXX`.
 6. Telefon ile bu Wi-Fi agina baglan.
 7. Tarayici otomatik acilmazsa `http://192.168.4.1` adresine git.
 8. ESP32'nin gordugu Wi-Fi aglarindan kendi agini sec, sifreyi gir ve kaydet.

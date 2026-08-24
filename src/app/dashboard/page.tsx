@@ -188,7 +188,7 @@ export default async function DashboardPage() {
     : [
         { label: "Firma", value: user.company?.name ?? "-", icon: Building2 },
         { label: "Kayıtlı Personel", value: employeeCount, icon: Users },
-        { label: "QR Cihazı", value: deviceCount, icon: MonitorSmartphone },
+        { label: "RFID Cihazı", value: deviceCount, icon: MonitorSmartphone },
         { label: "Bugün Giriş", value: todayEntryCount, icon: DoorOpen },
       ];
 
