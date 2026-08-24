@@ -16,7 +16,7 @@ export default async function EmployeeDetailPage(props: {
   }
 
   const { id } = await props.params;
-  const [employee, departments, branches] = await Promise.all([
+  const [employee, departments, branches, managers] = await Promise.all([
     prisma.employee.findFirst({
       where: {
         id,
@@ -31,6 +31,13 @@ export default async function EmployeeDetailPage(props: {
       orderBy: { name: "asc" },
     }),
     prisma.branch.findMany({
+      where: {
+        companyId: user.companyId,
+        isActive: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.manager.findMany({
       where: {
         companyId: user.companyId,
         isActive: true,
@@ -163,7 +170,17 @@ export default async function EmployeeDetailPage(props: {
 
           <label className={styles.field}>
             <span>Bagli Yonetici</span>
-            <input name="managerName" defaultValue={employee.managerName ?? ""} />
+            <select name="managerName" defaultValue={employee.managerName ?? ""}>
+              <option value="">Yonetici secilmedi</option>
+              {employee.managerName && !managers.some((manager) => manager.name === employee.managerName) ? (
+                <option value={employee.managerName}>{employee.managerName}</option>
+              ) : null}
+              {managers.map((manager) => (
+                <option key={manager.id} value={manager.name}>
+                  {manager.name} {manager.email ? `- ${manager.email}` : ""}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className={`${styles.checkField} ${styles.formActionAlign}`}>

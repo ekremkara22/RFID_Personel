@@ -87,6 +87,7 @@ export default async function DevicesPage(props: {
               <tr>
                 <th>Cihaz Adi</th>
                 <th>MAC Adresi</th>
+                <th>Sube/Lokasyon</th>
                 <th>Secret Key</th>
                 <th>Son Gorulme</th>
                 <th>Islem</th>
@@ -95,7 +96,7 @@ export default async function DevicesPage(props: {
             <tbody>
               {devices.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className={styles.emptyCell}>
+                  <td colSpan={6} className={styles.emptyCell}>
                     Firmana atanmis cihaz bulunamadi.
                   </td>
                 </tr>
@@ -104,6 +105,7 @@ export default async function DevicesPage(props: {
                   <tr key={device.id}>
                     <td>{device.name}</td>
                     <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
+                    <td>{device.branchLocation ?? "-"}</td>
                     <td className={styles.monoCell}>{device.secretKey}</td>
                     <td>{device.lastSeenAt ? formatDate(device.lastSeenAt) : "Henuz yok"}</td>
                     <td>
@@ -135,6 +137,15 @@ export default async function DevicesPage(props: {
             <label className={styles.field}>
               <span>Cihaz Adi</span>
               <input name="name" defaultValue={selectedDevice.name} required />
+            </label>
+
+            <label className={styles.field}>
+              <span>Sube/Lokasyon</span>
+              <input
+                name="branchLocation"
+                defaultValue={selectedDevice.branchLocation ?? ""}
+                placeholder="Merkez giris, depo kapi..."
+              />
             </label>
 
             <label className={styles.field}>

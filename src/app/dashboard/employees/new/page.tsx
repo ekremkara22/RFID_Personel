@@ -13,7 +13,7 @@ export default async function NewEmployeePage() {
     redirect("/dashboard");
   }
 
-  const [departments, branches] = await Promise.all([
+  const [departments, branches, managers] = await Promise.all([
     prisma.department.findMany({
       where: {
         companyId: user.companyId,
@@ -22,6 +22,13 @@ export default async function NewEmployeePage() {
       orderBy: { name: "asc" },
     }),
     prisma.branch.findMany({
+      where: {
+        companyId: user.companyId,
+        isActive: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.manager.findMany({
       where: {
         companyId: user.companyId,
         isActive: true,
@@ -131,7 +138,14 @@ export default async function NewEmployeePage() {
 
             <label className={styles.field}>
               <span>Bagli Yonetici</span>
-              <input name="managerName" placeholder="Yonetici adi soyadi" />
+              <select name="managerName" defaultValue="">
+                <option value="">Yonetici secilmedi</option>
+                {managers.map((manager) => (
+                  <option key={manager.id} value={manager.name}>
+                    {manager.name} {manager.email ? `- ${manager.email}` : ""}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className={styles.field}>

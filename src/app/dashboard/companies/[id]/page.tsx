@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
-  createCompanyDeviceAction,
   deleteCompanyAction,
   deleteCompanyDeviceAction,
   updateCompanyAction,
-  updateCompanyDeviceAction,
 } from "@/app/dashboard/actions";
-import { DevicePurpose } from "@/generated/prisma/client";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -70,7 +67,6 @@ export default async function CompanyDetailPage(props: {
     : "general";
   const employeeQuery = typeof searchParams.employeeQ === "string" ? searchParams.employeeQ.trim() : "";
   const selectedEmployeeId = typeof searchParams.employeeId === "string" ? searchParams.employeeId : "";
-  const selectedDeviceId = typeof searchParams.deviceId === "string" ? searchParams.deviceId : "";
 
   const [company, categories] = await Promise.all([
     prisma.company.findUnique({
@@ -118,8 +114,6 @@ export default async function CompanyDetailPage(props: {
   const companyAdmin = company.users[0] ?? null;
   const selectedEmployee =
     company.employees.find((employee) => employee.id === selectedEmployeeId) ?? company.employees[0] ?? null;
-  const selectedDevice =
-    company.devices.find((device) => device.id === selectedDeviceId) ?? company.devices[0] ?? null;
 
   return (
     <div className={styles.page}>
@@ -365,6 +359,9 @@ export default async function CompanyDetailPage(props: {
                 <p className={styles.sectionEyebrow}>Cihazlar</p>
                 <h2 className={styles.sectionTitle}>Firma RFID Cihaz Listesi</h2>
               </div>
+              <Link href={`/dashboard/companies/${company.id}/devices/new`} className={styles.primaryLinkButton}>
+                Cihaz Ekle
+              </Link>
             </div>
 
             <div className={styles.tableWrap}>
@@ -382,7 +379,7 @@ export default async function CompanyDetailPage(props: {
                     <th>Saat Farki</th>
                     <th>Son Veri</th>
                     <th>Secret</th>
-                    <th>Duzenle</th>
+                    <th>Islem</th>
                     <th>Sil</th>
                   </tr>
                 </thead>
@@ -413,10 +410,10 @@ export default async function CompanyDetailPage(props: {
                         <td className={styles.monoCell}>{device.secretKey}</td>
                         <td>
                           <Link
-                            href={buildCompanyUrl(company.id, "devices", { deviceId: device.id })}
+                            href={`/dashboard/companies/${company.id}/devices/${device.id}`}
                             className={styles.inlineAction}
                           >
-                            Duzenle
+                            Incele
                           </Link>
                         </td>
                         <td>
@@ -433,121 +430,6 @@ export default async function CompanyDetailPage(props: {
               </table>
             </div>
           </section>
-
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Yeni Cihaz</p>
-                <h2 className={styles.sectionTitle}>Cihaz Ekle</h2>
-              </div>
-            </div>
-
-            <form action={createCompanyDeviceAction} className={styles.formGrid}>
-              <input type="hidden" name="companyId" value={company.id} />
-              <label className={styles.field}>
-                <span>Cihaz Kodu</span>
-                <input name="code" placeholder="TERM-GIRIS-01" />
-              </label>
-              <label className={styles.field}>
-                <span>Cihaz Adi</span>
-                <input name="name" required placeholder="On Kapi RFID Okuyucu" />
-              </label>
-              <label className={styles.field}>
-                <span>MAC Adresi</span>
-                <input name="macAddress" required placeholder="AA-BB-CC-DD-EE-FF" />
-              </label>
-              <label className={styles.field}>
-                <span>IP Adresi</span>
-                <input name="ipAddress" placeholder="192.168.1.20" />
-              </label>
-              <label className={styles.field}>
-                <span>Sube/Lokasyon</span>
-                <input name="branchLocation" placeholder="Merkez giris" />
-              </label>
-              <label className={styles.field}>
-                <span>Kullanim Amaci</span>
-                <select name="purpose" defaultValue={DevicePurpose.BIDIRECTIONAL}>
-                  {Object.values(DevicePurpose).map((purpose) => (
-                    <option key={purpose} value={purpose}>
-                      {purposeLabels[purpose]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={styles.field}>
-                <span>Cihaz Saat Farki (dk)</span>
-                <input name="clockOffsetMinutes" type="number" defaultValue={0} />
-              </label>
-              <div className={styles.fullWidth}>
-                <SubmitButton
-                  idleLabel="Cihazi Ekle"
-                  pendingLabel="Kaydediliyor..."
-                  className={styles.primaryButton}
-                />
-              </div>
-            </form>
-          </section>
-
-          {selectedDevice ? (
-            <section className={`glass-panel ${styles.sectionCard}`}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.sectionEyebrow}>Cihaz Duzenle</p>
-                  <h2 className={styles.sectionTitle}>{selectedDevice.name}</h2>
-                </div>
-              </div>
-
-              <form action={updateCompanyDeviceAction} className={styles.formGrid}>
-                <input type="hidden" name="companyId" value={company.id} />
-                <input type="hidden" name="deviceId" value={selectedDevice.id} />
-                <label className={styles.field}>
-                  <span>Cihaz Kodu</span>
-                  <input name="code" defaultValue={selectedDevice.code ?? ""} />
-                </label>
-                <label className={styles.field}>
-                  <span>Cihaz Adi</span>
-                  <input name="name" defaultValue={selectedDevice.name} required />
-                </label>
-                <label className={styles.field}>
-                  <span>MAC Adresi</span>
-                  <input name="macAddress" defaultValue={selectedDevice.macAddress ?? ""} required />
-                </label>
-                <label className={styles.field}>
-                  <span>IP Adresi</span>
-                  <input name="ipAddress" defaultValue={selectedDevice.ipAddress ?? ""} />
-                </label>
-                <label className={styles.field}>
-                  <span>Sube/Lokasyon</span>
-                  <input name="branchLocation" defaultValue={selectedDevice.branchLocation ?? ""} />
-                </label>
-                <label className={styles.field}>
-                  <span>Kullanim Amaci</span>
-                  <select name="purpose" defaultValue={selectedDevice.purpose}>
-                    {Object.values(DevicePurpose).map((purpose) => (
-                      <option key={purpose} value={purpose}>
-                        {purposeLabels[purpose]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={styles.field}>
-                  <span>Cihaz Saat Farki (dk)</span>
-                  <input
-                    name="clockOffsetMinutes"
-                    type="number"
-                    defaultValue={selectedDevice.clockOffsetMinutes ?? 0}
-                  />
-                </label>
-                <div className={styles.fullWidth}>
-                  <SubmitButton
-                    idleLabel="Cihazi Guncelle"
-                    pendingLabel="Guncelleniyor..."
-                    className={styles.primaryButton}
-                  />
-                </div>
-              </form>
-            </section>
-          ) : null}
         </section>
       ) : null}
 

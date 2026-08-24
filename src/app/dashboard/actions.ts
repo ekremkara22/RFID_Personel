@@ -362,6 +362,60 @@ export async function updateBranchAction(formData: FormData) {
   revalidatePath("/dashboard/employees");
 }
 
+export async function createManagerAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const name = getString(formData, "name");
+  const email = normalizeOptionalEmail(getString(formData, "email"));
+
+  if (!name) {
+    throw new Error("Yonetici adi zorunludur.");
+  }
+
+  await prisma.manager.create({
+    data: {
+      name,
+      email,
+      companyId: user.companyId,
+    },
+  });
+
+  revalidatePath("/dashboard/settings/managers");
+  revalidatePath("/dashboard/employees");
+}
+
+export async function updateManagerAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const managerId = getString(formData, "managerId");
+  const name = getString(formData, "name");
+  const email = normalizeOptionalEmail(getString(formData, "email"));
+  const isActive = formData.get("isActive") === "on";
+
+  if (!managerId || !name) {
+    throw new Error("Yonetici bilgileri eksik.");
+  }
+
+  await prisma.manager.updateMany({
+    where: {
+      id: managerId,
+      companyId: user.companyId,
+    },
+    data: { name, email, isActive },
+  });
+
+  revalidatePath("/dashboard/settings/managers");
+  revalidatePath("/dashboard/employees");
+}
+
 export async function createEmployeeAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
@@ -537,6 +591,7 @@ export async function createCompanyDeviceAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/companies/${companyId}`);
+  redirect(`/dashboard/companies/${companyId}?tab=devices`);
 }
 
 export async function updateCompanyDeviceAction(formData: FormData) {
@@ -610,6 +665,7 @@ export async function updateDeviceAction(formData: FormData) {
 
   const deviceId = getString(formData, "deviceId");
   const name = getString(formData, "name");
+  const branchLocation = getString(formData, "branchLocation") || null;
 
   if (!deviceId || !name) {
     throw new Error("Cihaz adi zorunludur.");
@@ -620,7 +676,7 @@ export async function updateDeviceAction(formData: FormData) {
       id: deviceId,
       companyId: user.companyId,
     },
-    data: { name },
+    data: { name, branchLocation },
   });
 
   revalidatePath("/dashboard");

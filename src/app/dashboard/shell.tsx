@@ -46,6 +46,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   const [definitionsOpen, setDefinitionsOpen] = useState(
     pathname.startsWith("/dashboard/settings"),
   );
+  const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
 
   const items = [
     { href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard },
@@ -54,10 +55,14 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       : [
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
           { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },
-          { href: "/dashboard/reports", label: "Raporlar", icon: FileBarChart },
           { href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane },
           { href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone },
         ]),
+  ];
+  const reportItems = [
+    { href: "/dashboard/reports", label: "Rapor Merkezi", icon: FileBarChart },
+    { href: "/dashboard/reports/personnel", label: "Personel PDKS", icon: Users },
+    { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: FileBarChart },
   ];
   const definitionItems = [
     ...(user.role === "SUPERADMIN"
@@ -65,6 +70,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       : [
           { href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags },
           { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },
+          { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users },
         ]),
   ];
 
@@ -111,6 +117,44 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
               </Link>
             );
           })}
+
+          {user.role !== "SUPERADMIN" ? (
+            <div className={styles.navGroup}>
+              <button
+                type="button"
+                className={`${styles.navItem} ${pathname.startsWith("/dashboard/reports") ? styles.navItemActive : ""}`}
+                onClick={() => setReportsOpen((value) => !value)}
+              >
+                <FileBarChart size={18} />
+                <span>Raporlar</span>
+                <ChevronDown
+                  size={16}
+                  className={`${styles.navChevron} ${reportsOpen ? styles.navChevronOpen : ""}`}
+                />
+              </button>
+
+              {reportsOpen ? (
+                <div className={styles.subNav}>
+                  {reportItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href;
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Icon size={16} />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {definitionItems.length > 0 ? (
             <div className={styles.navGroup}>

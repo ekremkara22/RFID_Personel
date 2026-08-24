@@ -70,6 +70,7 @@ model Company {
   devices       Device[]
   departments   Department[]
   branches      Branch[]
+  managers      Manager[]
 }
 
 model CompanyCategory {
@@ -137,6 +138,19 @@ model Branch {
   id        String   @id @default(uuid())
   name      String
   location  String?
+  isActive  Boolean  @default(true)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+}
+
+model Manager {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
   isActive  Boolean  @default(true)
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
