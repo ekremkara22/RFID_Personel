@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CirclePlus, Pencil, Search } from "lucide-react";
+import { ExportButton } from "@/app/dashboard/export-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
@@ -82,6 +83,30 @@ export default async function CompaniesPage(props: {
             />
             <button type="submit">Search</button>
           </form>
+          <div className={styles.tableActionRow}>
+            <ExportButton
+              rows={companies.map((company) => ({
+                id: company.id,
+                name: company.name,
+                admin: company.users[0] ? getUserFullName(company.users[0]) : "Firma admini tanimlanmadi",
+                contact: company.contactEmail ?? company.contactPhone ?? "-",
+                employeeCount: company._count.employees,
+                deviceCount: company._count.devices,
+                status: company.isActive ? "Aktif" : "Pasif",
+              }))}
+              columns={[
+                { key: "id", label: "Firma ID" },
+                { key: "name", label: "Firma Adi" },
+                { key: "admin", label: "Firma Admini" },
+                { key: "contact", label: "Iletisim" },
+                { key: "employeeCount", label: "Personel" },
+                { key: "deviceCount", label: "Cihaz" },
+                { key: "status", label: "Statu" },
+              ]}
+              filename="firmalar"
+              className={styles.inlineAction}
+            />
+          </div>
         </div>
 
         {companies.length === 0 ? (

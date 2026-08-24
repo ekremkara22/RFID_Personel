@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { AttendanceType } from "@/generated/prisma/client";
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -457,6 +458,71 @@ export async function updateDeviceAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/devices");
+}
+
+export async function updateAttendanceLogAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const logId = getString(formData, "logId");
+  const type = getString(formData, "type") as AttendanceType;
+  const scannedAtValue = getString(formData, "scannedAt");
+  const allowedTypes = new Set<string>(Object.values(AttendanceType));
+
+  if (!logId || !allowedTypes.has(type) || !scannedAtValue) {
+    throw new Error("Hareket bilgileri gecersiz.");
+  }
+
+  const scannedAt = new Date(scannedAtValue);
+
+  if (Number.isNaN(scannedAt.getTime())) {
+    throw new Error("Hareket tarihi gecersiz.");
+  }
+
+  await prisma.attendanceLog.updateMany({
+    where: {
+      id: logId,
+      employee: {
+        companyId: user.companyId,
+      },
+    },
+    data: {
+      type,
+      scannedAt,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/movements");
+}
+
+export async function deleteAttendanceLogAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const logId = getString(formData, "logId");
+
+  if (!logId) {
+    throw new Error("Hareket bilgisi eksik.");
+  }
+
+  await prisma.attendanceLog.deleteMany({
+    where: {
+      id: logId,
+      employee: {
+        companyId: user.companyId,
+      },
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/movements");
 }
 
 export async function logoutAction() {

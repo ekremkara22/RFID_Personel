@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CirclePlus, Eye, Search } from "lucide-react";
+import { CirclePlus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { EmployeesTable } from "./employees-table";
 import styles from "../page.module.css";
 
 export default async function EmployeesPage(props: {
@@ -65,54 +66,17 @@ export default async function EmployeesPage(props: {
           </form>
         </div>
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Personel</th>
-                <th>Departman</th>
-                <th>RFID Kart ID</th>
-                <th>E-posta</th>
-                <th>Statu</th>
-                <th>Islem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className={styles.emptyCell}>
-                    Aramana uygun personel bulunamadi.
-                  </td>
-                </tr>
-              ) : (
-                employees.map((employee) => (
-                  <tr key={employee.id}>
-                    <td>
-                      <strong>
-                        {employee.firstName} {employee.lastName}
-                      </strong>
-                      <p className={styles.tableSubText}>{employee.age} yas</p>
-                    </td>
-                    <td>{employee.department}</td>
-                    <td className={styles.monoCell}>{employee.rfidCardId ?? "Kart atanmadi"}</td>
-                    <td>{employee.email ?? "-"}</td>
-                    <td>
-                      <span className={employee.isActive ? styles.statusActive : styles.statusPassive}>
-                        {employee.isActive ? "Aktif" : "Pasif"}
-                      </span>
-                    </td>
-                    <td>
-                      <Link href={`/dashboard/employees/${employee.id}`} className={styles.inlineAction}>
-                        <Eye size={16} />
-                        <span>Incele</span>
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <EmployeesTable
+          employees={employees.map((employee) => ({
+            id: employee.id,
+            fullName: `${employee.firstName} ${employee.lastName}`.trim(),
+            age: employee.age,
+            department: employee.department,
+            rfidCardId: employee.rfidCardId ?? "Kart atanmadi",
+            email: employee.email ?? "-",
+            status: employee.isActive ? "Aktif" : "Pasif",
+          }))}
+        />
       </section>
     </div>
   );

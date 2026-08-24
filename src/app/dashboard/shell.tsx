@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  ClipboardList,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -50,6 +51,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       ? [{ href: "/dashboard/companies", label: "Firmalar", icon: Building2 }]
       : [
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
+          { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },
           { href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone },
         ]),
   ];

@@ -319,6 +319,13 @@
   white-space: nowrap;
 }
 
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
 .primaryButton:disabled {
   opacity: 0.7;
 }
@@ -341,6 +348,16 @@
   color: #0369a1;
 }
 
+.dangerMiniButton {
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-weight: 800;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .tableWrap {
   overflow-x: auto;
   border: 1px solid #e2e8f0;
@@ -349,6 +366,15 @@
 
 .listToolbar {
   margin-bottom: 0.8rem;
+}
+
+.tableActionRow {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .searchForm {
@@ -420,6 +446,17 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.draggableTh {
+  cursor: grab;
+  user-select: none;
+}
+
+.draggableTh span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .table tr:hover td {
@@ -569,6 +606,215 @@
   border: 1px solid #e2e8f0;
 }
 
+.filterGrid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(4, minmax(150px, 1fr)) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.inlineEditForm {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(170px, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 430px;
+}
+
+.inlineEditForm select,
+.inlineEditForm input {
+  min-height: 2.35rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.86rem;
+}
+
+.operationTopbar {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dashboardTitle {
+  font-size: clamp(1.65rem, 3vw, 2.35rem);
+  line-height: 1.12;
+  color: #0f172a;
+}
+
+.dashboardDate {
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-weight: 650;
+}
+
+.quickActions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.quickButton {
+  min-height: 2.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 800;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.dashboardVisualGrid {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+  gap: 1rem;
+}
+
+.chartPanel,
+.statusPanel {
+  padding: 1rem;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.hourlyChart {
+  height: 250px;
+  display: grid;
+  grid-template-columns: repeat(13, minmax(34px, 1fr));
+  gap: 0.55rem;
+  align-items: end;
+  padding: 0.6rem 0.25rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.hourColumn {
+  height: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  justify-items: center;
+}
+
+.hourBars {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.entryBar,
+.exitBar {
+  width: 34%;
+  min-height: 2px;
+  border-radius: 999px 999px 0 0;
+}
+
+.entryBar {
+  background: linear-gradient(180deg, #2563eb, #bfdbfe);
+}
+
+.exitBar {
+  background: linear-gradient(180deg, #16a34a, #bbf7d0);
+}
+
+.hourLabel {
+  color: #64748b;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.donutSummary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+.donutCircle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  background:
+    radial-gradient(circle at center, #ffffff 0 48%, transparent 49%),
+    conic-gradient(#22c55e 0 72%, #3b82f6 72% 84%, #f97316 84% 91%, #ef4444 91% 100%);
+  border: 1px solid #e2e8f0;
+}
+
+.donutCircle strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.donutCircle span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.statusList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.statusList p {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  color: #0f172a;
+}
+
+.statusList strong {
+  font-size: 1.05rem;
+}
+
+.statusList small {
+  color: #64748b;
+}
+
+.statusDot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+}
+
+.statusDotgreen {
+  background: #22c55e;
+}
+
+.statusDotorange {
+  background: #f97316;
+}
+
+.statusDotblue {
+  background: #3b82f6;
+}
+
+.statusDotred {
+  background: #ef4444;
+}
+
 .definitionItem {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -650,7 +896,9 @@
   }
 
   .mainGrid,
-  .cardGridWide {
+  .cardGridWide,
+  .dashboardVisualGrid,
+  .filterGrid {
     grid-template-columns: 1fr;
   }
 }
@@ -674,8 +922,29 @@
   .metricsGrid,
   .formGrid,
   .reportGrid,
-  .definitionItem {
+  .definitionItem,
+  .inlineEditForm {
     grid-template-columns: 1fr;
+  }
+
+  .operationTopbar,
+  .donutSummary {
+    grid-template-columns: 1fr;
+    display: grid;
+    justify-items: stretch;
+  }
+
+  .quickActions {
+    justify-content: stretch;
+  }
+
+  .quickButton {
+    width: 100%;
+  }
+
+  .hourlyChart {
+    overflow-x: auto;
+    grid-template-columns: repeat(13, 42px);
   }
 
   .infoCardFooter,

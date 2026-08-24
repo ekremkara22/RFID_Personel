@@ -10,6 +10,7 @@ import {
   Soup,
   Users,
 } from "lucide-react";
+import { ExportButton } from "@/app/dashboard/export-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
@@ -104,6 +105,7 @@ export default async function DashboardPage() {
     weekMovementCount,
     monthMovementCount,
     monthlyLogsForReport,
+    todayLogsForDashboard,
   ] = await Promise.all([
     prisma.company.count(),
     prisma.user.count({ where: { role: "COMPANY_ADMIN" } }),
@@ -224,6 +226,18 @@ export default async function DashboardPage() {
       orderBy: { scannedAt: "desc" },
       take: 1000,
     }),
+    prisma.attendanceLog.findMany({
+      where: {
+        scannedAt: { gte: today },
+        ...attendanceWhere,
+      },
+      include: {
+        employee: true,
+        device: true,
+      },
+      orderBy: { scannedAt: "desc" },
+      take: 500,
+    }),
   ]);
 
   const summaryCards = isSuperadmin
@@ -278,27 +292,95 @@ export default async function DashboardPage() {
       return report;
     }, new Map<string, { department: string; entry: number; exit: number; breakCount: number; meal: number; total: number }>()),
   ).map(([, value]) => value);
+  const currentlyInside = Math.max(todayEntryCount - todayExitCount, 0);
+  const absentCount = Math.max(employeeCount - todayEntryCount, 0);
+  const hourlyData = Array.from({ length: 13 }, (_, index) => {
+    const hour = index + 7;
+    const entry = todayLogsForDashboard.filter(
+      (log) => log.type === "ENTRY" && log.scannedAt.getHours() === hour,
+    ).length;
+    const exit = todayLogsForDashboard.filter(
+      (log) => log.type === "EXIT" && log.scannedAt.getHours() === hour,
+    ).length;
+
+    return {
+      label: `${String(hour).padStart(2, "0")}:00`,
+      entry,
+      exit,
+      max: Math.max(entry, exit, 1),
+    };
+  });
+  const statusTotal = Math.max(employeeCount, 1);
+  const statusCards = [
+    { label: "Zamaninda", value: todayEntryCount, color: "green" },
+    { label: "Gec", value: 0, color: "orange" },
+    { label: "Izinli", value: 0, color: "blue" },
+    { label: "Devamsiz", value: absentCount, color: "red" },
+  ];
+  const dashboardExportRows = todayLogsForDashboard.map((log) => ({
+    employee: `${log.employee.firstName} ${log.employee.lastName}`.trim(),
+    department: log.employee.department,
+    type: attendanceLabels[log.type],
+    scannedAt: formatDate(log.scannedAt),
+    rfidCardId: log.rfidCardId ?? log.employee.rfidCardId ?? "-",
+    device: log.device?.name ?? "-",
+  }));
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>
-            {isSuperadmin ? "Admin veri merkezi" : "Firma operasyon paneli"}
-          </p>
-          <h1 className={styles.title}>{getUserFullName(user)}</h1>
-          <p className={styles.subtitle}>
-            {isSuperadmin
-              ? "Tüm firmalar, yöneticiler, cihazlar ve personel hareketleri için yoğun veri izleme ve raporlama ekranı."
-              : "Firmanızın personel giriş-çıkış kayıtları, RFID cihazları ve günlük rapor akışı."}
-          </p>
-        </div>
+      {!isSuperadmin ? (
+        <section className={styles.operationTopbar}>
+          <div>
+            <h1 className={styles.dashboardTitle}>Giris-Cikis Dashboard</h1>
+            <p className={styles.dashboardDate}>
+              {new Intl.DateTimeFormat("tr-TR", {
+                weekday: "long",
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              }).format(new Date())}
+            </p>
+          </div>
+          <div className={styles.quickActions}>
+            <span className={styles.quickButton}>
+              <CalendarDays size={18} />
+              Bugun
+            </span>
+            <span className={styles.quickButton}>Departman: Tumu</span>
+            <ExportButton
+              rows={dashboardExportRows}
+              columns={[
+                { key: "employee", label: "Personel" },
+                { key: "department", label: "Departman" },
+                { key: "type", label: "Hareket" },
+                { key: "scannedAt", label: "Tarih" },
+                { key: "rfidCardId", label: "RFID Kart" },
+                { key: "device", label: "Cihaz" },
+              ]}
+              filename="bugun-personel-hareketleri"
+              className={styles.quickButton}
+              label="Rapor Indir"
+            />
+          </div>
+        </section>
+      ) : null}
 
-        <div className={styles.heroMeta}>
-          <div className={styles.rolePill}>{getRoleLabel(user.role)}</div>
-          <div className={styles.helperText}>Canlı kayıt, tablo ve rapor öncelikli panel düzeni.</div>
-        </div>
-      </section>
+      {isSuperadmin ? (
+        <section className={`glass-panel ${styles.heroCard}`}>
+          <div>
+            <p className={styles.eyebrow}>Admin veri merkezi</p>
+            <h1 className={styles.title}>{getUserFullName(user)}</h1>
+            <p className={styles.subtitle}>
+              Tüm firmalar, yöneticiler, cihazlar ve personel hareketleri için yoğun veri izleme ve raporlama ekranı.
+            </p>
+          </div>
+
+          <div className={styles.heroMeta}>
+            <div className={styles.rolePill}>{getRoleLabel(user.role)}</div>
+            <div className={styles.helperText}>Canlı kayıt, tablo ve rapor öncelikli panel düzeni.</div>
+          </div>
+        </section>
+      ) : null}
 
       <section className={styles.metricsGrid}>
         {summaryCards.map((card) => {
@@ -335,6 +417,67 @@ export default async function DashboardPage() {
             </div>
             <p className={styles.metricLabel}>Aktif Personel</p>
             <p className={styles.metricValue}>{employeeCount}</p>
+          </article>
+        </section>
+      ) : null}
+
+      {!isSuperadmin ? (
+        <section className={styles.dashboardVisualGrid}>
+          <article className={`glass-panel ${styles.chartPanel}`}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.sectionEyebrow}>Gunluk yogunluk</p>
+                <h2 className={styles.sectionTitle}>Giris-Cikis Akisi</h2>
+              </div>
+            </div>
+            <div className={styles.hourlyChart}>
+              {hourlyData.map((item) => (
+                <div key={item.label} className={styles.hourColumn}>
+                  <div className={styles.hourBars}>
+                    <span
+                      className={styles.entryBar}
+                      style={{ height: `${Math.max((item.entry / item.max) * 100, item.entry ? 12 : 2)}%` }}
+                    />
+                    <span
+                      className={styles.exitBar}
+                      style={{ height: `${Math.max((item.exit / item.max) * 100, item.exit ? 12 : 2)}%` }}
+                    />
+                  </div>
+                  <span className={styles.hourLabel}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className={`glass-panel ${styles.statusPanel}`}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.sectionEyebrow}>Bugunku durum</p>
+                <h2 className={styles.sectionTitle}>Personel Ozeti</h2>
+              </div>
+            </div>
+            <div className={styles.donutSummary}>
+              <div className={styles.donutCircle}>
+                <strong>{employeeCount}</strong>
+                <span>Toplam</span>
+              </div>
+              <div className={styles.statusList}>
+                <p>
+                  <span className={`${styles.statusDot} ${styles.statusDotblue}`} />
+                  Su An Iceride
+                  <strong>{currentlyInside}</strong>
+                  <small>personel</small>
+                </p>
+                {statusCards.map((item) => (
+                  <p key={item.label}>
+                    <span className={`${styles.statusDot} ${styles[`statusDot${item.color}`]}`} />
+                    {item.label}
+                    <strong>%{Math.round((item.value / statusTotal) * 100)}</strong>
+                    <small>({item.value})</small>
+                  </p>
+                ))}
+              </div>
+            </div>
           </article>
         </section>
       ) : null}
