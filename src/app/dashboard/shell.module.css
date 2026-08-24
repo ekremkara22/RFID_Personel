@@ -1,0 +1,247 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  background: #f4f7fb;
+  color: #0f172a;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 1rem 0.85rem;
+  border-right: 1px solid #dbe3ef;
+  background: #0f172a;
+  color: #e5edf7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  z-index: 20;
+}
+
+.brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0.45rem 0.9rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.12);
+}
+
+.brandEyebrow,
+.mobileEyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #38bdf8;
+}
+
+.brandTitle,
+.mobileTitle {
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 750;
+}
+
+.profileCard {
+  padding: 0.9rem;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: none;
+}
+
+.profileName {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.profileMeta {
+  margin-top: 0.25rem;
+  color: #94a3b8;
+  font-size: 0.86rem;
+}
+
+.nav {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 42px;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #cbd5e1;
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.navItem:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: #ffffff;
+}
+
+.navItemActive {
+  background: #0ea5e9;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+.navGroup {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.navChevron {
+  margin-left: auto;
+  transition: transform 0.16s ease;
+}
+
+.navChevronOpen {
+  transform: rotate(180deg);
+}
+
+.subNav {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.2rem 0 0.2rem 0.65rem;
+}
+
+.subNavItem {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 38px;
+  padding: 0.58rem 0.7rem;
+  border-radius: 6px;
+  color: #94a3b8;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 0.88rem;
+}
+
+.subNavItem:hover,
+.subNavItemActive {
+  color: #ffffff;
+  background: rgba(14, 165, 233, 0.14);
+  border-color: rgba(56, 189, 248, 0.22);
+}
+
+.logoutForm {
+  margin-top: auto;
+  position: relative;
+}
+
+.logoutButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  color: #e5edf7;
+  border: 1px solid rgba(226, 232, 240, 0.14);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.logoutIcon {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #94a3b8;
+}
+
+.contentArea {
+  min-width: 0;
+}
+
+.content {
+  padding: 1.15rem;
+}
+
+.mobileHeader {
+  display: none;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem 0;
+}
+
+.menuButton,
+.mobileClose {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.mobileClose {
+  display: none;
+}
+
+.overlay {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(86vw, 320px);
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.52);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+    z-index: 15;
+    display: block;
+  }
+
+  .overlayVisible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mobileHeader {
+    display: flex;
+  }
+
+  .mobileClose {
+    display: inline-flex;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+}

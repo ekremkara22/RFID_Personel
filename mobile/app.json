@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "CheckInQR",
+    "slug": "checkinqr-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.checkinqr.mobile",
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "extra": {
+      "apiBaseUrl": "http://10.0.2.2:3000"
+    }
+  }
+}

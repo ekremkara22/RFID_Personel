@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  SUPERADMIN
+  COMPANY_ADMIN
+  EMPLOYEE
+}
+
+enum AttendanceType {
+  ENTRY
+  EXIT
+  BREAK_START
+  BREAK_END
+  MEAL_START
+  MEAL_END
+}
+
+model Company {
+  id            String   @id @default(uuid())
+  name          String
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  address       String?
+  city          String?
+  district      String?
+  category      String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  users         User[]
+  employees     Employee[]
+  devices       Device[]
+}
+
+model CompanyCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  firstName String?
+  lastName  String?
+  tcNo      String?
+  role      Role     @default(COMPANY_ADMIN)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Employee {
+  id                String          @id @default(uuid())
+  firstName         String
+  lastName          String
+  email             String?         @unique
+  password          String?
+  department        String
+  age               Int
+  allowedLatitude   Float?
+  allowedLongitude  Float?
+  allowedRadiusM    Int?
+  isActive          Boolean         @default(true)
+  companyId         String
+  company           Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  logs              AttendanceLog[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model Device {
+  id              String          @id @default(uuid())
+  name            String
+  macAddress      String?         @unique
+  secretKey       String          @default(uuid())
+  activeQrToken   String?         @unique
+  qrUpdatedAt     DateTime?
+  qrExpiresAt     DateTime?
+  lastSeenAt      DateTime?
+  companyId       String
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  logs            AttendanceLog[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model AttendanceLog {
+  id                String         @id @default(uuid())
+  employeeId        String
+  employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deviceId          String?
+  device            Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  scannedAt         DateTime       @default(now())
+  type              AttendanceType
+  qrTokenUsed       String?
+  locationLatitude  Float?
+  locationLongitude Float?
+  locationValid     Boolean?
+  qrMatched         Boolean?
+}
