@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { motion, type Variants } from "framer-motion";
 import {
-  ArrowRight,
   Bell,
   BriefcaseBusiness,
   Building2,
@@ -231,9 +230,6 @@ export default function Home() {
             <Link href="#sss" className={styles.navLink}>
               SSS
             </Link>
-            <Link href="#paketler" className={styles.navLink}>
-              Paketler
-            </Link>
             <Link href="/login" className={styles.panelButton}>
               Panel Girişi
             </Link>
@@ -406,82 +402,6 @@ export default function Home() {
               </details>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section id="paketler" className={styles.pricing}>
-        <div className="container">
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>
-              Esnek <span className="text-gradient">paketler</span>
-            </h2>
-            <p className={styles.sectionSubtitle}>
-              İşletmenizin büyüklüğüne en uygun çözümü birlikte belirleyelim.
-            </p>
-          </div>
-
-          <motion.div
-            className={styles.pricingGrid}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-            variants={staggerContainer}
-          >
-            <motion.article variants={fadeUp} className={`glass-panel ${styles.pricingCard}`}>
-              <div className={styles.planName}>KOBİ Başlangıç</div>
-              <div className={styles.planPrice}>
-                ₺999<span>/aylık</span>
-              </div>
-              <ul className={styles.planFeatures}>
-                <li>
-                  <CheckCircle2 size={18} /> 50 personele kadar
-                </li>
-                <li>
-                  <CheckCircle2 size={18} /> 1 adet RFID cihazı lisansı
-                </li>
-                <li>
-                  <CheckCircle2 size={18} /> Temel raporlama
-                </li>
-                <li>
-                  <CheckCircle2 size={18} /> E-posta desteği
-                </li>
-              </ul>
-              <button className="btn-outline" onClick={openDemoModal}>
-                Demo Talep Et
-              </button>
-            </motion.article>
-
-            <motion.article
-              variants={fadeUp}
-              className={`glass-panel ${styles.pricingCard} ${styles.popular}`}
-            >
-              <div className={styles.popularBadge}>En Çok Tercih Edilen</div>
-              <div className={styles.planName}>Kurumsal Pro</div>
-              <div className={styles.planPrice}>
-                ₺2499<span>/aylık</span>
-              </div>
-              <ul className={styles.planFeatures}>
-                <li>
-                  <CheckCircle2 size={18} /> Sınırsız personel
-                </li>
-                <li>
-                  <CheckCircle2 size={18} /> Sınırsız RFID cihazı lisansı
-                </li>
-                <li>
-                  <CheckCircle2 size={18} /> Gelişmiş Excel ve PDF çıktı
-                </li>
-                <li>
-                  <CheckCircle2 size={18} /> Cihaz bazlı geçiş doğrulama
-                </li>
-                <li>
-                  <CheckCircle2 size={18} /> 7/24 öncelikli destek
-                </li>
-              </ul>
-              <button className="btn-primary" onClick={openDemoModal}>
-                Demo Talep Et <ArrowRight size={16} />
-              </button>
-            </motion.article>
-          </motion.div>
         </div>
       </section>
 

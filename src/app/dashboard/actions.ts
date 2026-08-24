@@ -205,6 +205,73 @@ export async function updateCompanyCategoryAction(formData: FormData) {
   revalidatePath("/dashboard/companies");
 }
 
+async function assertCompanyDepartment(companyId: string, department: string) {
+  const existingDepartment = await prisma.department.findFirst({
+    where: {
+      companyId,
+      name: department,
+      isActive: true,
+    },
+  });
+
+  if (!existingDepartment) {
+    throw new Error("Secilen departman firma tanimlarinda aktif degil.");
+  }
+}
+
+export async function createDepartmentAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const name = getString(formData, "name");
+
+  if (!name) {
+    throw new Error("Departman adi zorunludur.");
+  }
+
+  await prisma.department.create({
+    data: {
+      name,
+      companyId: user.companyId,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/employees");
+  revalidatePath("/dashboard/settings/departments");
+}
+
+export async function updateDepartmentAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const departmentId = getString(formData, "departmentId");
+  const name = getString(formData, "name");
+  const isActive = formData.get("isActive") === "on";
+
+  if (!departmentId || !name) {
+    throw new Error("Departman bilgileri eksik.");
+  }
+
+  await prisma.department.updateMany({
+    where: {
+      id: departmentId,
+      companyId: user.companyId,
+    },
+    data: { name, isActive },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/employees");
+  revalidatePath("/dashboard/settings/departments");
+}
+
 export async function createEmployeeAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
@@ -224,6 +291,8 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Personel bilgileri gecersiz.");
   }
 
+  await assertCompanyDepartment(user.companyId, department);
+
   await prisma.employee.create({
     data: {
       firstName,
@@ -239,6 +308,7 @@ export async function createEmployeeAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/employees");
+  redirect("/dashboard/employees");
 }
 
 export async function updateEmployeeAction(formData: FormData) {
@@ -262,6 +332,8 @@ export async function updateEmployeeAction(formData: FormData) {
     throw new Error("Personel bilgileri gecersiz.");
   }
 
+  await assertCompanyDepartment(user.companyId, department);
+
   await prisma.employee.updateMany({
     where: {
       id: employeeId,
@@ -281,6 +353,7 @@ export async function updateEmployeeAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/employees");
+  revalidatePath(`/dashboard/employees/${employeeId}`);
 }
 
 export async function deleteEmployeeAction(formData: FormData) {
@@ -305,6 +378,7 @@ export async function deleteEmployeeAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/employees");
+  redirect("/dashboard/employees");
 }
 
 export async function createCompanyDeviceAction(formData: FormData) {

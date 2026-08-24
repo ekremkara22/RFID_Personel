@@ -54,7 +54,9 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
         ]),
   ];
   const definitionItems = [
-    { href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags },
+    ...(user.role === "SUPERADMIN"
+      ? [{ href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags }]
+      : [{ href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags }]),
   ];
 
   return (
@@ -101,7 +103,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             );
           })}
 
-          {user.role === "SUPERADMIN" ? (
+          {definitionItems.length > 0 ? (
             <div className={styles.navGroup}>
               <button
                 type="button"

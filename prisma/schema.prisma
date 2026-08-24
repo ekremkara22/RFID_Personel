@@ -38,6 +38,7 @@ model Company {
   users         User[]
   employees     Employee[]
   devices       Device[]
+  departments   Department[]
 }
 
 model CompanyCategory {
@@ -78,6 +79,18 @@ model Employee {
   logs              AttendanceLog[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
 }
 
 model Device {

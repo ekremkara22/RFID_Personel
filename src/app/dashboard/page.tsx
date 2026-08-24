@@ -1,5 +1,7 @@
 import {
   Building2,
+  CalendarDays,
+  CalendarRange,
   Coffee,
   DoorClosed,
   DoorOpen,
@@ -41,12 +43,25 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+function getWeekStart(date: Date) {
+  const weekStart = new Date(date);
+  const day = weekStart.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  weekStart.setDate(weekStart.getDate() + diff);
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart;
+}
+
 export default async function DashboardPage() {
   const { user } = await requireSessionUser();
   const isSuperadmin = user.role === "SUPERADMIN";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const weekStart = getWeekStart(new Date());
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
 
   const attendanceWhere = isSuperadmin
     ? undefined
@@ -85,6 +100,10 @@ export default async function DashboardPage() {
     todayBreakEndCount,
     todayMealStartCount,
     todayMealEndCount,
+    todayMovementCount,
+    weekMovementCount,
+    monthMovementCount,
+    monthlyLogsForReport,
   ] = await Promise.all([
     prisma.company.count(),
     prisma.user.count({ where: { role: "COMPANY_ADMIN" } }),
@@ -176,6 +195,35 @@ export default async function DashboardPage() {
         ...attendanceWhere,
       },
     }),
+    prisma.attendanceLog.count({
+      where: {
+        scannedAt: { gte: today },
+        ...attendanceWhere,
+      },
+    }),
+    prisma.attendanceLog.count({
+      where: {
+        scannedAt: { gte: weekStart },
+        ...attendanceWhere,
+      },
+    }),
+    prisma.attendanceLog.count({
+      where: {
+        scannedAt: { gte: monthStart },
+        ...attendanceWhere,
+      },
+    }),
+    prisma.attendanceLog.findMany({
+      where: {
+        scannedAt: { gte: monthStart },
+        ...attendanceWhere,
+      },
+      include: {
+        employee: true,
+      },
+      orderBy: { scannedAt: "desc" },
+      take: 1000,
+    }),
   ]);
 
   const summaryCards = isSuperadmin
@@ -200,6 +248,36 @@ export default async function DashboardPage() {
     { label: "Yemek Giriş", value: todayMealStartCount, icon: Soup },
     { label: "Yemek Çıkış", value: todayMealEndCount, icon: Soup },
   ];
+
+  const periodCards = [
+    { label: "Bugün PDKS", value: todayMovementCount, icon: CalendarDays },
+    { label: "Haftalık PDKS", value: weekMovementCount, icon: CalendarRange },
+    { label: "Aylık PDKS", value: monthMovementCount, icon: CalendarRange },
+  ];
+
+  const departmentReport = Array.from(
+    monthlyLogsForReport.reduce((report, log) => {
+      const department = log.employee.department || "Departmansiz";
+      const current = report.get(department) ?? {
+        department,
+        entry: 0,
+        exit: 0,
+        breakCount: 0,
+        meal: 0,
+        total: 0,
+      };
+
+      current.total += 1;
+
+      if (log.type === "ENTRY") current.entry += 1;
+      if (log.type === "EXIT") current.exit += 1;
+      if (log.type === "BREAK_START" || log.type === "BREAK_END") current.breakCount += 1;
+      if (log.type === "MEAL_START" || log.type === "MEAL_END") current.meal += 1;
+
+      report.set(department, current);
+      return report;
+    }, new Map<string, { department: string; entry: number; exit: number; breakCount: number; meal: number; total: number }>()),
+  ).map(([, value]) => value);
 
   return (
     <div className={styles.page}>
@@ -236,6 +314,30 @@ export default async function DashboardPage() {
           );
         })}
       </section>
+
+      {!isSuperadmin ? (
+        <section className={styles.metricsGrid}>
+          {periodCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <article key={card.label} className={`glass-panel ${styles.metricCard}`}>
+                <div className={styles.metricIcon}>
+                  <Icon size={18} />
+                </div>
+                <p className={styles.metricLabel}>{card.label}</p>
+                <p className={styles.metricValue}>{card.value}</p>
+              </article>
+            );
+          })}
+          <article className={`glass-panel ${styles.metricCard}`}>
+            <div className={styles.metricIcon}>
+              <Users size={18} />
+            </div>
+            <p className={styles.metricLabel}>Aktif Personel</p>
+            <p className={styles.metricValue}>{employeeCount}</p>
+          </article>
+        </section>
+      ) : null}
 
       <section className={styles.mainGrid}>
         <div className={styles.primaryColumn}>
@@ -326,6 +428,54 @@ export default async function DashboardPage() {
               </table>
             </div>
           </section>
+
+          {!isSuperadmin ? (
+            <section className={`glass-panel ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Aylik PDKS</p>
+                  <h2 className={styles.sectionTitle}>Departman Bazli Puantaj Ozeti</h2>
+                </div>
+              </div>
+
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Departman</th>
+                      <th>Giris</th>
+                      <th>Cikis</th>
+                      <th>Mola/Yemek</th>
+                      <th>Gec Kalma</th>
+                      <th>Toplam Hareket</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {departmentReport.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className={styles.emptyCell}>
+                          Bu ay icin hareket kaydi bulunmuyor.
+                        </td>
+                      </tr>
+                    ) : (
+                      departmentReport.map((department) => (
+                        <tr key={department.department}>
+                          <td>{department.department}</td>
+                          <td>{department.entry}</td>
+                          <td>{department.exit}</td>
+                          <td>{department.breakCount + department.meal}</td>
+                          <td>
+                            <span className={styles.tableSubText}>Vardiya kurali bekliyor</span>
+                          </td>
+                          <td>{department.total}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
         </div>
 
         <aside className={styles.sideColumn}>
