@@ -291,15 +291,6 @@ async function main() {
     },
   });
 
-  await prisma.leaveRequest.deleteMany({
-    where: {
-      companyId: company.id,
-      startDate: { gte: augustStart },
-      endDate: { lte: augustEnd },
-      description: { contains: "Ağustos test" },
-    },
-  });
-
   const leavePlan = [
     { employee: "Özlem Hanım", type: LeaveType.ANNUAL, durationType: LeaveDurationType.FULL_DAY, start: 10, end: 12 },
     { employee: "Kaan Yüksek", type: LeaveType.MEDICAL, durationType: LeaveDurationType.FULL_DAY, start: 24, end: 25 },
@@ -311,35 +302,35 @@ async function main() {
     const employee = employees.find((item) => `${item.firstName} ${item.lastName}` === leave.employee);
     if (!employee) continue;
 
-    await prisma.leaveRequest.create({
-      data: {
+    const startDate = dateAt(leave.start, "00:00");
+    const endDate = dateAt(leave.end, "23:59");
+    const existingLeave = await prisma.leaveRequest.findFirst({
+      where: {
         companyId: company.id,
         employeeId: employee.id,
-        type: leave.type,
-        durationType: leave.durationType,
-        approvalStatus: LeaveApprovalStatus.APPROVED,
-        startDate: dateAt(leave.start, "00:00"),
-        endDate: dateAt(leave.end, "23:59"),
-        startTime: leave.startTime ?? null,
-        endTime: leave.endTime ?? null,
+        startDate,
+        endDate,
         description: "Ağustos test izin kaydı",
       },
     });
+
+    if (!existingLeave) {
+      await prisma.leaveRequest.create({
+        data: {
+          companyId: company.id,
+          employeeId: employee.id,
+          type: leave.type,
+          durationType: leave.durationType,
+          approvalStatus: LeaveApprovalStatus.APPROVED,
+          startDate,
+          endDate,
+          startTime: leave.startTime ?? null,
+          endTime: leave.endTime ?? null,
+          description: "Ağustos test izin kaydı",
+        },
+      });
+    }
   }
-
-  await prisma.attendanceLog.deleteMany({
-    where: {
-      deviceId: device.id,
-      scannedAt: { gte: augustStart, lte: augustEnd },
-    },
-  });
-
-  await prisma.employeeDailyCalendar.deleteMany({
-    where: {
-      employee: { companyId: company.id },
-      workDate: { gte: augustStart, lte: augustEnd },
-    },
-  });
 
   const weekdays = await prisma.workCalendarWeekday.findMany({
     where: { calendarTemplateId: template.id },
@@ -456,13 +447,37 @@ async function main() {
     }
   }
 
-  await prisma.employeeDailyCalendar.createMany({ data: dailyCalendarData });
-  await prisma.attendanceLog.createMany({ data: logData });
+  for (const dayRecord of dailyCalendarData) {
+    await prisma.employeeDailyCalendar.upsert({
+      where: {
+        employeeId_workDate: {
+          employeeId: dayRecord.employeeId,
+          workDate: dayRecord.workDate,
+        },
+      },
+      update: dayRecord,
+      create: dayRecord,
+    });
+  }
+
+  const existingTestLogCount = await prisma.attendanceLog.count({
+    where: {
+      deviceId: device.id,
+      scannedAt: { gte: augustStart, lte: augustEnd },
+    },
+  });
+
+  if (existingTestLogCount === 0) {
+    await prisma.attendanceLog.createMany({ data: logData });
+  }
 
   console.log(`Termosa firma: ${company.name}`);
   console.log(`Personel sayisi: ${employees.length}`);
   console.log(`Gunluk takvim kaydi: ${dailyCalendarData.length}`);
-  console.log(`RFID hareket kaydi: ${logData.length}`);
+  console.log(`RFID hareket kaydi: ${existingTestLogCount === 0 ? logData.length : existingTestLogCount}`);
+  if (existingTestLogCount > 0) {
+    console.log("Test cihazi icin Ağustos hareketleri zaten oldugu icin yeni hareket eklenmedi.");
+  }
 }
 
 main()
