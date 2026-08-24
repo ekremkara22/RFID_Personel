@@ -933,6 +933,7 @@ export async function createWorkCalendarTemplateAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
   const description = getString(formData, "description") || null;
@@ -948,7 +949,7 @@ export async function createWorkCalendarTemplateAction(formData: FormData) {
   await prisma.$transaction(async (tx) => {
     if (isDefault) {
       await tx.workCalendarTemplate.updateMany({
-        where: { companyId: user.companyId, isDefault: true },
+        where: { companyId, isDefault: true },
         data: { isDefault: false },
       });
     }
@@ -961,14 +962,14 @@ export async function createWorkCalendarTemplateAction(formData: FormData) {
         validFrom,
         validTo,
         isDefault,
-        companyId: user.companyId,
+        companyId,
         weekdays: { create: weekdays },
       },
     });
 
     await tx.calendarChangeLog.create({
       data: {
-        companyId: user.companyId,
+        companyId,
         recordType: "TEMPLATE",
         recordId: template.id,
         newValue: JSON.stringify({ code, name, isDefault }),
@@ -989,6 +990,7 @@ export async function updateWorkCalendarTemplateAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const templateId = getString(formData, "templateId");
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
@@ -1006,13 +1008,13 @@ export async function updateWorkCalendarTemplateAction(formData: FormData) {
   await prisma.$transaction(async (tx) => {
     if (isDefault) {
       await tx.workCalendarTemplate.updateMany({
-        where: { companyId: user.companyId, isDefault: true, id: { not: templateId } },
+        where: { companyId, isDefault: true, id: { not: templateId } },
         data: { isDefault: false },
       });
     }
 
     await tx.workCalendarTemplate.updateMany({
-      where: { id: templateId, companyId: user.companyId },
+      where: { id: templateId, companyId },
       data: { code, name, description, validFrom, validTo, isDefault, isActive },
     });
 
@@ -1031,7 +1033,7 @@ export async function updateWorkCalendarTemplateAction(formData: FormData) {
 
     await tx.calendarChangeLog.create({
       data: {
-        companyId: user.companyId,
+        companyId,
         recordType: "TEMPLATE",
         recordId: templateId,
         newValue: JSON.stringify({ code, name, isDefault, isActive }),
@@ -1051,6 +1053,7 @@ export async function createCalendarSpecialDayAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const name = getString(formData, "name");
   const specialDayType = getString(formData, "specialDayType") as SpecialDayType;
   const dateFrom = getRequiredDate(formData, "dateFrom");
@@ -1077,13 +1080,13 @@ export async function createCalendarSpecialDayAction(formData: FormData) {
       employeeId: scope.employeeId,
       description: getString(formData, "description") || null,
       repeatsYearly: formData.get("repeatsYearly") === "on",
-      companyId: user.companyId,
+      companyId,
     },
   });
 
   await prisma.calendarChangeLog.create({
     data: {
-      companyId: user.companyId,
+      companyId,
       recordType: "SPECIAL_DAY",
       recordId: record.id,
       newValue: JSON.stringify({ name, specialDayType, dateFrom, dateTo, scope }),
@@ -1102,6 +1105,7 @@ export async function updateCalendarSpecialDayAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const specialDayId = getString(formData, "specialDayId");
   const name = getString(formData, "name");
   const specialDayType = getString(formData, "specialDayType") as SpecialDayType;
@@ -1112,7 +1116,7 @@ export async function updateCalendarSpecialDayAction(formData: FormData) {
   }
 
   await prisma.calendarSpecialDay.updateMany({
-    where: { id: specialDayId, companyId: user.companyId },
+    where: { id: specialDayId, companyId },
     data: {
       name,
       specialDayType,
@@ -1134,7 +1138,7 @@ export async function updateCalendarSpecialDayAction(formData: FormData) {
 
   await prisma.calendarChangeLog.create({
     data: {
-      companyId: user.companyId,
+      companyId,
       recordType: "SPECIAL_DAY",
       recordId: specialDayId,
       newValue: JSON.stringify({ name, specialDayType, scope }),
@@ -1153,6 +1157,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const calendarTemplateId = getString(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
   const validFrom = getRequiredDate(formData, "validFrom");
@@ -1167,7 +1172,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
 
   const conflict = await prisma.calendarAssignment.findFirst({
     where: {
-      companyId: user.companyId,
+      companyId,
       isActive: true,
       scopeType: scope.scopeType,
       branchId: scope.branchId,
@@ -1186,7 +1191,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
     data: {
       calendarTemplateId,
       scopeType: scope.scopeType,
-      companyId: user.companyId,
+      companyId,
       branchId: scope.branchId,
       departmentId: scope.departmentId,
       employeeId: scope.employeeId,
@@ -1201,7 +1206,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
 
   await prisma.calendarChangeLog.create({
     data: {
-      companyId: user.companyId,
+      companyId,
       recordType: "ASSIGNMENT",
       recordId: record.id,
       newValue: JSON.stringify({ calendarTemplateId, scope, validFrom, validTo, priority }),
@@ -1220,6 +1225,7 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const assignmentId = getString(formData, "assignmentId");
   const calendarTemplateId = getString(formData, "calendarTemplateId");
   const priority = getOptionalNumber(formData, "priority") ?? 100;
@@ -1229,7 +1235,7 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
   }
 
   await prisma.calendarAssignment.updateMany({
-    where: { id: assignmentId, companyId: user.companyId },
+    where: { id: assignmentId, companyId },
     data: {
       calendarTemplateId,
       validFrom: getRequiredDate(formData, "validFrom"),
@@ -1244,7 +1250,7 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
 
   await prisma.calendarChangeLog.create({
     data: {
-      companyId: user.companyId,
+      companyId,
       recordType: "ASSIGNMENT",
       recordId: assignmentId,
       newValue: JSON.stringify({ calendarTemplateId, priority }),
@@ -1263,6 +1269,7 @@ export async function createCalendarDailyExceptionAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const scope = parseCalendarScope(formData);
   const newDayType = getString(formData, "newDayType") as WorkDayType;
   const changeReason = getString(formData, "changeReason");
@@ -1275,7 +1282,7 @@ export async function createCalendarDailyExceptionAction(formData: FormData) {
     data: {
       workDate: getRequiredDate(formData, "workDate"),
       scopeType: scope.scopeType,
-      companyId: user.companyId,
+      companyId,
       branchId: scope.branchId,
       departmentId: scope.departmentId,
       employeeId: scope.employeeId,
@@ -1293,7 +1300,7 @@ export async function createCalendarDailyExceptionAction(formData: FormData) {
 
   await prisma.calendarChangeLog.create({
     data: {
-      companyId: user.companyId,
+      companyId,
       recordType: "DAILY_EXCEPTION",
       recordId: record.id,
       newValue: JSON.stringify({ scope, newDayType }),
@@ -1313,6 +1320,7 @@ export async function updateCalendarDailyExceptionAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const exceptionId = getString(formData, "exceptionId");
   const newDayType = getString(formData, "newDayType") as WorkDayType;
   const changeReason = getString(formData, "changeReason");
@@ -1322,7 +1330,7 @@ export async function updateCalendarDailyExceptionAction(formData: FormData) {
   }
 
   await prisma.calendarDailyException.updateMany({
-    where: { id: exceptionId, companyId: user.companyId },
+    where: { id: exceptionId, companyId },
     data: {
       newDayType,
       newStartTime: getString(formData, "newStartTime") || null,
@@ -1336,7 +1344,7 @@ export async function updateCalendarDailyExceptionAction(formData: FormData) {
 
   await prisma.calendarChangeLog.create({
     data: {
-      companyId: user.companyId,
+      companyId,
       recordType: "DAILY_EXCEPTION",
       recordId: exceptionId,
       newValue: JSON.stringify({ newDayType }),
@@ -1356,6 +1364,7 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = user.companyId;
   const fromDate = getRequiredDate(formData, "fromDate");
   const toDate = getRequiredDate(formData, "toDate");
   const employeeId = getString(formData, "employeeId");
@@ -1363,7 +1372,7 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
 
   const employees = await prisma.employee.findMany({
     where: {
-      companyId: user.companyId,
+      companyId,
       ...(employeeId ? { id: employeeId } : {}),
       ...(department ? { department } : {}),
     },
@@ -1390,9 +1399,9 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
 
   await prisma.calendarChangeLog.create({
     data: {
-      companyId: user.companyId,
+      companyId,
       recordType: "EMPLOYEE_DAILY_CALENDAR",
-      recordId: user.companyId,
+      recordId: companyId,
       newValue: JSON.stringify({ fromDate, toDate, employeeId, department, generatedCount }),
       changeReason: "Personel gunluk takvimleri uretildi",
       changedById: user.id,
