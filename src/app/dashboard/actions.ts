@@ -9,14 +9,20 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   AttendanceType,
+  CalendarApprovalStatus,
+  CalendarScopeType,
   DevicePurpose,
   LeaveApprovalStatus,
   LeaveDurationType,
   LeaveType,
+  SpecialDayType,
+  WorkDayType,
 } from "@/generated/prisma/client";
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { calculateGrossMinutes, calculateNetMinutes } from "@/lib/work-calendar-rules";
+import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -37,6 +43,74 @@ function getOptionalDate(formData: FormData, key: string) {
 
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getOptionalNumber(formData: FormData, key: string) {
+  const value = getString(formData, key);
+  if (!value) return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function getRequiredDate(formData: FormData, key: string) {
+  const date = getOptionalDate(formData, key);
+  if (!date) throw new Error("Tarih bilgisi gecersiz.");
+  return date;
+}
+
+function parseCalendarScope(formData: FormData) {
+  const scopeType = getString(formData, "scopeType") as CalendarScopeType;
+  const allowedScopes = new Set<string>(Object.values(CalendarScopeType));
+
+  if (!allowedScopes.has(scopeType)) {
+    throw new Error("Takvim kapsami gecersiz.");
+  }
+
+  return {
+    scopeType,
+    branchId: scopeType === CalendarScopeType.BRANCH ? getString(formData, "branchId") || null : null,
+    departmentId: scopeType === CalendarScopeType.DEPARTMENT ? getString(formData, "departmentId") || null : null,
+    employeeId: scopeType === CalendarScopeType.EMPLOYEE ? getString(formData, "employeeId") || null : null,
+  };
+}
+
+function buildWeekdayPayload(formData: FormData) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const weekday = index + 1;
+    const dayType = getString(formData, `weekday-${weekday}-dayType`) as WorkDayType;
+    const startTime = getString(formData, `weekday-${weekday}-startTime`) || null;
+    const endTime = getString(formData, `weekday-${weekday}-endTime`) || null;
+    const crossesMidnight = formData.get(`weekday-${weekday}-crossesMidnight`) === "on";
+    const breakMinutes = getOptionalNumber(formData, `weekday-${weekday}-breakMinutes`) ?? 0;
+    const grossMinutes = calculateGrossMinutes(startTime, endTime, crossesMidnight);
+
+    return {
+      weekday,
+      dayType: Object.values(WorkDayType).includes(dayType) ? dayType : WorkDayType.NON_WORKING,
+      startTime,
+      endTime,
+      crossesMidnight,
+      breakMinutes,
+      plannedGrossMinutes: grossMinutes,
+      plannedNetMinutes: calculateNetMinutes(startTime, endTime, breakMinutes, crossesMidnight),
+      checkLateArrival: formData.get(`weekday-${weekday}-checkLateArrival`) === "on",
+      checkEarlyDeparture: formData.get(`weekday-${weekday}-checkEarlyDeparture`) === "on",
+      checkAbsence: formData.get(`weekday-${weekday}-checkAbsence`) === "on",
+    };
+  });
+}
+
+function revalidateCalendarPaths() {
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/calendar/templates");
+  revalidatePath("/dashboard/calendar/official-holidays");
+  revalidatePath("/dashboard/calendar/special-days");
+  revalidatePath("/dashboard/calendar/assignments");
+  revalidatePath("/dashboard/calendar/exceptions");
+  revalidatePath("/dashboard/calendar/conflicts");
+  revalidatePath("/dashboard/calendar/change-logs");
+  revalidatePath("/dashboard/reports");
 }
 
 async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
@@ -850,6 +924,482 @@ export async function deleteLeaveRequestAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/leaves");
   revalidatePath("/dashboard/reports");
+}
+
+export async function createWorkCalendarTemplateAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const code = getString(formData, "code").toUpperCase();
+  const name = getString(formData, "name");
+  const description = getString(formData, "description") || null;
+  const validFrom = getOptionalDate(formData, "validFrom");
+  const validTo = getOptionalDate(formData, "validTo");
+  const isDefault = formData.get("isDefault") === "on";
+  const weekdays = buildWeekdayPayload(formData);
+
+  if (!code || !name) {
+    throw new Error("Takvim sablon kodu ve adi zorunludur.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (isDefault) {
+      await tx.workCalendarTemplate.updateMany({
+        where: { companyId: user.companyId, isDefault: true },
+        data: { isDefault: false },
+      });
+    }
+
+    const template = await tx.workCalendarTemplate.create({
+      data: {
+        code,
+        name,
+        description,
+        validFrom,
+        validTo,
+        isDefault,
+        companyId: user.companyId,
+        weekdays: { create: weekdays },
+      },
+    });
+
+    await tx.calendarChangeLog.create({
+      data: {
+        companyId: user.companyId,
+        recordType: "TEMPLATE",
+        recordId: template.id,
+        newValue: JSON.stringify({ code, name, isDefault }),
+        changeReason: "Takvim sablonu olusturuldu",
+        changedById: user.id,
+      },
+    });
+  });
+
+  revalidateCalendarPaths();
+  redirect("/dashboard/calendar/templates");
+}
+
+export async function updateWorkCalendarTemplateAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const templateId = getString(formData, "templateId");
+  const code = getString(formData, "code").toUpperCase();
+  const name = getString(formData, "name");
+  const description = getString(formData, "description") || null;
+  const validFrom = getOptionalDate(formData, "validFrom");
+  const validTo = getOptionalDate(formData, "validTo");
+  const isDefault = formData.get("isDefault") === "on";
+  const isActive = formData.get("isActive") === "on";
+  const weekdays = buildWeekdayPayload(formData);
+
+  if (!templateId || !code || !name) {
+    throw new Error("Takvim sablon bilgileri eksik.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (isDefault) {
+      await tx.workCalendarTemplate.updateMany({
+        where: { companyId: user.companyId, isDefault: true, id: { not: templateId } },
+        data: { isDefault: false },
+      });
+    }
+
+    await tx.workCalendarTemplate.updateMany({
+      where: { id: templateId, companyId: user.companyId },
+      data: { code, name, description, validFrom, validTo, isDefault, isActive },
+    });
+
+    for (const weekday of weekdays) {
+      await tx.workCalendarWeekday.upsert({
+        where: {
+          calendarTemplateId_weekday: {
+            calendarTemplateId: templateId,
+            weekday: weekday.weekday,
+          },
+        },
+        update: weekday,
+        create: { ...weekday, calendarTemplateId: templateId },
+      });
+    }
+
+    await tx.calendarChangeLog.create({
+      data: {
+        companyId: user.companyId,
+        recordType: "TEMPLATE",
+        recordId: templateId,
+        newValue: JSON.stringify({ code, name, isDefault, isActive }),
+        changeReason: getString(formData, "changeReason") || "Takvim sablonu guncellendi",
+        changedById: user.id,
+      },
+    });
+  });
+
+  revalidateCalendarPaths();
+}
+
+export async function createCalendarSpecialDayAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const name = getString(formData, "name");
+  const specialDayType = getString(formData, "specialDayType") as SpecialDayType;
+  const dateFrom = getRequiredDate(formData, "dateFrom");
+  const dateTo = getRequiredDate(formData, "dateTo");
+  const scope = parseCalendarScope(formData);
+
+  if (!name || !Object.values(SpecialDayType).includes(specialDayType)) {
+    throw new Error("Ozel gun bilgileri gecersiz.");
+  }
+
+  const record = await prisma.calendarSpecialDay.create({
+    data: {
+      name,
+      specialDayType,
+      dateFrom,
+      dateTo,
+      isHalfDay: formData.get("isHalfDay") === "on",
+      startTime: getString(formData, "startTime") || null,
+      endTime: getString(formData, "endTime") || null,
+      breakMinutes: getOptionalNumber(formData, "breakMinutes") ?? 0,
+      scopeType: scope.scopeType,
+      branchId: scope.branchId,
+      departmentId: scope.departmentId,
+      employeeId: scope.employeeId,
+      description: getString(formData, "description") || null,
+      repeatsYearly: formData.get("repeatsYearly") === "on",
+      companyId: user.companyId,
+    },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId: user.companyId,
+      recordType: "SPECIAL_DAY",
+      recordId: record.id,
+      newValue: JSON.stringify({ name, specialDayType, dateFrom, dateTo, scope }),
+      changeReason: "Takvim ozel gunu olusturuldu",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+}
+
+export async function updateCalendarSpecialDayAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const specialDayId = getString(formData, "specialDayId");
+  const name = getString(formData, "name");
+  const specialDayType = getString(formData, "specialDayType") as SpecialDayType;
+  const scope = parseCalendarScope(formData);
+
+  if (!specialDayId || !name || !Object.values(SpecialDayType).includes(specialDayType)) {
+    throw new Error("Ozel gun bilgileri gecersiz.");
+  }
+
+  await prisma.calendarSpecialDay.updateMany({
+    where: { id: specialDayId, companyId: user.companyId },
+    data: {
+      name,
+      specialDayType,
+      dateFrom: getRequiredDate(formData, "dateFrom"),
+      dateTo: getRequiredDate(formData, "dateTo"),
+      isHalfDay: formData.get("isHalfDay") === "on",
+      startTime: getString(formData, "startTime") || null,
+      endTime: getString(formData, "endTime") || null,
+      breakMinutes: getOptionalNumber(formData, "breakMinutes") ?? 0,
+      scopeType: scope.scopeType,
+      branchId: scope.branchId,
+      departmentId: scope.departmentId,
+      employeeId: scope.employeeId,
+      description: getString(formData, "description") || null,
+      repeatsYearly: formData.get("repeatsYearly") === "on",
+      isActive: formData.get("isActive") === "on",
+    },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId: user.companyId,
+      recordType: "SPECIAL_DAY",
+      recordId: specialDayId,
+      newValue: JSON.stringify({ name, specialDayType, scope }),
+      changeReason: getString(formData, "changeReason") || "Takvim ozel gunu guncellendi",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+}
+
+export async function createCalendarAssignmentAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const calendarTemplateId = getString(formData, "calendarTemplateId");
+  const scope = parseCalendarScope(formData);
+  const validFrom = getRequiredDate(formData, "validFrom");
+  const validTo = getOptionalDate(formData, "validTo");
+  const priority = getOptionalNumber(formData, "priority") ?? 100;
+  const conflictReason = getString(formData, "conflictReason") || null;
+  const conflictApproved = formData.get("conflictApproved") === "on";
+
+  if (!calendarTemplateId) {
+    throw new Error("Takvim sablonu secilmelidir.");
+  }
+
+  const conflict = await prisma.calendarAssignment.findFirst({
+    where: {
+      companyId: user.companyId,
+      isActive: true,
+      scopeType: scope.scopeType,
+      branchId: scope.branchId,
+      departmentId: scope.departmentId,
+      employeeId: scope.employeeId,
+      validFrom: { lte: validTo ?? validFrom },
+      OR: [{ validTo: null }, { validTo: { gte: validFrom } }],
+    },
+  });
+
+  if (conflict && !conflictApproved && !conflictReason) {
+    throw new Error("Bu kapsam ve tarih araliginda cakisan takvim atamasi var. Aciklama veya onay olmadan kaydedilemez.");
+  }
+
+  const record = await prisma.calendarAssignment.create({
+    data: {
+      calendarTemplateId,
+      scopeType: scope.scopeType,
+      companyId: user.companyId,
+      branchId: scope.branchId,
+      departmentId: scope.departmentId,
+      employeeId: scope.employeeId,
+      validFrom,
+      validTo,
+      priority,
+      description: getString(formData, "description") || null,
+      conflictApproved,
+      conflictReason,
+    },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId: user.companyId,
+      recordType: "ASSIGNMENT",
+      recordId: record.id,
+      newValue: JSON.stringify({ calendarTemplateId, scope, validFrom, validTo, priority }),
+      changeReason: "Takvim atamasi olusturuldu",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+}
+
+export async function updateCalendarAssignmentAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const assignmentId = getString(formData, "assignmentId");
+  const calendarTemplateId = getString(formData, "calendarTemplateId");
+  const priority = getOptionalNumber(formData, "priority") ?? 100;
+
+  if (!assignmentId || !calendarTemplateId) {
+    throw new Error("Takvim atama bilgileri eksik.");
+  }
+
+  await prisma.calendarAssignment.updateMany({
+    where: { id: assignmentId, companyId: user.companyId },
+    data: {
+      calendarTemplateId,
+      validFrom: getRequiredDate(formData, "validFrom"),
+      validTo: getOptionalDate(formData, "validTo"),
+      priority,
+      isActive: formData.get("isActive") === "on",
+      description: getString(formData, "description") || null,
+      conflictApproved: formData.get("conflictApproved") === "on",
+      conflictReason: getString(formData, "conflictReason") || null,
+    },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId: user.companyId,
+      recordType: "ASSIGNMENT",
+      recordId: assignmentId,
+      newValue: JSON.stringify({ calendarTemplateId, priority }),
+      changeReason: getString(formData, "changeReason") || "Takvim atamasi guncellendi",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+}
+
+export async function createCalendarDailyExceptionAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const scope = parseCalendarScope(formData);
+  const newDayType = getString(formData, "newDayType") as WorkDayType;
+  const changeReason = getString(formData, "changeReason");
+
+  if (!changeReason || !Object.values(WorkDayType).includes(newDayType)) {
+    throw new Error("Gunluk istisna bilgileri eksik.");
+  }
+
+  const record = await prisma.calendarDailyException.create({
+    data: {
+      workDate: getRequiredDate(formData, "workDate"),
+      scopeType: scope.scopeType,
+      companyId: user.companyId,
+      branchId: scope.branchId,
+      departmentId: scope.departmentId,
+      employeeId: scope.employeeId,
+      originalDayType: (getString(formData, "originalDayType") as WorkDayType) || null,
+      newDayType,
+      newStartTime: getString(formData, "newStartTime") || null,
+      newEndTime: getString(formData, "newEndTime") || null,
+      newBreakMinutes: getOptionalNumber(formData, "newBreakMinutes"),
+      changeReason,
+      approvalStatus: (getString(formData, "approvalStatus") as CalendarApprovalStatus) || CalendarApprovalStatus.APPROVED,
+      createdById: user.id,
+      approvedById: user.id,
+    },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId: user.companyId,
+      recordType: "DAILY_EXCEPTION",
+      recordId: record.id,
+      newValue: JSON.stringify({ scope, newDayType }),
+      changeReason,
+      changedById: user.id,
+      approvedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+}
+
+export async function updateCalendarDailyExceptionAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const exceptionId = getString(formData, "exceptionId");
+  const newDayType = getString(formData, "newDayType") as WorkDayType;
+  const changeReason = getString(formData, "changeReason");
+
+  if (!exceptionId || !changeReason || !Object.values(WorkDayType).includes(newDayType)) {
+    throw new Error("Gunluk istisna bilgileri eksik.");
+  }
+
+  await prisma.calendarDailyException.updateMany({
+    where: { id: exceptionId, companyId: user.companyId },
+    data: {
+      newDayType,
+      newStartTime: getString(formData, "newStartTime") || null,
+      newEndTime: getString(formData, "newEndTime") || null,
+      newBreakMinutes: getOptionalNumber(formData, "newBreakMinutes"),
+      changeReason,
+      approvalStatus: (getString(formData, "approvalStatus") as CalendarApprovalStatus) || CalendarApprovalStatus.APPROVED,
+      approvedById: user.id,
+    },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId: user.companyId,
+      recordType: "DAILY_EXCEPTION",
+      recordId: exceptionId,
+      newValue: JSON.stringify({ newDayType }),
+      changeReason,
+      changedById: user.id,
+      approvedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+}
+
+export async function generateEmployeeDailyCalendarAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const fromDate = getRequiredDate(formData, "fromDate");
+  const toDate = getRequiredDate(formData, "toDate");
+  const employeeId = getString(formData, "employeeId");
+  const department = getString(formData, "department");
+
+  const employees = await prisma.employee.findMany({
+    where: {
+      companyId: user.companyId,
+      ...(employeeId ? { id: employeeId } : {}),
+      ...(department ? { department } : {}),
+    },
+    select: { id: true },
+  });
+
+  const current = new Date(fromDate);
+  const end = new Date(toDate);
+  current.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  if (current > end) {
+    throw new Error("Baslangic tarihi bitis tarihinden sonra olamaz.");
+  }
+
+  let generatedCount = 0;
+  while (current <= end) {
+    for (const employee of employees) {
+      await saveResolvedEmployeeWorkCalendar(employee.id, current);
+      generatedCount += 1;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId: user.companyId,
+      recordType: "EMPLOYEE_DAILY_CALENDAR",
+      recordId: user.companyId,
+      newValue: JSON.stringify({ fromDate, toDate, employeeId, department, generatedCount }),
+      changeReason: "Personel gunluk takvimleri uretildi",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
 }
 
 export async function logoutAction() {

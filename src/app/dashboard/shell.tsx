@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  CalendarDays,
   ClipboardList,
   ChevronDown,
   FileBarChart,
@@ -47,6 +48,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     pathname.startsWith("/dashboard/settings"),
   );
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
+  const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
 
   const items = [
     { href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard },
@@ -63,6 +65,16 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     { href: "/dashboard/reports", label: "Rapor Merkezi", icon: FileBarChart },
     { href: "/dashboard/reports/personnel", label: "Personel PDKS", icon: Users },
     { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: FileBarChart },
+  ];
+  const calendarItems = [
+    { href: "/dashboard/calendar", label: "Takvim Görünümü", icon: CalendarDays },
+    { href: "/dashboard/calendar/templates", label: "Takvim Şablonları", icon: CalendarDays },
+    { href: "/dashboard/calendar/official-holidays", label: "Resmî Tatiller", icon: CalendarDays },
+    { href: "/dashboard/calendar/special-days", label: "Şirket Özel Günleri", icon: CalendarDays },
+    { href: "/dashboard/calendar/assignments", label: "Takvim Atamaları", icon: CalendarDays },
+    { href: "/dashboard/calendar/exceptions", label: "Günlük İstisnalar", icon: CalendarDays },
+    { href: "/dashboard/calendar/conflicts", label: "Takvim Çakışmaları", icon: CalendarDays },
+    { href: "/dashboard/calendar/change-logs", label: "Değişiklik Geçmişi", icon: CalendarDays },
   ];
   const definitionItems = [
     ...(user.role === "SUPERADMIN"
@@ -117,6 +129,44 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
               </Link>
             );
           })}
+
+          {user.role !== "SUPERADMIN" ? (
+            <div className={styles.navGroup}>
+              <button
+                type="button"
+                className={`${styles.navItem} ${pathname.startsWith("/dashboard/calendar") ? styles.navItemActive : ""}`}
+                onClick={() => setCalendarOpen((value) => !value)}
+              >
+                <CalendarDays size={18} />
+                <span>Çalışma Takvimi</span>
+                <ChevronDown
+                  size={16}
+                  className={`${styles.navChevron} ${calendarOpen ? styles.navChevronOpen : ""}`}
+                />
+              </button>
+
+              {calendarOpen ? (
+                <div className={styles.subNav}>
+                  {calendarItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href;
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Icon size={16} />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {user.role !== "SUPERADMIN" ? (
             <div className={styles.navGroup}>

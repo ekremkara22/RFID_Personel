@@ -8,6 +8,7 @@
     "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
+    "test": "tsx --test src/lib/**/*.test.ts",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",

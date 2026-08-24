@@ -52,6 +52,67 @@ enum LeaveApprovalStatus {
   REJECTED
 }
 
+enum WorkDayType {
+  NORMAL_WORK
+  WEEKLY_REST
+  NON_WORKING
+  OFFICIAL_HOLIDAY
+  COMPANY_HOLIDAY
+  HALF_WORK
+  EXTRA_WORK
+  SPECIAL_WORK
+  LEAVE
+  CONFLICT
+}
+
+enum CalendarScopeType {
+  COMPANY
+  BRANCH
+  DEPARTMENT
+  EMPLOYEE
+}
+
+enum SpecialDayType {
+  OFFICIAL_HOLIDAY
+  COMPANY_HOLIDAY
+  ADMINISTRATIVE_HOLIDAY
+  HALF_WORK
+  EXTRA_WORK
+  DEPARTMENT_HOLIDAY
+  DEPARTMENT_WORK
+  BRANCH_HOLIDAY
+  BRANCH_WORK
+}
+
+enum CalendarCalculationStatus {
+  CALCULATED
+  CONFLICT
+  MISSING_DEFAULT
+  OUT_OF_EMPLOYMENT
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  PASSIVE
+  BEFORE_HIRE
+  AFTER_TERMINATION
+}
+
+enum CalendarRecordType {
+  TEMPLATE
+  WEEKDAY
+  ASSIGNMENT
+  SPECIAL_DAY
+  DAILY_EXCEPTION
+  EMPLOYEE_DAILY_CALENDAR
+}
+
+enum CalendarApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Company {
   id            String   @id @default(uuid())
   name          String
@@ -71,6 +132,10 @@ model Company {
   departments   Department[]
   branches      Branch[]
   managers      Manager[]
+  calendarTemplates WorkCalendarTemplate[]
+  calendarAssignments CalendarAssignment[]
+  calendarSpecialDays CalendarSpecialDay[]
+  dailyExceptions CalendarDailyException[]
 }
 
 model CompanyCategory {
@@ -116,6 +181,10 @@ model Employee {
   company           Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   logs              AttendanceLog[]
   leaves            LeaveRequest[]
+  calendarAssignments CalendarAssignment[]
+  calendarSpecialDays CalendarSpecialDay[]
+  dailyExceptions  CalendarDailyException[]
+  dailyCalendars   EmployeeDailyCalendar[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -128,6 +197,9 @@ model Department {
   isActive  Boolean  @default(true)
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  calendarAssignments CalendarAssignment[]
+  calendarSpecialDays CalendarSpecialDay[]
+  dailyExceptions CalendarDailyException[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -141,6 +213,9 @@ model Branch {
   isActive  Boolean  @default(true)
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  calendarAssignments CalendarAssignment[]
+  calendarSpecialDays CalendarSpecialDay[]
+  dailyExceptions CalendarDailyException[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -207,4 +282,163 @@ model LeaveRequest {
   description    String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
+  dailyCalendars EmployeeDailyCalendar[]
+}
+
+model WorkCalendarTemplate {
+  id          String   @id @default(uuid())
+  code        String
+  name        String
+  description String?
+  validFrom   DateTime?
+  validTo     DateTime?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  weekdays    WorkCalendarWeekday[]
+  assignments CalendarAssignment[]
+  dailyCalendars EmployeeDailyCalendar[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([companyId, code])
+}
+
+model WorkCalendarWeekday {
+  id                  String       @id @default(uuid())
+  calendarTemplateId  String
+  calendarTemplate    WorkCalendarTemplate @relation(fields: [calendarTemplateId], references: [id], onDelete: Cascade)
+  weekday             Int
+  dayType             WorkDayType  @default(NORMAL_WORK)
+  startTime           String?
+  endTime             String?
+  crossesMidnight     Boolean      @default(false)
+  breakMinutes        Int          @default(0)
+  plannedGrossMinutes Int          @default(0)
+  plannedNetMinutes   Int          @default(0)
+  checkLateArrival    Boolean      @default(true)
+  checkEarlyDeparture Boolean      @default(true)
+  checkAbsence        Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([calendarTemplateId, weekday])
+}
+
+model CalendarAssignment {
+  id                 String       @id @default(uuid())
+  calendarTemplateId String
+  calendarTemplate   WorkCalendarTemplate @relation(fields: [calendarTemplateId], references: [id], onDelete: Cascade)
+  scopeType          CalendarScopeType
+  companyId          String
+  company            Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId           String?
+  branch             Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  departmentId       String?
+  department         Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  employeeId         String?
+  employee           Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  validFrom          DateTime
+  validTo            DateTime?
+  priority           Int          @default(100)
+  isActive           Boolean      @default(true)
+  description        String?
+  conflictApproved   Boolean      @default(false)
+  conflictReason     String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model CalendarSpecialDay {
+  id            String       @id @default(uuid())
+  name          String
+  specialDayType SpecialDayType
+  dateFrom      DateTime
+  dateTo        DateTime
+  isHalfDay     Boolean      @default(false)
+  startTime     String?
+  endTime       String?
+  breakMinutes  Int          @default(0)
+  scopeType     CalendarScopeType @default(COMPANY)
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId      String?
+  branch        Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  departmentId  String?
+  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  employeeId    String?
+  employee      Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  description   String?
+  repeatsYearly Boolean      @default(false)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model CalendarDailyException {
+  id            String       @id @default(uuid())
+  workDate      DateTime
+  scopeType     CalendarScopeType
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId      String?
+  branch        Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  departmentId  String?
+  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  employeeId    String?
+  employee      Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  originalDayType WorkDayType?
+  newDayType    WorkDayType
+  newStartTime  String?
+  newEndTime    String?
+  newBreakMinutes Int?
+  changeReason  String
+  approvalStatus CalendarApprovalStatus @default(APPROVED)
+  createdById   String?
+  approvedById  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model EmployeeDailyCalendar {
+  id                  String       @id @default(uuid())
+  employeeId          String
+  employee            Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workDate            DateTime
+  employmentStatus    EmploymentStatus
+  dayType             WorkDayType
+  plannedStart        String?
+  plannedEnd          String?
+  crossesMidnight     Boolean      @default(false)
+  plannedBreakMinutes Int          @default(0)
+  plannedGrossMinutes Int          @default(0)
+  plannedNetMinutes   Int          @default(0)
+  checkLateArrival    Boolean      @default(false)
+  checkEarlyDeparture Boolean      @default(false)
+  checkAbsence        Boolean      @default(false)
+  leaveId             String?
+  leave               LeaveRequest? @relation(fields: [leaveId], references: [id], onDelete: SetNull)
+  calendarTemplateId  String?
+  calendarTemplate    WorkCalendarTemplate? @relation(fields: [calendarTemplateId], references: [id], onDelete: SetNull)
+  ruleSourceType      String
+  ruleSourceId        String?
+  calculationStatus   CalendarCalculationStatus @default(CALCULATED)
+  calculationReason   String
+  calculatedAt        DateTime     @default(now())
+
+  @@unique([employeeId, workDate])
+}
+
+model CalendarChangeLog {
+  id           String       @id @default(uuid())
+  companyId    String?
+  recordType   CalendarRecordType
+  recordId     String
+  oldValue     String?      @db.Text
+  newValue     String?      @db.Text
+  changeReason String?      @db.Text
+  changedById  String?
+  approvedById String?
+  changedAt    DateTime     @default(now())
 }
