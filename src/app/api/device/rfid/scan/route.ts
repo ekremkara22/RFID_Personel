@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AttendanceType } from "@/generated/prisma/client";
+import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const entryExitTypes = new Set<AttendanceType>([
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     if (!employee) {
       await prisma.device.update({
         where: { id: device.id },
-        data: { lastSeenAt: new Date() },
+        data: { lastSeenAt: new Date(), lastDataTransferAt: new Date() },
       });
 
       return NextResponse.json(
@@ -62,9 +62,17 @@ export async function POST(request: Request) {
       orderBy: { scannedAt: "desc" },
     });
     const nextType =
-      latestLog && entryExitTypes.has(latestLog.type) && latestLog.type === AttendanceType.ENTRY
-        ? AttendanceType.EXIT
-        : AttendanceType.ENTRY;
+      device.purpose === DevicePurpose.ENTRY
+        ? AttendanceType.ENTRY
+        : device.purpose === DevicePurpose.EXIT
+          ? AttendanceType.EXIT
+          : device.purpose === DevicePurpose.BREAK_START
+            ? AttendanceType.BREAK_START
+            : device.purpose === DevicePurpose.BREAK_END
+              ? AttendanceType.BREAK_END
+              : latestLog && entryExitTypes.has(latestLog.type) && latestLog.type === AttendanceType.ENTRY
+                ? AttendanceType.EXIT
+                : AttendanceType.ENTRY;
 
     const [log] = await prisma.$transaction([
       prisma.attendanceLog.create({
@@ -77,7 +85,7 @@ export async function POST(request: Request) {
       }),
       prisma.device.update({
         where: { id: device.id },
-        data: { lastSeenAt: new Date() },
+        data: { lastSeenAt: new Date(), lastDataTransferAt: new Date() },
       }),
     ]);
 

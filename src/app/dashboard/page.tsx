@@ -5,12 +5,14 @@ import {
   Coffee,
   DoorClosed,
   DoorOpen,
+  AlertTriangle,
   MonitorSmartphone,
   ShieldCheck,
   Soup,
   Users,
 } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
+import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
@@ -106,6 +108,7 @@ export default async function DashboardPage() {
     monthMovementCount,
     monthlyLogsForReport,
     todayLogsForDashboard,
+    todayApprovedLeaves,
   ] = await Promise.all([
     prisma.company.count(),
     prisma.user.count({ where: { role: "COMPANY_ADMIN" } }),
@@ -238,6 +241,15 @@ export default async function DashboardPage() {
       orderBy: { scannedAt: "desc" },
       take: 500,
     }),
+    prisma.leaveRequest.findMany({
+      where: {
+        companyId: user.companyId ?? undefined,
+        approvalStatus: LeaveApprovalStatus.APPROVED,
+        startDate: { lte: new Date() },
+        endDate: { gte: today },
+      },
+      include: { employee: true },
+    }),
   ]);
 
   const summaryCards = isSuperadmin
@@ -293,7 +305,8 @@ export default async function DashboardPage() {
     }, new Map<string, { department: string; entry: number; exit: number; breakCount: number; meal: number; total: number }>()),
   ).map(([, value]) => value);
   const currentlyInside = Math.max(todayEntryCount - todayExitCount, 0);
-  const absentCount = Math.max(employeeCount - todayEntryCount, 0);
+  const leaveEmployeeIds = new Set(todayApprovedLeaves.map((leave) => leave.employeeId));
+  const absentCount = Math.max(employeeCount - todayEntryCount - leaveEmployeeIds.size, 0);
   const hourlyData = Array.from({ length: 13 }, (_, index) => {
     const hour = index + 7;
     const entry = todayLogsForDashboard.filter(
@@ -314,7 +327,7 @@ export default async function DashboardPage() {
   const statusCards = [
     { label: "Zamaninda", value: todayEntryCount, color: "green" },
     { label: "Gec", value: 0, color: "orange" },
-    { label: "Izinli", value: 0, color: "blue" },
+    { label: "Izinli", value: leaveEmployeeIds.size, color: "blue" },
     { label: "Devamsiz", value: absentCount, color: "red" },
   ];
   const dashboardExportRows = todayLogsForDashboard.map((log) => ({
@@ -325,6 +338,14 @@ export default async function DashboardPage() {
     rfidCardId: log.rfidCardId ?? log.employee.rfidCardId ?? "-",
     device: log.device?.name ?? "-",
   }));
+  const attentionEmployees = scopedEmployees
+    .filter((employee) => {
+      const hasEntry = todayLogsForDashboard.some(
+        (log) => log.employeeId === employee.id && log.type === "ENTRY",
+      );
+      return employee.isActive && !hasEntry && !leaveEmployeeIds.has(employee.id);
+    })
+    .slice(0, 8);
 
   return (
     <div className={styles.page}>
@@ -484,45 +505,86 @@ export default async function DashboardPage() {
 
       <section className={styles.mainGrid}>
         <div className={styles.primaryColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>
-                  {isSuperadmin ? "Firma genel görünüm" : "Firma kapsamı"}
-                </p>
-                <h2 className={styles.sectionTitle}>
-                  {isSuperadmin ? "Müşteri Firmalar" : "Firma Detayları"}
-                </h2>
+          {isSuperadmin ? (
+            <section className={`glass-panel ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Firma genel görünüm</p>
+                  <h2 className={styles.sectionTitle}>Müşteri Firmalar</h2>
+                </div>
               </div>
-            </div>
 
-            <div className={styles.cardGrid}>
-              {highlightedCompanies.map((company) => (
-                <article key={company.id} className={styles.infoCard}>
-                  <div className={styles.infoCardTop}>
-                    <div>
-                      <p className={styles.infoCardTitle}>{company.name}</p>
-                      <p className={styles.infoCardMeta}>
-                        {company.users[0]
-                          ? getUserFullName(company.users[0])
-                          : "Firma admini tanımlanmadı"}
-                      </p>
+              <div className={styles.cardGrid}>
+                {highlightedCompanies.map((company) => (
+                  <article key={company.id} className={styles.infoCard}>
+                    <div className={styles.infoCardTop}>
+                      <div>
+                        <p className={styles.infoCardTitle}>{company.name}</p>
+                        <p className={styles.infoCardMeta}>
+                          {company.users[0]
+                            ? getUserFullName(company.users[0])
+                            : "Firma admini tanımlanmadı"}
+                        </p>
+                      </div>
+                      <div className={styles.countPill}>{company._count.employees} personel</div>
                     </div>
-                    <div className={styles.countPill}>{company._count.employees} personel</div>
-                  </div>
 
-                  <p className={styles.infoCardBody}>
-                    {company.address ?? "Adres bilgisi henüz girilmedi."}
-                  </p>
+                    <p className={styles.infoCardBody}>
+                      {company.address ?? "Adres bilgisi henüz girilmedi."}
+                    </p>
 
-                  <div className={styles.infoCardFooter}>
-                    <span>İletişim: {company.contactEmail ?? company.contactPhone ?? "-"}</span>
-                    <span>{company._count.devices} cihaz</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+                    <div className={styles.infoCardFooter}>
+                      <span>İletişim: {company.contactEmail ?? company.contactPhone ?? "-"}</span>
+                      <span>{company._count.devices} cihaz</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : (
+            <section className={`glass-panel ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Dikkat</p>
+                  <h2 className={styles.sectionTitle}>Dikkat Gerektiren Personel</h2>
+                </div>
+                <AlertTriangle size={18} />
+              </div>
+
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Personel</th>
+                      <th>Departman</th>
+                      <th>Sube</th>
+                      <th>Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attentionEmployees.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className={styles.emptyCell}>
+                          Bugun dikkat gerektiren kayit yok.
+                        </td>
+                      </tr>
+                    ) : (
+                      attentionEmployees.map((employee) => (
+                        <tr key={employee.id}>
+                          <td>
+                            {employee.firstName} {employee.lastName}
+                          </td>
+                          <td>{employee.department}</td>
+                          <td>{employee.branch ?? "-"}</td>
+                          <td>Giris hareketi yok</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
           <section className={`glass-panel ${styles.sectionCard}`}>
             <div className={styles.sectionHeader}>

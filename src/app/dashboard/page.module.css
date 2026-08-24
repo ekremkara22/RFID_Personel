@@ -469,6 +469,43 @@
   margin-top: 0.2rem;
 }
 
+.personCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.personCell img,
+.personCell > span,
+.profilePreviewRow img,
+.profilePlaceholder {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #dbe3ef;
+  background: #f1f5f9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0369a1;
+  font-weight: 900;
+}
+
+.profilePreviewRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.profilePreviewRow img,
+.profilePlaceholder {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 8px;
+}
+
 .strongLink,
 .monoLink {
   font-weight: 800;
@@ -817,7 +854,7 @@
 
 .definitionItem {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
   align-items: end;
   gap: 0.7rem;
   padding: 0.8rem;

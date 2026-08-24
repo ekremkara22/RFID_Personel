@@ -69,9 +69,15 @@ export default async function EmployeesPage(props: {
         <EmployeesTable
           employees={employees.map((employee) => ({
             id: employee.id,
+            photoUrl: employee.photoUrl ?? "",
             fullName: `${employee.firstName} ${employee.lastName}`.trim(),
+            registrationNumber: employee.registrationNumber ?? "-",
             age: employee.age,
             department: employee.department,
+            branch: employee.branch ?? "-",
+            hireDate: employee.hireDate ? employee.hireDate.toLocaleDateString("tr-TR") : "-",
+            terminationDate: employee.terminationDate ? employee.terminationDate.toLocaleDateString("tr-TR") : "-",
+            managerName: employee.managerName ?? "-",
             rfidCardId: employee.rfidCardId ?? "Kart atanmadi",
             email: employee.email ?? "-",
             status: employee.isActive ? "Aktif" : "Pasif",

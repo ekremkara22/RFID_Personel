@@ -13,13 +13,22 @@ export default async function NewEmployeePage() {
     redirect("/dashboard");
   }
 
-  const departments = await prisma.department.findMany({
-    where: {
-      companyId: user.companyId,
-      isActive: true,
-    },
-    orderBy: { name: "asc" },
-  });
+  const [departments, branches] = await Promise.all([
+    prisma.department.findMany({
+      where: {
+        companyId: user.companyId,
+        isActive: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.branch.findMany({
+      where: {
+        companyId: user.companyId,
+        isActive: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className={styles.page}>
@@ -48,15 +57,30 @@ export default async function NewEmployeePage() {
             </Link>
           </div>
         ) : (
-          <form action={createEmployeeAction} className={styles.formGrid}>
+          <form action={createEmployeeAction} className={styles.formGrid} encType="multipart/form-data">
+            <label className={`${styles.field} ${styles.fullWidth}`}>
+              <span>Personel Resmi</span>
+              <input name="photo" type="file" accept="image/*" />
+            </label>
+
             <label className={styles.field}>
-              <span>Isim</span>
+              <span>Ad</span>
               <input name="firstName" required placeholder="Ahmet" />
             </label>
 
             <label className={styles.field}>
-              <span>Soyisim</span>
+              <span>Soyad</span>
               <input name="lastName" required placeholder="Yilmaz" />
+            </label>
+
+            <label className={styles.field}>
+              <span>Sicil Numarasi</span>
+              <input name="registrationNumber" placeholder="PDKS sicil no" />
+            </label>
+
+            <label className={styles.field}>
+              <span>RFID Kart Numarasi</span>
+              <input name="rfidCardId" placeholder="Kart okutuldugunda gelen UID" />
             </label>
 
             <label className={styles.field}>
@@ -84,13 +108,35 @@ export default async function NewEmployeePage() {
             </label>
 
             <label className={styles.field}>
-              <span>Yas</span>
-              <input name="age" type="number" min="16" max="90" required />
+              <span>Sirket/Sube</span>
+              <select name="branch" defaultValue="">
+                <option value="">Merkez / belirtilmedi</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.name}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
             </label>
 
-            <label className={`${styles.field} ${styles.fullWidth}`}>
-              <span>RFID Kart ID</span>
-              <input name="rfidCardId" placeholder="Kart okutuldugunda gelen UID" />
+            <label className={styles.field}>
+              <span>Ise Giris Tarihi</span>
+              <input name="hireDate" type="date" />
+            </label>
+
+            <label className={styles.field}>
+              <span>Ayrilis Tarihi</span>
+              <input name="terminationDate" type="date" />
+            </label>
+
+            <label className={styles.field}>
+              <span>Bagli Yonetici</span>
+              <input name="managerName" placeholder="Yonetici adi soyadi" />
+            </label>
+
+            <label className={styles.field}>
+              <span>Yas</span>
+              <input name="age" type="number" min="16" max="90" defaultValue={18} required />
             </label>
 
             <div className={styles.fullWidthActionRow}>

@@ -7,16 +7,19 @@ Bu dosya projede calisirken sorumluluk alanlarini ayirmak icin kullanilir.
 - Is akisini parcalara ayirir ve degisiklikleri tek hedefe baglar.
 - Next.js dokumanlari yerelde varsa once `node_modules/next/dist/docs/` altindaki ilgili rehberi kontrol eder.
 - Deploy, test ve geri bildirim akisini kapatir.
+- Tum agent'lar web ekranlarini mobil ve tablet kullanimina uygun dusunur; ozellikle Firma Admin panelinde tablo, form ve dashboardlar dar ekranda okunabilir ve kullanilabilir kalmalidir.
 
 ## Personel Agent
 
 - `src/app/dashboard/employees` ekranlari ve personel server action'larindan sorumludur.
 - RFID kart alanlari, personel arama, duzenleme, silme ve aktivasyon akisini korur.
+- Personel kayit, rapor ve hareket ekranlarini masaustu kadar tablet ve mobil kullanimda da islenebilir tutar.
 - Koordinat, GPS veya mobil uygulama bagimliligi eklemez.
 
 ## Firma Agent
 
 - Super admin firma listeleme, firma detay, firma admin bilgileri ve firma silme akisini yonetir.
+- Firma Admin deneyiminde dashboard, rapor, izin ve sabit tanim ekranlarinin responsive davranisini korur.
 - Firma detayinda cihaz atama islemlerinin sadece super admin yetkisinde kalmasini saglar.
 
 ## SQL Agent

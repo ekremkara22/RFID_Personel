@@ -16,7 +16,7 @@ export default async function EmployeeDetailPage(props: {
   }
 
   const { id } = await props.params;
-  const [employee, departments] = await Promise.all([
+  const [employee, departments, branches] = await Promise.all([
     prisma.employee.findFirst({
       where: {
         id,
@@ -24,6 +24,13 @@ export default async function EmployeeDetailPage(props: {
       },
     }),
     prisma.department.findMany({
+      where: {
+        companyId: user.companyId,
+        isActive: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.branch.findMany({
       where: {
         companyId: user.companyId,
         isActive: true,
@@ -58,17 +65,44 @@ export default async function EmployeeDetailPage(props: {
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
-        <form action={updateEmployeeAction} className={styles.formGrid}>
+        <form action={updateEmployeeAction} className={styles.formGrid} encType="multipart/form-data">
           <input type="hidden" name="employeeId" value={employee.id} />
 
+          <div className={`${styles.fullWidth} ${styles.profilePreviewRow}`}>
+            {employee.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={employee.photoUrl} alt={`${employee.firstName} ${employee.lastName}`} />
+            ) : (
+              <div className={styles.profilePlaceholder}>Resim yok</div>
+            )}
+            <label className={styles.field}>
+              <span>Personel Resmi</span>
+              <input name="photo" type="file" accept="image/*" />
+            </label>
+          </div>
+
           <label className={styles.field}>
-            <span>Isim</span>
+            <span>Ad</span>
             <input name="firstName" defaultValue={employee.firstName} required />
           </label>
 
           <label className={styles.field}>
-            <span>Soyisim</span>
+            <span>Soyad</span>
             <input name="lastName" defaultValue={employee.lastName} required />
+          </label>
+
+          <label className={styles.field}>
+            <span>Sicil Numarasi</span>
+            <input name="registrationNumber" defaultValue={employee.registrationNumber ?? ""} />
+          </label>
+
+          <label className={styles.field}>
+            <span>RFID Kart Numarasi</span>
+            <input
+              name="rfidCardId"
+              defaultValue={employee.rfidCardId ?? ""}
+              placeholder="Kart okutuldugunda gelen UID"
+            />
           </label>
 
           <label className={styles.field}>
@@ -98,12 +132,38 @@ export default async function EmployeeDetailPage(props: {
           </label>
 
           <label className={styles.field}>
-            <span>RFID Kart ID</span>
+            <span>Sirket/Sube</span>
+            <select name="branch" defaultValue={employee.branch ?? ""}>
+              <option value="">Merkez / belirtilmedi</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.name}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            <span>Ise Giris Tarihi</span>
             <input
-              name="rfidCardId"
-              defaultValue={employee.rfidCardId ?? ""}
-              placeholder="Kart okutuldugunda gelen UID"
+              name="hireDate"
+              type="date"
+              defaultValue={employee.hireDate ? employee.hireDate.toISOString().slice(0, 10) : ""}
             />
+          </label>
+
+          <label className={styles.field}>
+            <span>Ayrilis Tarihi</span>
+            <input
+              name="terminationDate"
+              type="date"
+              defaultValue={employee.terminationDate ? employee.terminationDate.toISOString().slice(0, 10) : ""}
+            />
+          </label>
+
+          <label className={styles.field}>
+            <span>Bagli Yonetici</span>
+            <input name="managerName" defaultValue={employee.managerName ?? ""} />
           </label>
 
           <label className={`${styles.checkField} ${styles.formActionAlign}`}>

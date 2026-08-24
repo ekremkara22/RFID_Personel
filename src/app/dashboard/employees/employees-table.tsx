@@ -9,18 +9,44 @@ import styles from "../page.module.css";
 
 type EmployeeRow = {
   id: string;
+  photoUrl: string;
   fullName: string;
+  registrationNumber: string;
   age: number;
   department: string;
+  branch: string;
+  hireDate: string;
+  terminationDate: string;
+  managerName: string;
   rfidCardId: string;
   email: string;
   status: string;
 };
 
-type ColumnKey = "fullName" | "department" | "rfidCardId" | "email" | "status";
+type ColumnKey =
+  | "fullName"
+  | "registrationNumber"
+  | "rfidCardId"
+  | "branch"
+  | "department"
+  | "hireDate"
+  | "terminationDate"
+  | "managerName"
+  | "email"
+  | "status";
 
 const storageKey = "rfid-personel-employees-column-order";
-const defaultOrder: ColumnKey[] = ["fullName", "department", "rfidCardId", "email", "status"];
+const defaultOrder: ColumnKey[] = [
+  "fullName",
+  "registrationNumber",
+  "rfidCardId",
+  "branch",
+  "department",
+  "hireDate",
+  "terminationDate",
+  "managerName",
+  "status",
+];
 
 const columnMap: Record<
   ColumnKey,
@@ -31,19 +57,52 @@ const columnMap: Record<
   }
 > = {
   fullName: {
-    label: "Personel",
+    label: "Ad Soyad",
     render: (employee) => (
-      <>
-        <strong>{employee.fullName}</strong>
-        <p className={styles.tableSubText}>{employee.age} yas</p>
-      </>
+      <div className={styles.personCell}>
+        {employee.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={employee.photoUrl} alt={employee.fullName} />
+        ) : (
+          <span>{employee.fullName.slice(0, 1)}</span>
+        )}
+        <div>
+          <strong>{employee.fullName}</strong>
+          <p className={styles.tableSubText}>{employee.age} yas</p>
+        </div>
+      </div>
     ),
     exportValue: (employee) => employee.fullName,
+  },
+  registrationNumber: {
+    label: "Sicil No",
+    render: (employee) => employee.registrationNumber,
+    exportValue: (employee) => employee.registrationNumber,
   },
   department: {
     label: "Departman",
     render: (employee) => employee.department,
     exportValue: (employee) => employee.department,
+  },
+  branch: {
+    label: "Sirket/Sube",
+    render: (employee) => employee.branch,
+    exportValue: (employee) => employee.branch,
+  },
+  hireDate: {
+    label: "Ise Giris",
+    render: (employee) => employee.hireDate,
+    exportValue: (employee) => employee.hireDate,
+  },
+  terminationDate: {
+    label: "Ayrilis",
+    render: (employee) => employee.terminationDate,
+    exportValue: (employee) => employee.terminationDate,
+  },
+  managerName: {
+    label: "Bagli Yonetici",
+    render: (employee) => employee.managerName,
+    exportValue: (employee) => employee.managerName,
   },
   rfidCardId: {
     label: "RFID Kart ID",
@@ -106,8 +165,13 @@ export function EmployeesTable({ employees }: { employees: EmployeeRow[] }) {
     () =>
       employees.map((employee) => ({
         fullName: columnMap.fullName.exportValue(employee),
-        department: columnMap.department.exportValue(employee),
+        registrationNumber: columnMap.registrationNumber.exportValue(employee),
         rfidCardId: columnMap.rfidCardId.exportValue(employee),
+        branch: columnMap.branch.exportValue(employee),
+        department: columnMap.department.exportValue(employee),
+        hireDate: columnMap.hireDate.exportValue(employee),
+        terminationDate: columnMap.terminationDate.exportValue(employee),
+        managerName: columnMap.managerName.exportValue(employee),
         email: columnMap.email.exportValue(employee),
         status: columnMap.status.exportValue(employee),
       })),

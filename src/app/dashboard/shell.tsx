@@ -7,10 +7,12 @@ import {
   Building2,
   ClipboardList,
   ChevronDown,
+  FileBarChart,
   LayoutDashboard,
   LogOut,
   Menu,
   MonitorSmartphone,
+  Plane,
   SlidersHorizontal,
   Tags,
   Users,
@@ -52,13 +54,18 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       : [
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
           { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },
+          { href: "/dashboard/reports", label: "Raporlar", icon: FileBarChart },
+          { href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane },
           { href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone },
         ]),
   ];
   const definitionItems = [
     ...(user.role === "SUPERADMIN"
       ? [{ href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags }]
-      : [{ href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags }]),
+      : [
+          { href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags },
+          { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },
+        ]),
   ];
 
   return (
