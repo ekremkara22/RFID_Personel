@@ -94,6 +94,17 @@ export default async function CalendarOverviewPage(props: {
     "Kural Kaynagi": record.ruleSourceType,
     Durum: calculationStatusLabels[record.calculationStatus],
   }));
+  const exportColumns: { key: keyof (typeof exportRows)[number] & string; label: string }[] = [
+    { key: "Tarih", label: "Tarih" },
+    { key: "Personel", label: "Personel" },
+    { key: "Departman", label: "Departman" },
+    { key: "Gun Turu", label: "Gun Turu" },
+    { key: "Planlanan Giris", label: "Planlanan Giris" },
+    { key: "Planlanan Cikis", label: "Planlanan Cikis" },
+    { key: "Net Sure", label: "Net Sure" },
+    { key: "Kural Kaynagi", label: "Kural Kaynagi" },
+    { key: "Durum", label: "Durum" },
+  ];
 
   return (
     <div className={styles.page}>
@@ -105,7 +116,12 @@ export default async function CalendarOverviewPage(props: {
             Personel ve tarih bazinda planlanan calisma durumunu, izin etkisini, kural kaynagini ve cakismalari izleyin.
           </p>
         </div>
-        <ExportButton filename="calisma-takvimi.csv" rows={exportRows} className={styles.inlineAction} />
+        <ExportButton
+          filename="calisma-takvimi.csv"
+          rows={exportRows}
+          columns={exportColumns}
+          className={styles.inlineAction}
+        />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
