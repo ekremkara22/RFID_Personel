@@ -15,6 +15,7 @@ import { ExportButton } from "@/app/dashboard/export-button";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "./page.module.css";
 
 const attendanceLabels = {
@@ -53,6 +54,19 @@ function getWeekStart(date: Date) {
   weekStart.setDate(weekStart.getDate() + diff);
   weekStart.setHours(0, 0, 0, 0);
   return weekStart;
+}
+
+function getDayKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getLogMinutes(date: Date) {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
+  const plannedStartMinutes = timeToMinutes(plannedStart);
+  return plannedStartMinutes !== null && getLogMinutes(scannedAt) > plannedStartMinutes;
 }
 
 export default async function DashboardPage() {
@@ -107,7 +121,9 @@ export default async function DashboardPage() {
     weekMovementCount,
     monthMovementCount,
     monthlyLogsForReport,
+    monthlyDailyCalendarsForReport,
     todayLogsForDashboard,
+    todayDailyCalendarsForDashboard,
     todayApprovedLeaves,
   ] = await Promise.all([
     prisma.company.count(),
@@ -229,6 +245,16 @@ export default async function DashboardPage() {
       orderBy: { scannedAt: "desc" },
       take: 1000,
     }),
+    prisma.employeeDailyCalendar.findMany({
+      where: {
+        workDate: { gte: monthStart },
+        employee: {
+          companyId: user.companyId ?? undefined,
+        },
+      },
+      include: { employee: true },
+      take: 3000,
+    }),
     prisma.attendanceLog.findMany({
       where: {
         scannedAt: { gte: today },
@@ -239,6 +265,16 @@ export default async function DashboardPage() {
         device: true,
       },
       orderBy: { scannedAt: "desc" },
+      take: 500,
+    }),
+    prisma.employeeDailyCalendar.findMany({
+      where: {
+        workDate: today,
+        employee: {
+          companyId: user.companyId ?? undefined,
+        },
+      },
+      include: { employee: true },
       take: 500,
     }),
     prisma.leaveRequest.findMany({
@@ -291,6 +327,7 @@ export default async function DashboardPage() {
         breakCount: 0,
         meal: 0,
         total: 0,
+        late: 0,
       };
 
       current.total += 1;
@@ -302,11 +339,38 @@ export default async function DashboardPage() {
 
       report.set(department, current);
       return report;
-    }, new Map<string, { department: string; entry: number; exit: number; breakCount: number; meal: number; total: number }>()),
+    }, new Map<string, { department: string; entry: number; exit: number; breakCount: number; meal: number; total: number; late: number }>()),
   ).map(([, value]) => value);
+  for (const day of monthlyDailyCalendarsForReport) {
+    if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) continue;
+
+    const firstEntry = monthlyLogsForReport
+      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY" && getDayKey(log.scannedAt) === getDayKey(day.workDate))
+      .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
+
+    if (!firstEntry || !isLateEntry(firstEntry.scannedAt, day.plannedStart)) continue;
+
+    const department = day.employee.department || "Departmansiz";
+    const current = departmentReport.find((item) => item.department === department);
+    if (current) {
+      current.late += 1;
+    } else {
+      departmentReport.push({ department, entry: 0, exit: 0, breakCount: 0, meal: 0, total: 0, late: 1 });
+    }
+  }
   const currentlyInside = Math.max(todayEntryCount - todayExitCount, 0);
   const leaveEmployeeIds = new Set(todayApprovedLeaves.map((leave) => leave.employeeId));
   const absentCount = Math.max(employeeCount - todayEntryCount - leaveEmployeeIds.size, 0);
+  const lateTodayCount = todayDailyCalendarsForDashboard.filter((day) => {
+    if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
+
+    const firstEntry = todayLogsForDashboard
+      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY")
+      .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
+
+    return firstEntry ? isLateEntry(firstEntry.scannedAt, day.plannedStart) : false;
+  }).length;
+  const onTimeTodayCount = Math.max(todayEntryCount - lateTodayCount, 0);
   const hourlyData = Array.from({ length: 13 }, (_, index) => {
     const hour = index + 7;
     const entry = todayLogsForDashboard.filter(
@@ -325,8 +389,8 @@ export default async function DashboardPage() {
   });
   const statusTotal = Math.max(employeeCount, 1);
   const statusCards = [
-    { label: "Zamaninda", value: todayEntryCount, color: "green" },
-    { label: "Gec", value: 0, color: "orange" },
+    { label: "Zamaninda", value: onTimeTodayCount, color: "green" },
+    { label: "Gec", value: lateTodayCount, color: "orange" },
     { label: "Izinli", value: leaveEmployeeIds.size, color: "blue" },
     { label: "Devamsiz", value: absentCount, color: "red" },
   ];
@@ -670,7 +734,7 @@ export default async function DashboardPage() {
                           <td>{department.exit}</td>
                           <td>{department.breakCount + department.meal}</td>
                           <td>
-                            <span className={styles.tableSubText}>Vardiya kurali bekliyor</span>
+                            {department.late}
                           </td>
                           <td>{department.total}</td>
                         </tr>
