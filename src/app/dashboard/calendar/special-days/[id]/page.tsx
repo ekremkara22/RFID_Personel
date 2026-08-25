@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { CalendarScopeType, SpecialDayType } from "@/generated/prisma/client";
 import { updateCalendarSpecialDayAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -27,13 +27,13 @@ export default async function SpecialDayDetailPage(props: { params: Promise<{ id
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Takvim Kaydi</p>
           <h1 className={styles.title}>{record.name}</h1>
           <p className={styles.subtitle}>{specialDayTypeLabels[record.specialDayType]}</p>
         </div>
-        <Link href={returnPath} className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href={returnPath} />
       </section>
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form action={updateCalendarSpecialDayAction} className={styles.formGrid}>

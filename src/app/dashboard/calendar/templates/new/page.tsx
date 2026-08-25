@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { WorkDayType } from "@/generated/prisma/client";
 import { createWorkCalendarTemplateAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -23,13 +23,13 @@ export default async function NewCalendarTemplatePage() {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Takvim Sablonu</p>
           <h1 className={styles.title}>Sablon Ekle</h1>
           <p className={styles.subtitle}>Haftanin yedi gunu icin planlanan calisma saatlerini tanimla.</p>
         </div>
-        <Link href="/dashboard/calendar/templates" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/calendar/templates" />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

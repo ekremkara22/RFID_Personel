@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { CalendarApprovalStatus, CalendarScopeType, WorkDayType } from "@/generated/prisma/client";
 import { createCalendarDailyExceptionAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -31,13 +31,13 @@ export default async function NewCalendarExceptionPage() {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Gunluk Istisna</p>
           <h1 className={styles.title}>Istisna Ekle</h1>
           <p className={styles.subtitle}>Tek bir tarih icin normal calisma kuralini degistirin.</p>
         </div>
-        <Link href="/dashboard/calendar/exceptions" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/calendar/exceptions" />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

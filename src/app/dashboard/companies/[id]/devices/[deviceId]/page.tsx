@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { DevicePurpose } from "@/generated/prisma/client";
 import { updateCompanyDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -36,7 +36,7 @@ export default async function CompanyDeviceDetailPage(props: {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Cihaz Detay</p>
           <h1 className={styles.title}>{device.name}</h1>
@@ -44,9 +44,7 @@ export default async function CompanyDeviceDetailPage(props: {
             {company.name} firmasina atanmis okuyucunun teknik bilgilerini ve kullanim amacini duzenle.
           </p>
         </div>
-        <Link href={`/dashboard/companies/${company.id}?tab=devices`} className={styles.inlineAction}>
-          Cihaz Listesine Don
-        </Link>
+        <BackLink href={`/dashboard/companies/${company.id}?tab=devices`} />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

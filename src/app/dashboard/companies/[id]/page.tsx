@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import {
   deleteCompanyAction,
   deleteCompanyDeviceAction,
@@ -117,7 +118,7 @@ export default async function CompanyDetailPage(props: {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Firma Detay Inceleme Sayfasi</p>
           <h1 className={styles.title}>{company.name}</h1>
@@ -131,6 +132,7 @@ export default async function CompanyDetailPage(props: {
           <div className={styles.rolePill}>{company._count.employees} personel</div>
           <div className={styles.helperText}>{company._count.devices} cihaz kayitli</div>
         </div>
+        <BackLink href="/dashboard/companies" />
       </section>
 
       <nav className={`glass-panel ${styles.tabBar}`} aria-label="Firma detay sekmeleri">

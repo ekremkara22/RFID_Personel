@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { createCompanyAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +20,7 @@ export default async function NewCompanyPage() {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Yeni Firma</p>
           <h1 className={styles.title}>Yeni Musteri Tanimi</h1>
@@ -27,6 +28,7 @@ export default async function NewCompanyPage() {
             Firma kaydini ve o firmaya ait ilk admin kullanicisini bu ekrandan olusturabilirsin.
           </p>
         </div>
+        <BackLink href="/dashboard/companies" />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

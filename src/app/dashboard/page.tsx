@@ -1,14 +1,12 @@
+import Link from "next/link";
 import {
   Building2,
   CalendarDays,
   CalendarRange,
-  Coffee,
-  DoorClosed,
   DoorOpen,
   AlertTriangle,
   MonitorSmartphone,
   ShieldCheck,
-  Soup,
   Users,
 } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
@@ -25,6 +23,16 @@ const attendanceLabels = {
   BREAK_END: "Mola Çıkış",
   MEAL_START: "Yemek Giriş",
   MEAL_END: "Yemek Çıkış",
+} as const;
+
+const leaveTypeLabels = {
+  ANNUAL: "Yillik izin",
+  EXCUSE: "Mazeret izni",
+  UNPAID: "Ucretsiz izin",
+  MEDICAL: "Saglik raporu",
+  ADMINISTRATIVE: "Idari izin",
+  HOURLY: "Saatlik izin",
+  HALF_DAY: "Yarim gun izin",
 } as const;
 
 function getRoleLabel(role: string) {
@@ -44,6 +52,13 @@ function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
     dateStyle: "short",
     timeStyle: "short",
+  }).format(date);
+}
+
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat("tr-TR", {
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 }
 
@@ -69,9 +84,11 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   return plannedStartMinutes !== null && getLogMinutes(scannedAt) > plannedStartMinutes;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: { searchParams?: Promise<{ latePeriod?: string }> }) {
   const { user } = await requireSessionUser();
   const isSuperadmin = user.role === "SUPERADMIN";
+  const searchParams = (await props.searchParams) ?? {};
+  const latePeriod = searchParams.latePeriod === "month" ? "month" : "week";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -109,14 +126,8 @@ export default async function DashboardPage() {
     deviceCount,
     highlightedCompanies,
     scopedEmployees,
-    recentLogs,
-    companyDevices,
     todayEntryCount,
     todayExitCount,
-    todayBreakStartCount,
-    todayBreakEndCount,
-    todayMealStartCount,
-    todayMealEndCount,
     todayMovementCount,
     weekMovementCount,
     monthMovementCount,
@@ -156,24 +167,6 @@ export default async function DashboardPage() {
       orderBy: [{ createdAt: "desc" }],
       take: 8,
     }),
-    prisma.attendanceLog.findMany({
-      where: attendanceWhere,
-      include: {
-        employee: {
-          include: {
-            company: true,
-          },
-        },
-        device: true,
-      },
-      orderBy: { scannedAt: "desc" },
-      take: 10,
-    }),
-    prisma.device.findMany({
-      where: deviceWhere,
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }),
     prisma.attendanceLog.count({
       where: {
         scannedAt: { gte: today },
@@ -185,34 +178,6 @@ export default async function DashboardPage() {
       where: {
         scannedAt: { gte: today },
         type: "EXIT",
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: today },
-        type: "BREAK_START",
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: today },
-        type: "BREAK_END",
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: today },
-        type: "MEAL_START",
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: today },
-        type: "MEAL_END",
         ...attendanceWhere,
       },
     }),
@@ -302,15 +267,6 @@ export default async function DashboardPage() {
         { label: "Bugün Giriş", value: todayEntryCount, icon: DoorOpen },
       ];
 
-  const reportCards = [
-    { label: "Giriş", value: todayEntryCount, icon: DoorOpen },
-    { label: "Çıkış", value: todayExitCount, icon: DoorClosed },
-    { label: "Mola Giriş", value: todayBreakStartCount, icon: Coffee },
-    { label: "Mola Çıkış", value: todayBreakEndCount, icon: Coffee },
-    { label: "Yemek Giriş", value: todayMealStartCount, icon: Soup },
-    { label: "Yemek Çıkış", value: todayMealEndCount, icon: Soup },
-  ];
-
   const periodCards = [
     { label: "Bugün PDKS", value: todayMovementCount, icon: CalendarDays },
     { label: "Haftalık PDKS", value: weekMovementCount, icon: CalendarRange },
@@ -370,6 +326,82 @@ export default async function DashboardPage() {
 
     return firstEntry ? isLateEntry(firstEntry.scannedAt, day.plannedStart) : false;
   }).length;
+  const monthlyLateRecords = monthlyDailyCalendarsForReport.flatMap((day) => {
+    if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return [];
+
+    const firstEntry = monthlyLogsForReport
+      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY" && getDayKey(log.scannedAt) === getDayKey(day.workDate))
+      .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
+
+    if (!firstEntry) return [];
+
+    const plannedStartMinutes = timeToMinutes(day.plannedStart);
+    if (plannedStartMinutes === null) return [];
+
+    const lateMinutes = getLogMinutes(firstEntry.scannedAt) - plannedStartMinutes;
+    if (lateMinutes <= 0) return [];
+
+    return [{
+      employeeId: day.employeeId,
+      employeeName: `${day.employee.firstName} ${day.employee.lastName}`.trim(),
+      department: day.employee.department || "Departmansiz",
+      workDate: day.workDate,
+      scannedAt: firstEntry.scannedAt,
+      lateMinutes,
+    }];
+  });
+  const todayLateEmployees = monthlyLateRecords
+    .filter((record) => getDayKey(record.workDate) === getDayKey(today))
+    .sort((first, second) => second.lateMinutes - first.lateMinutes);
+  const todayLeaveSummaries = todayApprovedLeaves
+    .map((leave) => ({
+      employeeName: `${leave.employee.firstName} ${leave.employee.lastName}`.trim(),
+      department: leave.employee.department || "Departmansiz",
+      type: leave.type,
+    }))
+    .sort((first, second) => first.employeeName.localeCompare(second.employeeName, "tr"));
+  const departmentLateSummary = Array.from(
+    todayLateEmployees.reduce((summary, record) => {
+      summary.set(record.department, (summary.get(record.department) ?? 0) + 1);
+      return summary;
+    }, new Map<string, number>()),
+  )
+    .map(([department, count]) => ({
+      department,
+      count,
+      percent: Math.round((count / Math.max(todayLateEmployees.length, 1)) * 100),
+    }))
+    .sort((first, second) => second.count - first.count);
+  let runningPieValue = 0;
+  const pieColors = ["#0284c7", "#f97316", "#22c55e", "#6366f1", "#ef4444", "#14b8a6"];
+  const departmentPieGradient = departmentLateSummary.length
+    ? `conic-gradient(${departmentLateSummary.map((item, index) => {
+        const start = runningPieValue;
+        runningPieValue += item.percent;
+        return `${pieColors[index % pieColors.length]} ${start}% ${Math.min(runningPieValue, 100)}%`;
+      }).join(", ")})`
+    : "conic-gradient(#e2e8f0 0% 100%)";
+  const selectedLateRecords = monthlyLateRecords.filter((record) => (
+    latePeriod === "week" ? record.workDate >= weekStart : record.workDate >= monthStart
+  ));
+  const topLateEmployees = Array.from(
+    selectedLateRecords.reduce((summary, record) => {
+      const current = summary.get(record.employeeId) ?? {
+        employeeId: record.employeeId,
+        employeeName: record.employeeName,
+        department: record.department,
+        count: 0,
+        totalMinutes: 0,
+      };
+      current.count += 1;
+      current.totalMinutes += record.lateMinutes;
+      summary.set(record.employeeId, current);
+      return summary;
+    }, new Map<string, { employeeId: string; employeeName: string; department: string; count: number; totalMinutes: number }>()),
+  )
+    .map(([, value]) => value)
+    .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
+    .slice(0, 8);
   const onTimeTodayCount = Math.max(todayEntryCount - lateTodayCount, 0);
   const hourlyData = Array.from({ length: 13 }, (_, index) => {
     const hour = index + 7;
@@ -507,6 +539,117 @@ export default async function DashboardPage() {
       ) : null}
 
       {!isSuperadmin ? (
+        <section className={`glass-panel ${styles.operationInsightPanel}`}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.sectionEyebrow}>Operasyon ozeti</p>
+              <h2 className={styles.sectionTitle}>Bugunun Kritik Personel Durumu</h2>
+            </div>
+          </div>
+
+          <div className={styles.operationInsightGrid}>
+            <div className={styles.attendanceBrief}>
+              <div>
+                <h3 className={styles.miniTitle}>Gec Kalanlar</h3>
+                <div className={styles.personBriefList}>
+                  {todayLateEmployees.length === 0 ? (
+                    <p className={styles.emptyState}>Bugun gec kalan personel yok.</p>
+                  ) : todayLateEmployees.slice(0, 8).map((record) => (
+                    <article key={`${record.employeeId}-${record.workDate.toISOString()}`} className={styles.personBriefItem}>
+                      <div>
+                        <strong>{record.employeeName}</strong>
+                        <span>{record.department} - {formatTime(record.scannedAt)}</span>
+                      </div>
+                      <b>{record.lateMinutes} dk</b>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className={styles.miniTitle}>Izinli Personel</h3>
+                <div className={styles.personBriefList}>
+                  {todayLeaveSummaries.length === 0 ? (
+                    <p className={styles.emptyState}>Bugun izinli personel yok.</p>
+                  ) : todayLeaveSummaries.slice(0, 8).map((leave) => (
+                    <article key={`${leave.employeeName}-${leave.type}`} className={styles.personBriefItem}>
+                      <div>
+                        <strong>{leave.employeeName}</strong>
+                        <span>{leave.department}</span>
+                      </div>
+                      <b>{leaveTypeLabels[leave.type]}</b>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.departmentPieCard}>
+              <div>
+                <h3 className={styles.miniTitle}>Departman Bazinda Gec Kalma</h3>
+                <p className={styles.emptyState}>Bugunku gec kalmalarin departman dagilimi.</p>
+              </div>
+              <div className={styles.departmentPieWrap}>
+                <div className={styles.departmentPie} style={{ background: departmentPieGradient }}>
+                  <strong>{todayLateEmployees.length}</strong>
+                  <span>Gec</span>
+                </div>
+                <div className={styles.pieLegend}>
+                  {departmentLateSummary.length === 0 ? (
+                    <p className={styles.emptyState}>Dagilim icin gec kalma kaydi yok.</p>
+                  ) : departmentLateSummary.map((item, index) => (
+                    <p key={item.department}>
+                      <span style={{ background: pieColors[index % pieColors.length] }} />
+                      {item.department}
+                      <strong>%{item.percent}</strong>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.topLateBlock}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.sectionEyebrow}>Puantaj dikkati</p>
+                <h2 className={styles.sectionTitle}>En Cok Gec Kalan Personel</h2>
+              </div>
+              <div className={styles.segmentedControl}>
+                <Link href="/dashboard?latePeriod=week" className={latePeriod === "week" ? styles.segmentActive : styles.segmentLink}>Haftalik</Link>
+                <Link href="/dashboard?latePeriod=month" className={latePeriod === "month" ? styles.segmentActive : styles.segmentLink}>Aylik</Link>
+              </div>
+            </div>
+
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Personel</th>
+                    <th>Departman</th>
+                    <th>Gec Kalma Sayisi</th>
+                    <th>Toplam Gecikme</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topLateEmployees.length === 0 ? (
+                    <tr><td colSpan={4} className={styles.emptyCell}>Secili donemde gec kalma kaydi yok.</td></tr>
+                  ) : topLateEmployees.map((employee) => (
+                    <tr key={employee.employeeId}>
+                      <td>{employee.employeeName}</td>
+                      <td>{employee.department}</td>
+                      <td>{employee.count}</td>
+                      <td>{employee.totalMinutes} dk</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {!isSuperadmin ? (
         <section className={styles.dashboardVisualGrid}>
           <article className={`glass-panel ${styles.chartPanel}`}>
             <div className={styles.sectionHeader}>
@@ -567,7 +710,7 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className={styles.mainGrid}>
+      <section className={styles.singleColumnGrid}>
         <div className={styles.primaryColumn}>
           {isSuperadmin ? (
             <section className={`glass-panel ${styles.sectionCard}`}>
@@ -747,96 +890,6 @@ export default async function DashboardPage() {
           ) : null}
         </div>
 
-        <aside className={styles.sideColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>PDKS özet</p>
-                <h2 className={styles.sectionTitle}>Bugünkü Hareket Tipleri</h2>
-              </div>
-            </div>
-
-            <div className={styles.reportGrid}>
-              {reportCards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <article key={card.label} className={styles.reportCard}>
-                    <div className={styles.reportIcon}>
-                      <Icon size={16} />
-                    </div>
-                    <div>
-                      <p className={styles.reportLabel}>{card.label}</p>
-                      <p className={styles.reportValue}>{card.value}</p>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>RFID cihazlar</p>
-                <h2 className={styles.sectionTitle}>Cihaz Durumu</h2>
-              </div>
-            </div>
-
-            <div className={styles.logList}>
-              {companyDevices.length === 0 ? (
-                <p className={styles.emptyState}>Henüz kayıtlı cihaz yok.</p>
-              ) : (
-                companyDevices.map((device) => (
-                  <article key={device.id} className={styles.logItem}>
-                    <div>
-                      <p className={styles.logTitle}>{device.name}</p>
-                      <p className={styles.logMeta}>Secret Key: {device.secretKey}</p>
-                    </div>
-                    <div className={styles.logMetaRight}>
-                      <p>{device.lastSeenAt ? "Online" : "Bekleniyor"}</p>
-                      <p>{device.lastSeenAt ? formatDate(device.lastSeenAt) : "Henuz yok"}</p>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Rapor</p>
-                <h2 className={styles.sectionTitle}>Son Hareketler</h2>
-              </div>
-            </div>
-
-            <div className={styles.logList}>
-              {recentLogs.length === 0 ? (
-                <p className={styles.emptyState}>
-                  Henüz kayıtlı hareket yok. RFID kartla giriş ve çıkış hareketleri burada görünecek.
-                </p>
-              ) : (
-                recentLogs.map((log) => (
-                  <article key={log.id} className={styles.logItem}>
-                    <div>
-                      <p className={styles.logTitle}>
-                        {log.employee.firstName} {log.employee.lastName}
-                      </p>
-                      <p className={styles.logMeta}>
-                        {attendanceLabels[log.type]} - {log.employee.company.name}
-                      </p>
-                      <p className={styles.mutedRow}>RFID Kart: {log.rfidCardId ?? "Kart bilgisi yok"}</p>
-                    </div>
-                    <div className={styles.logMetaRight}>
-                      <p>{formatDate(log.scannedAt)}</p>
-                      <p>{log.device?.name ?? "Cihaz gerekmiyor"}</p>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-        </aside>
       </section>
     </div>
   );

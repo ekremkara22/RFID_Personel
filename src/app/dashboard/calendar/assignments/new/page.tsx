@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { CalendarScopeType } from "@/generated/prisma/client";
 import { createCalendarAssignmentAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -24,13 +24,13 @@ export default async function NewCalendarAssignmentPage() {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Takvim Atamasi</p>
           <h1 className={styles.title}>Atama Ekle</h1>
           <p className={styles.subtitle}>Takvim sablonunu firma, sube, departman veya personele baglayin.</p>
         </div>
-        <Link href="/dashboard/calendar/assignments" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/calendar/assignments" />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

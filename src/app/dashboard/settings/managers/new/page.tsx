@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { createManagerAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { requireSessionUser } from "@/lib/session";
@@ -10,9 +10,9 @@ export default async function NewManagerPage() {
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div><p className={styles.eyebrow}>Yonetici</p><h1 className={styles.title}>Yonetici Ekle</h1></div>
-        <Link href="/dashboard/settings/managers" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/settings/managers" />
       </section>
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form action={createManagerAction} className={styles.formGrid}>

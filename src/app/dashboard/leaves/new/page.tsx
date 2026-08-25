@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { LeaveApprovalStatus, LeaveDurationType, LeaveType } from "@/generated/prisma/client";
 import { createLeaveRequestAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -21,9 +21,9 @@ export default async function NewLeavePage() {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div><p className={styles.eyebrow}>Izin</p><h1 className={styles.title}>Izin / Rapor Ekle</h1></div>
-        <Link href="/dashboard/leaves" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/leaves" />
       </section>
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form action={createLeaveRequestAction} className={styles.formGrid}>

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { DevicePurpose } from "@/generated/prisma/client";
 import { createCompanyDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -33,7 +33,7 @@ export default async function NewCompanyDevicePage(props: {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Yeni Cihaz</p>
           <h1 className={styles.title}>{company.name} Cihaz Ekle</h1>
@@ -41,9 +41,7 @@ export default async function NewCompanyDevicePage(props: {
             Firma icin RFID okuyucu cihaz kodu, MAC, IP ve kullanim amacini tanimla.
           </p>
         </div>
-        <Link href={`/dashboard/companies/${company.id}?tab=devices`} className={styles.inlineAction}>
-          Cihaz Listesine Don
-        </Link>
+        <BackLink href={`/dashboard/companies/${company.id}?tab=devices`} />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

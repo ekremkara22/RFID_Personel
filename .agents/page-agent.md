@@ -7,6 +7,7 @@ Bu proje icindeki yeni dashboard sayfalari ve revize edilecek liste ekranlari as
 - Her liste satirinda `Incele` aksiyonu bulunur.
 - Yeni kayit formu liste altinda yer almaz; `new` sayfasinda acilir.
 - Kayit duzenleme liste icinde inline yapilmaz; kaydin detay sayfasinda yapilir.
+- `new` ve detay sayfalarinda metinli `Listeye Don` linki kullanilmaz; hero alaninin sol ustunde ortak `BackLink` geri ok butonu bulunur.
 - Her liste ekraninda arama textboxu bulunur ve arama mevcut sayfa query parametresi `q` ile calisir.
 - Ekleme ve duzenleme formlarinda server action kullanilir, basarili islemden sonra guvenli `returnTo` ile ilgili liste/detay sayfasina donulur.
 - Mevcut sade panel gorsel dili korunur: `heroCard`, `sectionCard`, `searchForm`, `tableWrap`, `table`, `primaryLinkButton`, `inlineAction`.

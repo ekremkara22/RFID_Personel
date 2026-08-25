@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { updateDepartmentAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
@@ -16,12 +16,12 @@ export default async function DepartmentDetailPage(props: { params: Promise<{ id
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Departman Detay</p>
           <h1 className={styles.title}>{department.name}</h1>
         </div>
-        <Link href="/dashboard/settings/departments" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/settings/departments" />
       </section>
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form action={updateDepartmentAction} className={styles.formGrid}>

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { createBranchAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { requireSessionUser } from "@/lib/session";
@@ -10,9 +10,9 @@ export default async function NewBranchPage() {
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div><p className={styles.eyebrow}>Sube</p><h1 className={styles.title}>Sube Ekle</h1></div>
-        <Link href="/dashboard/settings/branches" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/settings/branches" />
       </section>
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form action={createBranchAction} className={styles.formGrid}>

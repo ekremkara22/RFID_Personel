@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/app/dashboard/back-link";
 import { createDepartmentAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { requireSessionUser } from "@/lib/session";
@@ -11,12 +11,12 @@ export default async function NewDepartmentPage() {
 
   return (
     <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Departman</p>
           <h1 className={styles.title}>Departman Ekle</h1>
         </div>
-        <Link href="/dashboard/settings/departments" className={styles.inlineAction}>Listeye Don</Link>
+        <BackLink href="/dashboard/settings/departments" />
       </section>
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form action={createDepartmentAction} className={styles.formGrid}>
