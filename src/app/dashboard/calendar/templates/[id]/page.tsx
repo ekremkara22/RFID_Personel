@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { WorkDayType } from "@/generated/prisma/client";
-import { updateWorkCalendarTemplateAction } from "@/app/dashboard/actions";
+import { deleteWorkCalendarTemplateAction, updateWorkCalendarTemplateAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -82,6 +82,8 @@ export default async function CalendarTemplateDetailPage(props: {
                   <th>Durum</th>
                   <th>Giris</th>
                   <th>Cikis</th>
+                  <th>Mola Baslangic</th>
+                  <th>Mola Bitis</th>
                   <th>Mola dk</th>
                   <th>Gece</th>
                   <th>Kontroller</th>
@@ -103,6 +105,8 @@ export default async function CalendarTemplateDetailPage(props: {
                       </td>
                       <td><input name={`weekday-${weekday}-startTime`} type="time" defaultValue={day?.startTime ?? ""} /></td>
                       <td><input name={`weekday-${weekday}-endTime`} type="time" defaultValue={day?.endTime ?? ""} /></td>
+                      <td><input name={`weekday-${weekday}-breakStartTime`} type="time" defaultValue={day?.breakStartTime ?? ""} /></td>
+                      <td><input name={`weekday-${weekday}-breakEndTime`} type="time" defaultValue={day?.breakEndTime ?? ""} /></td>
                       <td><input name={`weekday-${weekday}-breakMinutes`} type="number" defaultValue={day?.breakMinutes ?? 0} /></td>
                       <td><input name={`weekday-${weekday}-crossesMidnight`} type="checkbox" defaultChecked={day?.crossesMidnight ?? false} /></td>
                       <td>
@@ -120,6 +124,11 @@ export default async function CalendarTemplateDetailPage(props: {
           <div className={styles.fullWidthActionRow}>
             <SubmitButton idleLabel="Sablonu Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} />
           </div>
+        </form>
+        <form action={deleteWorkCalendarTemplateAction} className={styles.dangerForm}>
+          <input type="hidden" name="returnTo" value="/dashboard/calendar/templates" />
+          <input type="hidden" name="templateId" value={template.id} />
+          <SubmitButton idleLabel="Sablonu Sil" pendingLabel="Siliniyor..." className={styles.dangerButton} />
         </form>
       </section>
     </div>

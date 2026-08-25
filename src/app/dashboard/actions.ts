@@ -80,6 +80,8 @@ function buildWeekdayPayload(formData: FormData) {
     const dayType = getString(formData, `weekday-${weekday}-dayType`) as WorkDayType;
     const startTime = getString(formData, `weekday-${weekday}-startTime`) || null;
     const endTime = getString(formData, `weekday-${weekday}-endTime`) || null;
+    const breakStartTime = getString(formData, `weekday-${weekday}-breakStartTime`) || null;
+    const breakEndTime = getString(formData, `weekday-${weekday}-breakEndTime`) || null;
     const crossesMidnight = formData.get(`weekday-${weekday}-crossesMidnight`) === "on";
     const breakMinutes = getOptionalNumber(formData, `weekday-${weekday}-breakMinutes`) ?? 0;
     const grossMinutes = calculateGrossMinutes(startTime, endTime, crossesMidnight);
@@ -89,6 +91,8 @@ function buildWeekdayPayload(formData: FormData) {
       dayType: Object.values(WorkDayType).includes(dayType) ? dayType : WorkDayType.NON_WORKING,
       startTime,
       endTime,
+      breakStartTime,
+      breakEndTime,
       crossesMidnight,
       breakMinutes,
       plannedGrossMinutes: grossMinutes,
@@ -903,16 +907,48 @@ export async function updateLeaveRequestAction(formData: FormData) {
   }
 
   const leaveId = getString(formData, "leaveId");
+  const employeeId = getString(formData, "employeeId");
+  const type = getString(formData, "type") as LeaveType;
+  const durationType = getString(formData, "durationType") as LeaveDurationType;
   const approvalStatus = getString(formData, "approvalStatus") as LeaveApprovalStatus;
+  const startDate = getOptionalDate(formData, "startDate");
+  const endDate = getOptionalDate(formData, "endDate");
   const description = getString(formData, "description") || null;
 
-  if (!leaveId || !Object.values(LeaveApprovalStatus).includes(approvalStatus)) {
+  if (
+    !leaveId ||
+    !employeeId ||
+    !startDate ||
+    !endDate ||
+    !Object.values(LeaveType).includes(type) ||
+    !Object.values(LeaveDurationType).includes(durationType) ||
+    !Object.values(LeaveApprovalStatus).includes(approvalStatus)
+  ) {
     throw new Error("Izin bilgileri gecersiz.");
+  }
+
+  const employee = await prisma.employee.findFirst({
+    where: { id: employeeId, companyId: user.companyId },
+    select: { id: true },
+  });
+
+  if (!employee) {
+    throw new Error("Personel bulunamadi.");
   }
 
   await prisma.leaveRequest.updateMany({
     where: { id: leaveId, companyId: user.companyId },
-    data: { approvalStatus, description },
+    data: {
+      employeeId,
+      type,
+      durationType,
+      approvalStatus,
+      startDate,
+      endDate,
+      startTime: getString(formData, "startTime") || null,
+      endTime: getString(formData, "endTime") || null,
+      description,
+    },
   });
 
   revalidatePath("/dashboard");
@@ -1063,6 +1099,38 @@ export async function updateWorkCalendarTemplateAction(formData: FormData) {
 
   revalidateCalendarPaths();
   if (getReturnTo(formData)) redirectToReturnPath(formData);
+}
+
+export async function deleteWorkCalendarTemplateAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const companyId = user.companyId;
+  const templateId = getString(formData, "templateId");
+
+  if (!templateId) {
+    throw new Error("Takvim sablon bilgisi eksik.");
+  }
+
+  await prisma.workCalendarTemplate.deleteMany({
+    where: { id: templateId, companyId },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId,
+      recordType: "TEMPLATE",
+      recordId: templateId,
+      changeReason: "Takvim sablonu silindi",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+  redirectToReturnPath(formData, "/dashboard/calendar/templates");
 }
 
 export async function createCalendarSpecialDayAction(formData: FormData) {
@@ -1283,6 +1351,38 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
 
   revalidateCalendarPaths();
   if (getReturnTo(formData)) redirectToReturnPath(formData);
+}
+
+export async function deleteCalendarAssignmentAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const companyId = user.companyId;
+  const assignmentId = getString(formData, "assignmentId");
+
+  if (!assignmentId) {
+    throw new Error("Takvim atama bilgisi eksik.");
+  }
+
+  await prisma.calendarAssignment.deleteMany({
+    where: { id: assignmentId, companyId },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId,
+      recordType: "ASSIGNMENT",
+      recordId: assignmentId,
+      changeReason: "Takvim atamasi silindi",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+  redirectToReturnPath(formData, "/dashboard/calendar/assignments");
 }
 
 export async function createCalendarDailyExceptionAction(formData: FormData) {

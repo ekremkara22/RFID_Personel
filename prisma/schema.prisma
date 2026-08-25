@@ -313,6 +313,8 @@ model WorkCalendarWeekday {
   dayType             WorkDayType  @default(NORMAL_WORK)
   startTime           String?
   endTime             String?
+  breakStartTime      String?
+  breakEndTime        String?
   crossesMidnight     Boolean      @default(false)
   breakMinutes        Int          @default(0)
   plannedGrossMinutes Int          @default(0)
@@ -410,6 +412,8 @@ model EmployeeDailyCalendar {
   dayType             WorkDayType
   plannedStart        String?
   plannedEnd          String?
+  plannedBreakStart   String?
+  plannedBreakEnd     String?
   crossesMidnight     Boolean      @default(false)
   plannedBreakMinutes Int          @default(0)
   plannedGrossMinutes Int          @default(0)

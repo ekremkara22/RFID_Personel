@@ -44,7 +44,7 @@ export default async function NewCalendarTemplatePage() {
 
           <div className={`${styles.tableWrap} ${styles.fullWidth}`}>
             <table className={styles.table}>
-              <thead><tr><th>Gun</th><th>Durum</th><th>Giris</th><th>Cikis</th><th>Mola dk</th><th>Gece</th><th>Kontroller</th></tr></thead>
+              <thead><tr><th>Gun</th><th>Durum</th><th>Giris</th><th>Cikis</th><th>Mola Baslangic</th><th>Mola Bitis</th><th>Mola dk</th><th>Gece</th><th>Kontroller</th></tr></thead>
               <tbody>
                 {Object.entries(weekdayLabels).map(([weekday, label]) => {
                   const weekdayNumber = Number(weekday);
@@ -55,6 +55,8 @@ export default async function NewCalendarTemplatePage() {
                       <td><select name={`weekday-${weekday}-dayType`} defaultValue={defaultDayTypes[weekdayNumber]}>{[WorkDayType.NORMAL_WORK, WorkDayType.WEEKLY_REST, WorkDayType.NON_WORKING].map((type) => <option key={type} value={type}>{dayTypeLabels[type]}</option>)}</select></td>
                       <td><input name={`weekday-${weekday}-startTime`} type="time" defaultValue={isWorkDay ? "08:30" : ""} /></td>
                       <td><input name={`weekday-${weekday}-endTime`} type="time" defaultValue={isWorkDay ? "18:00" : ""} /></td>
+                      <td><input name={`weekday-${weekday}-breakStartTime`} type="time" defaultValue={isWorkDay ? "12:30" : ""} /></td>
+                      <td><input name={`weekday-${weekday}-breakEndTime`} type="time" defaultValue={isWorkDay ? "13:30" : ""} /></td>
                       <td><input name={`weekday-${weekday}-breakMinutes`} type="number" defaultValue={isWorkDay ? 60 : 0} /></td>
                       <td><input name={`weekday-${weekday}-crossesMidnight`} type="checkbox" /></td>
                       <td>

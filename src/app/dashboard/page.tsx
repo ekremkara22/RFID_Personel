@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   Building2,
   CalendarDays,
@@ -10,11 +9,21 @@ import {
   Users,
 } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
+import { TopLateEmployees, type TopLateEmployeeRow } from "@/app/dashboard/top-late-employees";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "./page.module.css";
+
+type LateRecord = {
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  workDate: Date;
+  scannedAt: Date;
+  lateMinutes: number;
+};
 
 const attendanceLabels = {
   ENTRY: "Giriş",
@@ -46,6 +55,10 @@ function getUserFullName(user: {
   email: string;
 }) {
   return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.name || user.email;
+}
+
+function getInitials(firstName?: string | null, lastName?: string | null) {
+  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "P";
 }
 
 function formatDate(date: Date) {
@@ -85,11 +98,31 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   return plannedStartMinutes !== null && getLogMinutes(scannedAt) > plannedStartMinutes;
 }
 
-export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; latePeriod?: string }> }) {
+function summarizeLateRecords(records: LateRecord[]): TopLateEmployeeRow[] {
+  return Array.from(
+    records.reduce((summary, record) => {
+      const current = summary.get(record.employeeId) ?? {
+        employeeId: record.employeeId,
+        employeeName: record.employeeName,
+        department: record.department,
+        count: 0,
+        totalMinutes: 0,
+      };
+      current.count += 1;
+      current.totalMinutes += record.lateMinutes;
+      summary.set(record.employeeId, current);
+      return summary;
+    }, new Map<string, TopLateEmployeeRow>()),
+  )
+    .map(([, value]) => value)
+    .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
+    .slice(0, 8);
+}
+
+export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string }> }) {
   const { user } = await requireSessionUser();
   const isSuperadmin = user.role === "SUPERADMIN";
   const searchParams = (await props.searchParams) ?? {};
-  const latePeriod = searchParams.latePeriod === "month" ? "month" : "week";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -312,14 +345,30 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     { label: "Aylık PDKS", value: monthMovementCount, icon: CalendarRange },
   ];
 
-  const currentlyInside = Math.max(todayEntryCount - todayExitCount, 0);
+  const latestEntryExitByEmployee = new Map<string, (typeof todayLogsForDashboard)[number]>();
+  todayLogsForDashboard
+    .filter((log) => log.type === "ENTRY" || log.type === "EXIT")
+    .sort((first, second) => second.scannedAt.getTime() - first.scannedAt.getTime())
+    .forEach((log) => {
+      if (!latestEntryExitByEmployee.has(log.employeeId)) {
+        latestEntryExitByEmployee.set(log.employeeId, log);
+      }
+    });
+  const currentlyInside = Array.from(latestEntryExitByEmployee.values()).filter((log) => log.type === "ENTRY").length;
   const leaveEmployeeIds = new Set(todayApprovedLeaves.map((leave) => leave.employeeId));
+  const firstTodayEntryByEmployee = new Map<string, (typeof todayLogsForDashboard)[number]>();
+  todayLogsForDashboard
+    .filter((log) => log.type === "ENTRY")
+    .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())
+    .forEach((log) => {
+      if (!firstTodayEntryByEmployee.has(log.employeeId)) {
+        firstTodayEntryByEmployee.set(log.employeeId, log);
+      }
+    });
   const lateTodayCount = todayDailyCalendarsForDashboard.filter((day) => {
     if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
 
-    const firstEntry = todayLogsForDashboard
-      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY")
-      .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
+    const firstEntry = firstTodayEntryByEmployee.get(day.employeeId);
 
     return firstEntry ? isLateEntry(firstEntry.scannedAt, day.plannedStart) : false;
   }).length;
@@ -366,6 +415,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       employeeId: day.employeeId,
       employeeName: `${day.employee.firstName} ${day.employee.lastName}`.trim(),
       department: day.employee.department || "Departmansiz",
+      firstName: day.employee.firstName,
+      lastName: day.employee.lastName,
+      photoUrl: day.employee.photoUrl,
       lateMinutes,
     }];
   }).sort((first, second) => second.lateMinutes - first.lateMinutes);
@@ -374,31 +426,20 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     .map((leave) => ({
       employeeName: `${leave.employee.firstName} ${leave.employee.lastName}`.trim(),
       department: leave.employee.department || "Departmansiz",
+      firstName: leave.employee.firstName,
+      lastName: leave.employee.lastName,
+      photoUrl: leave.employee.photoUrl,
       type: leave.type,
     }))
     .sort((first, second) => first.employeeName.localeCompare(second.employeeName, "tr"));
-  const selectedLateRecords = monthlyLateRecords.filter((record) => (
-    latePeriod === "week" ? record.workDate >= weekStart : record.workDate >= monthStart
-  ));
-  const topLateEmployees = Array.from(
-    selectedLateRecords.reduce((summary, record) => {
-      const current = summary.get(record.employeeId) ?? {
-        employeeId: record.employeeId,
-        employeeName: record.employeeName,
-        department: record.department,
-        count: 0,
-        totalMinutes: 0,
-      };
-      current.count += 1;
-      current.totalMinutes += record.lateMinutes;
-      summary.set(record.employeeId, current);
-      return summary;
-    }, new Map<string, { employeeId: string; employeeName: string; department: string; count: number; totalMinutes: number }>()),
-  )
-    .map(([, value]) => value)
-    .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
-    .slice(0, 8);
-  const onTimeTodayCount = Math.max(todayEntryCount - lateTodayCount, 0);
+  const weeklyTopLateEmployees = summarizeLateRecords(monthlyLateRecords.filter((record) => record.workDate >= weekStart));
+  const monthlyTopLateEmployees = summarizeLateRecords(monthlyLateRecords.filter((record) => record.workDate >= monthStart));
+  const onTimeTodayCount = todayDailyCalendarsForDashboard.filter((day) => {
+    if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
+
+    const firstEntry = firstTodayEntryByEmployee.get(day.employeeId);
+    return firstEntry ? !isLateEntry(firstEntry.scannedAt, day.plannedStart) : false;
+  }).length;
   const statusTotal = Math.max(employeeCount, 1);
   const statusCards = [
     { label: "Su An Iceride", value: currentlyInside, color: "blue" },
@@ -526,7 +567,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               <h2 className={styles.sectionTitle}>Kritik Personel Durumu</h2>
             </div>
             <form className={styles.dateFilterForm}>
-              <input type="hidden" name="latePeriod" value={latePeriod} />
               <label>
                 <span>Tarih</span>
                 <input name="date" type="date" defaultValue={getDayKey(selectedDate)} />
@@ -544,9 +584,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                     <p className={styles.emptyState}>Secili tarihte gec kalan personel yok.</p>
                   ) : selectedLateEmployees.slice(0, 8).map((record) => (
                     <article key={record.employeeId} className={styles.personBriefItem}>
-                      <div>
-                        <strong>{record.employeeName}</strong>
-                        <span>{record.department}</span>
+                      <div className={styles.personBriefProfile}>
+                        <span
+                          className={styles.personBriefAvatar}
+                          style={record.photoUrl ? { backgroundImage: `url(${record.photoUrl})` } : undefined}
+                        >
+                          {record.photoUrl ? "" : getInitials(record.firstName, record.lastName)}
+                        </span>
+                        <div>
+                          <strong>{record.employeeName}</strong>
+                          <span>{record.department}</span>
+                        </div>
                       </div>
                       <b>{record.lateMinutes} dk</b>
                     </article>
@@ -561,9 +609,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                     <p className={styles.emptyState}>Secili tarihte izinli personel yok.</p>
                   ) : selectedLeaveSummaries.slice(0, 8).map((leave) => (
                     <article key={`${leave.employeeName}-${leave.type}`} className={styles.personBriefItem}>
-                      <div>
-                        <strong>{leave.employeeName}</strong>
-                        <span>{leave.department}</span>
+                      <div className={styles.personBriefProfile}>
+                        <span
+                          className={styles.personBriefAvatar}
+                          style={leave.photoUrl ? { backgroundImage: `url(${leave.photoUrl})` } : undefined}
+                        >
+                          {leave.photoUrl ? "" : getInitials(leave.firstName, leave.lastName)}
+                        </span>
+                        <div>
+                          <strong>{leave.employeeName}</strong>
+                          <span>{leave.department}</span>
+                        </div>
                       </div>
                       <b>{leaveTypeLabels[leave.type]}</b>
                     </article>
@@ -573,43 +629,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
             </div>
           </div>
 
-          <div className={styles.topLateBlock}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Puantaj dikkati</p>
-                <h2 className={styles.sectionTitle}>En Cok Gec Kalan Personel</h2>
-              </div>
-              <div className={styles.segmentedControl}>
-                <Link href={`/dashboard?date=${getDayKey(selectedDate)}&latePeriod=week`} className={latePeriod === "week" ? styles.segmentActive : styles.segmentLink}>Haftalik</Link>
-                <Link href={`/dashboard?date=${getDayKey(selectedDate)}&latePeriod=month`} className={latePeriod === "month" ? styles.segmentActive : styles.segmentLink}>Aylik</Link>
-              </div>
-            </div>
-
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Personel</th>
-                    <th>Departman</th>
-                    <th>Gec Kalma Sayisi</th>
-                    <th>Toplam Gecikme</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topLateEmployees.length === 0 ? (
-                    <tr><td colSpan={4} className={styles.emptyCell}>Secili donemde gec kalma kaydi yok.</td></tr>
-                  ) : topLateEmployees.map((employee) => (
-                    <tr key={employee.employeeId}>
-                      <td>{employee.employeeName}</td>
-                      <td>{employee.department}</td>
-                      <td>{employee.count}</td>
-                      <td>{employee.totalMinutes} dk</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <TopLateEmployees weeklyRows={weeklyTopLateEmployees} monthlyRows={monthlyTopLateEmployees} />
         </section>
       ) : null}
 

@@ -9,6 +9,7 @@ import { ExportButton } from "@/app/dashboard/export-button";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "../page.module.css";
 
 const attendanceLabels = {
@@ -30,6 +31,20 @@ function formatDate(date: Date) {
 function formatInputDate(date: Date) {
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return offsetDate.toISOString().slice(0, 16);
+}
+
+function getDayKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getDayStart(date: Date) {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  return dayStart;
+}
+
+function getLogMinutes(date: Date) {
+  return date.getHours() * 60 + date.getMinutes();
 }
 
 function getDateValue(value?: string) {
@@ -109,10 +124,43 @@ export default async function MovementsPage(props: {
     }),
   ]);
 
+  const calendarKeys = new Map<string, { employeeId: string; workDate: Date }>();
+  logs.forEach((log) => {
+    const workDate = getDayStart(log.scannedAt);
+    calendarKeys.set(`${log.employeeId}-${getDayKey(workDate)}`, { employeeId: log.employeeId, workDate });
+  });
+  const dailyCalendars = calendarKeys.size
+    ? await prisma.employeeDailyCalendar.findMany({
+        where: {
+          OR: Array.from(calendarKeys.values()).map((item) => ({
+            employeeId: item.employeeId,
+            workDate: item.workDate,
+          })),
+        },
+      })
+    : [];
+  const calendarByLogDay = new Map(
+    dailyCalendars.map((calendar) => [`${calendar.employeeId}-${getDayKey(calendar.workDate)}`, calendar]),
+  );
+
+  function getAttendanceStatus(log: (typeof logs)[number]) {
+    if (log.type !== AttendanceType.ENTRY) return "-";
+
+    const calendar = calendarByLogDay.get(`${log.employeeId}-${getDayKey(getDayStart(log.scannedAt))}`);
+    const plannedStartMinutes = timeToMinutes(calendar?.plannedStart ?? null);
+
+    if (!calendar?.checkLateArrival || plannedStartMinutes === null || calendar.plannedNetMinutes <= 0) {
+      return "-";
+    }
+
+    return getLogMinutes(log.scannedAt) > plannedStartMinutes ? "Gec kalmis" : "Zamaninda";
+  }
+
   const exportRows = logs.map((log) => ({
     employee: `${log.employee.firstName} ${log.employee.lastName}`.trim(),
     department: log.employee.department,
     type: attendanceLabels[log.type],
+    status: getAttendanceStatus(log),
     scannedAt: formatDate(log.scannedAt),
     rfidCardId: log.rfidCardId ?? log.employee.rfidCardId ?? "-",
     device: log.device?.name ?? "-",
@@ -135,6 +183,7 @@ export default async function MovementsPage(props: {
             { key: "employee", label: "Personel" },
             { key: "department", label: "Departman" },
             { key: "type", label: "Hareket Tipi" },
+            { key: "status", label: "Durum" },
             { key: "scannedAt", label: "Tarih" },
             { key: "rfidCardId", label: "RFID Kart" },
             { key: "device", label: "Cihaz" },
@@ -208,6 +257,7 @@ export default async function MovementsPage(props: {
                 <th>Personel</th>
                 <th>Departman</th>
                 <th>Hareket / Zaman</th>
+                <th>Durum</th>
                 <th>RFID Kart</th>
                 <th>Cihaz</th>
                 <th>Sil</th>
@@ -216,7 +266,7 @@ export default async function MovementsPage(props: {
             <tbody>
               {logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className={styles.emptyCell}>
+                  <td colSpan={7} className={styles.emptyCell}>
                     Filtreye uygun hareket bulunamadi.
                   </td>
                 </tr>
@@ -252,6 +302,7 @@ export default async function MovementsPage(props: {
                         />
                       </form>
                     </td>
+                    <td>{getAttendanceStatus(log)}</td>
                     <td className={styles.monoCell}>{log.rfidCardId ?? log.employee.rfidCardId ?? "-"}</td>
                     <td>{log.device?.name ?? "-"}</td>
                     <td>

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
-import { updateCalendarAssignmentAction } from "@/app/dashboard/actions";
+import { deleteCalendarAssignmentAction, updateCalendarAssignmentAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -38,6 +38,11 @@ export default async function AssignmentDetailPage(props: { params: Promise<{ id
           <label className={styles.checkField}><input name="isActive" type="checkbox" defaultChecked={assignment.isActive} /><span>Aktif</span></label>
           <label className={`${styles.field} ${styles.fullWidth}`}><span>Degisiklik Nedeni</span><input name="changeReason" /></label>
           <div className={styles.fullWidthActionRow}><SubmitButton idleLabel="Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} /></div>
+        </form>
+        <form action={deleteCalendarAssignmentAction} className={styles.dangerForm}>
+          <input type="hidden" name="returnTo" value="/dashboard/calendar/assignments" />
+          <input type="hidden" name="assignmentId" value={assignment.id} />
+          <SubmitButton idleLabel="Atamayi Sil" pendingLabel="Siliniyor..." className={styles.dangerButton} />
         </form>
       </section>
     </div>
