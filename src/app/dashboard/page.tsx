@@ -55,13 +55,6 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-function formatTime(date: Date) {
-  return new Intl.DateTimeFormat("tr-TR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
 function getWeekStart(date: Date) {
   const weekStart = new Date(date);
   const day = weekStart.getDay();
@@ -75,6 +68,14 @@ function getDayKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function parseDateParam(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(year, month - 1, day);
+  parsed.setHours(0, 0, 0, 0);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function getLogMinutes(date: Date) {
   return date.getHours() * 60 + date.getMinutes();
 }
@@ -84,7 +85,7 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   return plannedStartMinutes !== null && getLogMinutes(scannedAt) > plannedStartMinutes;
 }
 
-export default async function DashboardPage(props: { searchParams?: Promise<{ latePeriod?: string }> }) {
+export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; latePeriod?: string }> }) {
   const { user } = await requireSessionUser();
   const isSuperadmin = user.role === "SUPERADMIN";
   const searchParams = (await props.searchParams) ?? {};
@@ -92,6 +93,11 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const selectedDate = parseDateParam(searchParams.date) ?? today;
+  const selectedDateEnd = new Date(selectedDate);
+  selectedDateEnd.setDate(selectedDateEnd.getDate() + 1);
+  const todayEnd = new Date(today);
+  todayEnd.setDate(todayEnd.getDate() + 1);
   const weekStart = getWeekStart(new Date());
   const monthStart = new Date();
   monthStart.setDate(1);
@@ -136,6 +142,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
     todayLogsForDashboard,
     todayDailyCalendarsForDashboard,
     todayApprovedLeaves,
+    selectedLogsForCritical,
+    selectedDailyCalendarsForCritical,
+    selectedApprovedLeaves,
   ] = await Promise.all([
     prisma.company.count(),
     prisma.user.count({ where: { role: "COMPANY_ADMIN" } }),
@@ -251,6 +260,36 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
       },
       include: { employee: true },
     }),
+    prisma.attendanceLog.findMany({
+      where: {
+        scannedAt: { gte: selectedDate, lt: selectedDateEnd },
+        ...attendanceWhere,
+      },
+      include: {
+        employee: true,
+      },
+      orderBy: { scannedAt: "asc" },
+      take: 500,
+    }),
+    prisma.employeeDailyCalendar.findMany({
+      where: {
+        workDate: selectedDate,
+        employee: {
+          companyId: user.companyId ?? undefined,
+        },
+      },
+      include: { employee: true },
+      take: 500,
+    }),
+    prisma.leaveRequest.findMany({
+      where: {
+        companyId: user.companyId ?? undefined,
+        approvalStatus: LeaveApprovalStatus.APPROVED,
+        startDate: { lt: selectedDateEnd },
+        endDate: { gte: selectedDate },
+      },
+      include: { employee: true },
+    }),
   ]);
 
   const summaryCards = isSuperadmin
@@ -308,37 +347,36 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
       lateMinutes,
     }];
   });
-  const todayLateEmployees = monthlyLateRecords
-    .filter((record) => getDayKey(record.workDate) === getDayKey(today))
-    .sort((first, second) => second.lateMinutes - first.lateMinutes);
-  const todayLeaveSummaries = todayApprovedLeaves
+  const selectedLateEmployees = selectedDailyCalendarsForCritical.flatMap((day) => {
+    if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return [];
+
+    const firstEntry = selectedLogsForCritical
+      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY")
+      .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
+
+    if (!firstEntry) return [];
+
+    const plannedStartMinutes = timeToMinutes(day.plannedStart);
+    if (plannedStartMinutes === null) return [];
+
+    const lateMinutes = getLogMinutes(firstEntry.scannedAt) - plannedStartMinutes;
+    if (lateMinutes <= 0) return [];
+
+    return [{
+      employeeId: day.employeeId,
+      employeeName: `${day.employee.firstName} ${day.employee.lastName}`.trim(),
+      department: day.employee.department || "Departmansiz",
+      lateMinutes,
+    }];
+  }).sort((first, second) => second.lateMinutes - first.lateMinutes);
+  const selectedLeaveEmployeeIds = new Set(selectedApprovedLeaves.map((leave) => leave.employeeId));
+  const selectedLeaveSummaries = selectedApprovedLeaves
     .map((leave) => ({
       employeeName: `${leave.employee.firstName} ${leave.employee.lastName}`.trim(),
       department: leave.employee.department || "Departmansiz",
       type: leave.type,
     }))
     .sort((first, second) => first.employeeName.localeCompare(second.employeeName, "tr"));
-  const departmentLateSummary = Array.from(
-    todayLateEmployees.reduce((summary, record) => {
-      summary.set(record.department, (summary.get(record.department) ?? 0) + 1);
-      return summary;
-    }, new Map<string, number>()),
-  )
-    .map(([department, count]) => ({
-      department,
-      count,
-      percent: Math.round((count / Math.max(todayLateEmployees.length, 1)) * 100),
-    }))
-    .sort((first, second) => second.count - first.count);
-  let runningPieValue = 0;
-  const pieColors = ["#0284c7", "#f97316", "#22c55e", "#6366f1", "#ef4444", "#14b8a6"];
-  const departmentPieGradient = departmentLateSummary.length
-    ? `conic-gradient(${departmentLateSummary.map((item, index) => {
-        const start = runningPieValue;
-        runningPieValue += item.percent;
-        return `${pieColors[index % pieColors.length]} ${start}% ${Math.min(runningPieValue, 100)}%`;
-      }).join(", ")})`
-    : "conic-gradient(#e2e8f0 0% 100%)";
   const selectedLateRecords = monthlyLateRecords.filter((record) => (
     latePeriod === "week" ? record.workDate >= weekStart : record.workDate >= monthStart
   ));
@@ -378,10 +416,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
   }));
   const attentionEmployees = scopedEmployees
     .filter((employee) => {
-      const hasEntry = todayLogsForDashboard.some(
+      const hasEntry = selectedLogsForCritical.some(
         (log) => log.employeeId === employee.id && log.type === "ENTRY",
       );
-      return employee.isActive && !hasEntry && !leaveEmployeeIds.has(employee.id);
+      return employee.isActive && !hasEntry && !selectedLeaveEmployeeIds.has(employee.id);
     })
     .slice(0, 8);
 
@@ -485,8 +523,16 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
           <div className={styles.sectionHeader}>
             <div>
               <p className={styles.sectionEyebrow}>Operasyon ozeti</p>
-              <h2 className={styles.sectionTitle}>Bugunun Kritik Personel Durumu</h2>
+              <h2 className={styles.sectionTitle}>Kritik Personel Durumu</h2>
             </div>
+            <form className={styles.dateFilterForm}>
+              <input type="hidden" name="latePeriod" value={latePeriod} />
+              <label>
+                <span>Tarih</span>
+                <input name="date" type="date" defaultValue={getDayKey(selectedDate)} />
+              </label>
+              <button type="submit">Goster</button>
+            </form>
           </div>
 
           <div className={styles.operationInsightGrid}>
@@ -494,13 +540,13 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
               <div>
                 <h3 className={styles.miniTitle}>Gec Kalanlar</h3>
                 <div className={styles.personBriefList}>
-                  {todayLateEmployees.length === 0 ? (
-                    <p className={styles.emptyState}>Bugun gec kalan personel yok.</p>
-                  ) : todayLateEmployees.slice(0, 8).map((record) => (
-                    <article key={`${record.employeeId}-${record.workDate.toISOString()}`} className={styles.personBriefItem}>
+                  {selectedLateEmployees.length === 0 ? (
+                    <p className={styles.emptyState}>Secili tarihte gec kalan personel yok.</p>
+                  ) : selectedLateEmployees.slice(0, 8).map((record) => (
+                    <article key={record.employeeId} className={styles.personBriefItem}>
                       <div>
                         <strong>{record.employeeName}</strong>
-                        <span>{record.department} - {formatTime(record.scannedAt)}</span>
+                        <span>{record.department}</span>
                       </div>
                       <b>{record.lateMinutes} dk</b>
                     </article>
@@ -511,9 +557,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
               <div>
                 <h3 className={styles.miniTitle}>Izinli Personel</h3>
                 <div className={styles.personBriefList}>
-                  {todayLeaveSummaries.length === 0 ? (
-                    <p className={styles.emptyState}>Bugun izinli personel yok.</p>
-                  ) : todayLeaveSummaries.slice(0, 8).map((leave) => (
+                  {selectedLeaveSummaries.length === 0 ? (
+                    <p className={styles.emptyState}>Secili tarihte izinli personel yok.</p>
+                  ) : selectedLeaveSummaries.slice(0, 8).map((leave) => (
                     <article key={`${leave.employeeName}-${leave.type}`} className={styles.personBriefItem}>
                       <div>
                         <strong>{leave.employeeName}</strong>
@@ -521,30 +567,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
                       </div>
                       <b>{leaveTypeLabels[leave.type]}</b>
                     </article>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.departmentPieCard}>
-              <div>
-                <h3 className={styles.miniTitle}>Departman Bazinda Gec Kalma</h3>
-                <p className={styles.emptyState}>Bugunku gec kalmalarin departman dagilimi.</p>
-              </div>
-              <div className={styles.departmentPieWrap}>
-                <div className={styles.departmentPie} style={{ background: departmentPieGradient }}>
-                  <strong>{todayLateEmployees.length}</strong>
-                  <span>Gec</span>
-                </div>
-                <div className={styles.pieLegend}>
-                  {departmentLateSummary.length === 0 ? (
-                    <p className={styles.emptyState}>Dagilim icin gec kalma kaydi yok.</p>
-                  ) : departmentLateSummary.map((item, index) => (
-                    <p key={item.department}>
-                      <span style={{ background: pieColors[index % pieColors.length] }} />
-                      {item.department}
-                      <strong>%{item.percent}</strong>
-                    </p>
                   ))}
                 </div>
               </div>
@@ -558,8 +580,8 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
                 <h2 className={styles.sectionTitle}>En Cok Gec Kalan Personel</h2>
               </div>
               <div className={styles.segmentedControl}>
-                <Link href="/dashboard?latePeriod=week" className={latePeriod === "week" ? styles.segmentActive : styles.segmentLink}>Haftalik</Link>
-                <Link href="/dashboard?latePeriod=month" className={latePeriod === "month" ? styles.segmentActive : styles.segmentLink}>Aylik</Link>
+                <Link href={`/dashboard?date=${getDayKey(selectedDate)}&latePeriod=week`} className={latePeriod === "week" ? styles.segmentActive : styles.segmentLink}>Haftalik</Link>
+                <Link href={`/dashboard?date=${getDayKey(selectedDate)}&latePeriod=month`} className={latePeriod === "month" ? styles.segmentActive : styles.segmentLink}>Aylik</Link>
               </div>
             </div>
 
