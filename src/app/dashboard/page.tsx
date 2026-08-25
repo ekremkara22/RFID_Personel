@@ -273,50 +273,8 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
     { label: "Aylık PDKS", value: monthMovementCount, icon: CalendarRange },
   ];
 
-  const departmentReport = Array.from(
-    monthlyLogsForReport.reduce((report, log) => {
-      const department = log.employee.department || "Departmansiz";
-      const current = report.get(department) ?? {
-        department,
-        entry: 0,
-        exit: 0,
-        breakCount: 0,
-        meal: 0,
-        total: 0,
-        late: 0,
-      };
-
-      current.total += 1;
-
-      if (log.type === "ENTRY") current.entry += 1;
-      if (log.type === "EXIT") current.exit += 1;
-      if (log.type === "BREAK_START" || log.type === "BREAK_END") current.breakCount += 1;
-      if (log.type === "MEAL_START" || log.type === "MEAL_END") current.meal += 1;
-
-      report.set(department, current);
-      return report;
-    }, new Map<string, { department: string; entry: number; exit: number; breakCount: number; meal: number; total: number; late: number }>()),
-  ).map(([, value]) => value);
-  for (const day of monthlyDailyCalendarsForReport) {
-    if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) continue;
-
-    const firstEntry = monthlyLogsForReport
-      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY" && getDayKey(log.scannedAt) === getDayKey(day.workDate))
-      .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
-
-    if (!firstEntry || !isLateEntry(firstEntry.scannedAt, day.plannedStart)) continue;
-
-    const department = day.employee.department || "Departmansiz";
-    const current = departmentReport.find((item) => item.department === department);
-    if (current) {
-      current.late += 1;
-    } else {
-      departmentReport.push({ department, entry: 0, exit: 0, breakCount: 0, meal: 0, total: 0, late: 1 });
-    }
-  }
   const currentlyInside = Math.max(todayEntryCount - todayExitCount, 0);
   const leaveEmployeeIds = new Set(todayApprovedLeaves.map((leave) => leave.employeeId));
-  const absentCount = Math.max(employeeCount - todayEntryCount - leaveEmployeeIds.size, 0);
   const lateTodayCount = todayDailyCalendarsForDashboard.filter((day) => {
     if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
 
@@ -403,28 +361,12 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
     .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
     .slice(0, 8);
   const onTimeTodayCount = Math.max(todayEntryCount - lateTodayCount, 0);
-  const hourlyData = Array.from({ length: 13 }, (_, index) => {
-    const hour = index + 7;
-    const entry = todayLogsForDashboard.filter(
-      (log) => log.type === "ENTRY" && log.scannedAt.getHours() === hour,
-    ).length;
-    const exit = todayLogsForDashboard.filter(
-      (log) => log.type === "EXIT" && log.scannedAt.getHours() === hour,
-    ).length;
-
-    return {
-      label: `${String(hour).padStart(2, "0")}:00`,
-      entry,
-      exit,
-      max: Math.max(entry, exit, 1),
-    };
-  });
   const statusTotal = Math.max(employeeCount, 1);
   const statusCards = [
+    { label: "Su An Iceride", value: currentlyInside, color: "blue" },
     { label: "Zamaninda", value: onTimeTodayCount, color: "green" },
     { label: "Gec", value: lateTodayCount, color: "orange" },
     { label: "Izinli", value: leaveEmployeeIds.size, color: "blue" },
-    { label: "Devamsiz", value: absentCount, color: "red" },
   ];
   const dashboardExportRows = todayLogsForDashboard.map((log) => ({
     employee: `${log.employee.firstName} ${log.employee.lastName}`.trim(),
@@ -650,33 +592,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
       ) : null}
 
       {!isSuperadmin ? (
-        <section className={styles.dashboardVisualGrid}>
-          <article className={`glass-panel ${styles.chartPanel}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Gunluk yogunluk</p>
-                <h2 className={styles.sectionTitle}>Giris-Cikis Akisi</h2>
-              </div>
-            </div>
-            <div className={styles.hourlyChart}>
-              {hourlyData.map((item) => (
-                <div key={item.label} className={styles.hourColumn}>
-                  <div className={styles.hourBars}>
-                    <span
-                      className={styles.entryBar}
-                      style={{ height: `${Math.max((item.entry / item.max) * 100, item.entry ? 12 : 2)}%` }}
-                    />
-                    <span
-                      className={styles.exitBar}
-                      style={{ height: `${Math.max((item.exit / item.max) * 100, item.exit ? 12 : 2)}%` }}
-                    />
-                  </div>
-                  <span className={styles.hourLabel}>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </article>
-
+        <section className={styles.statusOverviewGrid}>
           <article className={`glass-panel ${styles.statusPanel}`}>
             <div className={styles.sectionHeader}>
               <div>
@@ -690,18 +606,11 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
                 <span>Toplam</span>
               </div>
               <div className={styles.statusList}>
-                <p>
-                  <span className={`${styles.statusDot} ${styles.statusDotblue}`} />
-                  Su An Iceride
-                  <strong>{currentlyInside}</strong>
-                  <small>personel</small>
-                </p>
                 {statusCards.map((item) => (
                   <p key={item.label}>
                     <span className={`${styles.statusDot} ${styles[`statusDot${item.color}`]}`} />
                     {item.label}
-                    <strong>%{Math.round((item.value / statusTotal) * 100)}</strong>
-                    <small>({item.value})</small>
+                    <strong>{item.value} (%{Math.round((item.value / statusTotal) * 100)})</strong>
                   </p>
                 ))}
               </div>
@@ -792,102 +701,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ la
               </div>
             </section>
           )}
-
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>
-                  {isSuperadmin ? "Yeni kayıtlar" : "Personel takibi"}
-                </p>
-                <h2 className={styles.sectionTitle}>
-                  {isSuperadmin ? "Son Eklenen Personeller" : "Kayıtlı Personeller"}
-                </h2>
-              </div>
-            </div>
-
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Personel</th>
-                    <th>Firma</th>
-                    <th>Departman</th>
-                    <th>RFID Kart</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {scopedEmployees.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className={styles.emptyCell}>
-                        Henüz kayıtlı personel yok.
-                      </td>
-                    </tr>
-                  ) : (
-                    scopedEmployees.map((employee) => (
-                      <tr key={employee.id}>
-                        <td>
-                          {employee.firstName} {employee.lastName}
-                        </td>
-                        <td>{employee.company.name}</td>
-                        <td>{employee.department}</td>
-                        <td>
-                          {employee.rfidCardId ?? "Kart atanmadi"}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {!isSuperadmin ? (
-            <section className={`glass-panel ${styles.sectionCard}`}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.sectionEyebrow}>Aylik PDKS</p>
-                  <h2 className={styles.sectionTitle}>Departman Bazli Puantaj Ozeti</h2>
-                </div>
-              </div>
-
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Departman</th>
-                      <th>Giris</th>
-                      <th>Cikis</th>
-                      <th>Mola/Yemek</th>
-                      <th>Gec Kalma</th>
-                      <th>Toplam Hareket</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {departmentReport.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className={styles.emptyCell}>
-                          Bu ay icin hareket kaydi bulunmuyor.
-                        </td>
-                      </tr>
-                    ) : (
-                      departmentReport.map((department) => (
-                        <tr key={department.department}>
-                          <td>{department.department}</td>
-                          <td>{department.entry}</td>
-                          <td>{department.exit}</td>
-                          <td>{department.breakCount + department.meal}</td>
-                          <td>
-                            {department.late}
-                          </td>
-                          <td>{department.total}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ) : null}
         </div>
 
       </section>

@@ -901,6 +901,12 @@
   gap: 1rem;
 }
 
+.statusOverviewGrid {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .chartPanel,
 .statusPanel {
   padding: 1rem;
@@ -996,7 +1002,7 @@
 
 .statusList p {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.5rem;
   align-items: center;
   color: #0f172a;
