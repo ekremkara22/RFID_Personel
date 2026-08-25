@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarScopeType, SpecialDayType } from "@/generated/prisma/client";
 import { createCalendarSpecialDayAction, updateCalendarSpecialDayAction } from "@/app/dashboard/actions";
@@ -7,15 +8,21 @@ import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { formatDate, formatDateInput, scopeLabels, specialDayTypeLabels } from "../calendar-labels";
 
-export default async function OfficialHolidaysPage() {
+export default async function OfficialHolidaysPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 
+  const searchParams = (await props.searchParams) ?? {};
+  const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const holidays = await prisma.calendarSpecialDay.findMany({
-    where: { companyId: user.companyId, specialDayType: SpecialDayType.OFFICIAL_HOLIDAY },
+    where: {
+      companyId: user.companyId,
+      specialDayType: SpecialDayType.OFFICIAL_HOLIDAY,
+      ...(query ? { name: { contains: query } } : {}),
+    },
     orderBy: { dateFrom: "asc" },
     take: 200,
   });
@@ -30,9 +37,10 @@ export default async function OfficialHolidaysPage() {
             Resmi tatillerde kart okutulmasa devamsizlik uretilmez; okutma olursa hareket saklanip resmi tatilde calisma olarak raporlanir.
           </p>
         </div>
+        <Link href="#new-record" className={styles.primaryLinkButton}>Resmi Tatil Ekle</Link>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
+      <section id="new-record" className={`glass-panel ${styles.sectionCard}`}>
         <form action={createCalendarSpecialDayAction} className={styles.formGrid}>
           <input type="hidden" name="specialDayType" value={SpecialDayType.OFFICIAL_HOLIDAY} />
           <input type="hidden" name="scopeType" value={CalendarScopeType.COMPANY} />
@@ -75,6 +83,12 @@ export default async function OfficialHolidaysPage() {
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <input name="q" defaultValue={query} placeholder="Resmi tatil ara" />
+            <button type="submit">Ara</button>
+          </form>
+        </div>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -83,18 +97,20 @@ export default async function OfficialHolidaysPage() {
                 <th>Tarih</th>
                 <th>Kapsam</th>
                 <th>Durum</th>
+                <th>Incele</th>
                 <th>Guncelle</th>
               </tr>
             </thead>
             <tbody>
               {holidays.length === 0 ? (
-                <tr><td colSpan={5} className={styles.emptyCell}>Henuz resmi tatil kaydi yok.</td></tr>
+                <tr><td colSpan={6} className={styles.emptyCell}>Henuz resmi tatil kaydi yok.</td></tr>
               ) : holidays.map((holiday) => (
                 <tr key={holiday.id}>
                   <td>{holiday.name}<p className={styles.tableSubText}>{specialDayTypeLabels[holiday.specialDayType]}</p></td>
                   <td>{formatDate(holiday.dateFrom)} - {formatDate(holiday.dateTo)}</td>
                   <td>{scopeLabels[holiday.scopeType]}</td>
                   <td>{holiday.isActive ? "Aktif" : "Pasif"}</td>
+                  <td><Link href={`/dashboard/calendar/special-days/${holiday.id}`} className={styles.inlineAction}>Incele</Link></td>
                   <td>
                     <form action={updateCalendarSpecialDayAction} className={styles.inlineEditForm}>
                       <input type="hidden" name="specialDayId" value={holiday.id} />

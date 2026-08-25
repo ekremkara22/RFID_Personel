@@ -18,15 +18,20 @@ const defaultDayTypes: Record<number, WorkDayType> = {
   7: WorkDayType.WEEKLY_REST,
 };
 
-export default async function CalendarTemplatesPage() {
+export default async function CalendarTemplatesPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 
+  const searchParams = (await props.searchParams) ?? {};
+  const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const templates = await prisma.workCalendarTemplate.findMany({
-    where: { companyId: user.companyId },
+    where: {
+      companyId: user.companyId,
+      ...(query ? { OR: [{ name: { contains: query } }, { code: { contains: query } }] } : {}),
+    },
     include: { weekdays: { orderBy: { weekday: "asc" } }, _count: { select: { assignments: true } } },
     orderBy: [{ isDefault: "desc" }, { name: "asc" }],
   });
@@ -41,9 +46,10 @@ export default async function CalendarTemplatesPage() {
             Genel merkez, beyaz yaka, uretim, 5 gun veya 6 gun calisma gibi haftalik calisma kurallarini tanimlayin.
           </p>
         </div>
+        <Link href="#new-record" className={styles.primaryLinkButton}>Sablon Ekle</Link>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
+      <section id="new-record" className={`glass-panel ${styles.sectionCard}`}>
         <div className={styles.sectionHeader}>
           <div>
             <p className={styles.sectionEyebrow}>Yeni Sablon</p>
@@ -133,6 +139,12 @@ export default async function CalendarTemplatesPage() {
             <p className={styles.sectionEyebrow}>Kayitlar</p>
             <h2 className={styles.sectionTitle}>Takvim Sablonlari</h2>
           </div>
+        </div>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <input name="q" defaultValue={query} placeholder="Sablon adi veya kodu ara" />
+            <button type="submit">Ara</button>
+          </form>
         </div>
 
         <div className={styles.tableWrap}>

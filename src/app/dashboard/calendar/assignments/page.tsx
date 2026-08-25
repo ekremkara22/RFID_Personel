@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarScopeType } from "@/generated/prisma/client";
 import { createCalendarAssignmentAction, updateCalendarAssignmentAction } from "@/app/dashboard/actions";
@@ -7,20 +8,25 @@ import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { formatDateInput, scopeLabels } from "../calendar-labels";
 
-export default async function CalendarAssignmentsPage() {
+export default async function CalendarAssignmentsPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 
+  const searchParams = (await props.searchParams) ?? {};
+  const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const [templates, branches, departments, employees, assignments] = await Promise.all([
     prisma.workCalendarTemplate.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
     prisma.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
     prisma.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({ where: { companyId: user.companyId }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
     prisma.calendarAssignment.findMany({
-      where: { companyId: user.companyId },
+      where: {
+        companyId: user.companyId,
+        ...(query ? { description: { contains: query } } : {}),
+      },
       include: { calendarTemplate: true, branch: true, department: true, employee: true },
       orderBy: [{ isActive: "desc" }, { validFrom: "desc" }],
       take: 200,
@@ -35,9 +41,10 @@ export default async function CalendarAssignmentsPage() {
           <h1 className={styles.title}>Takvim Atamalari</h1>
           <p className={styles.subtitle}>Sablonlari sirket, sube, departman veya personel kapsaminda tarih araliklarina baglayin.</p>
         </div>
+        <Link href="#new-record" className={styles.primaryLinkButton}>Atama Ekle</Link>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
+      <section id="new-record" className={`glass-panel ${styles.sectionCard}`}>
         <form action={createCalendarAssignmentAction} className={styles.formGrid}>
           <label className={styles.field}>
             <span>Takvim Sablonu</span>
@@ -105,6 +112,12 @@ export default async function CalendarAssignmentsPage() {
 
       <section className={`glass-panel ${styles.sectionCard}`}>
         <div className={styles.tableWrap}>
+          <div className={styles.listToolbar}>
+            <form className={styles.searchForm}>
+              <input name="q" defaultValue={query} placeholder="Aciklama ara" />
+              <button type="submit">Ara</button>
+            </form>
+          </div>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -113,12 +126,13 @@ export default async function CalendarAssignmentsPage() {
                 <th>Tarih</th>
                 <th>Oncelik</th>
                 <th>Durum</th>
+                <th>Incele</th>
                 <th>Guncelle</th>
               </tr>
             </thead>
             <tbody>
               {assignments.length === 0 ? (
-                <tr><td colSpan={6} className={styles.emptyCell}>Henuz takvim atamasi yok.</td></tr>
+                <tr><td colSpan={7} className={styles.emptyCell}>Henuz takvim atamasi yok.</td></tr>
               ) : assignments.map((assignment) => {
                 const scopeName = assignment.branch?.name
                   ?? assignment.department?.name
@@ -131,6 +145,7 @@ export default async function CalendarAssignmentsPage() {
                     <td>{formatDateInput(assignment.validFrom)} / {formatDateInput(assignment.validTo) || "-"}</td>
                     <td>{assignment.priority}</td>
                     <td>{assignment.isActive ? "Aktif" : "Pasif"} {assignment.conflictApproved ? "- Cakisma onayli" : ""}</td>
+                    <td><Link href={`/dashboard/calendar/assignments/${assignment.id}`} className={styles.inlineAction}>Incele</Link></td>
                     <td>
                       <form action={updateCalendarAssignmentAction} className={styles.inlineEditForm}>
                         <input type="hidden" name="assignmentId" value={assignment.id} />

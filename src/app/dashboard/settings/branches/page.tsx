@@ -1,19 +1,20 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createBranchAction, updateBranchAction } from "@/app/dashboard/actions";
-import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
-export default async function BranchesPage() {
+export default async function BranchesPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    redirect("/dashboard");
-  }
-
+  const searchParams = (await props.searchParams) ?? {};
+  const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const branches = await prisma.branch.findMany({
-    where: { companyId: user.companyId },
+    where: {
+      companyId: user.companyId,
+      ...(query ? { OR: [{ name: { contains: query } }, { location: { contains: query } }] } : {}),
+    },
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
   });
 
@@ -23,77 +24,34 @@ export default async function BranchesPage() {
         <div>
           <p className={styles.eyebrow}>Sabit Tanimlar</p>
           <h1 className={styles.title}>Subeler</h1>
-          <p className={styles.subtitle}>
-            Firma icindeki merkez, sube, depo veya lokasyonlari burada tanimla.
-          </p>
+          <p className={styles.subtitle}>Sube ve lokasyonlari ara, listele ve detay ekraninda duzenle.</p>
         </div>
+        <Link href="/dashboard/settings/branches/new" className={styles.primaryLinkButton}>Sube Ekle</Link>
       </section>
-
-      <section className={styles.mainGrid}>
-        <div className={styles.primaryColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Yeni Tanim</p>
-                <h2 className={styles.sectionTitle}>Sube Ekle</h2>
-              </div>
-            </div>
-
-            <form action={createBranchAction} className={styles.formGrid}>
-              <label className={styles.field}>
-                <span>Sube Adi</span>
-                <input name="name" required placeholder="Merkez, Fabrika, Depo..." />
-              </label>
-              <label className={styles.field}>
-                <span>Lokasyon</span>
-                <input name="location" placeholder="Adres veya kisa lokasyon bilgisi" />
-              </label>
-              <div className={styles.fullWidth}>
-                <SubmitButton
-                  idleLabel="Sube Kaydet"
-                  pendingLabel="Kaydediliyor..."
-                  className={styles.primaryButton}
-                />
-              </div>
-            </form>
-          </section>
+      <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <input name="q" defaultValue={query} placeholder="Sube veya lokasyon ara" />
+            <button type="submit">Ara</button>
+          </form>
         </div>
-
-        <aside className={styles.sideColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Kayitli Tanimlar</p>
-                <h2 className={styles.sectionTitle}>Firma Subeleri</h2>
-              </div>
-            </div>
-
-            <div className={styles.logList}>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead><tr><th>Sube</th><th>Lokasyon</th><th>Durum</th><th>Islem</th></tr></thead>
+            <tbody>
               {branches.length === 0 ? (
-                <p className={styles.emptyState}>Henuz sube tanimlanmadi.</p>
-              ) : (
-                branches.map((branch) => (
-                  <form key={branch.id} action={updateBranchAction} className={styles.definitionItem}>
-                    <input type="hidden" name="branchId" value={branch.id} />
-                    <label className={styles.field}>
-                      <span>Sube</span>
-                      <input name="name" defaultValue={branch.name} required />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Lokasyon</span>
-                      <input name="location" defaultValue={branch.location ?? ""} />
-                    </label>
-                    <label className={styles.checkField}>
-                      <input name="isActive" type="checkbox" defaultChecked={branch.isActive} />
-                      <span>Aktif</span>
-                    </label>
-                    <SubmitButton idleLabel="Guncelle" pendingLabel="..." className={styles.smallButton} />
-                  </form>
-                ))
-              )}
-            </div>
-          </section>
-        </aside>
+                <tr><td colSpan={4} className={styles.emptyCell}>Kayit bulunamadi.</td></tr>
+              ) : branches.map((branch) => (
+                <tr key={branch.id}>
+                  <td>{branch.name}</td>
+                  <td>{branch.location ?? "-"}</td>
+                  <td>{branch.isActive ? "Aktif" : "Pasif"}</td>
+                  <td><Link href={`/dashboard/settings/branches/${branch.id}`} className={styles.inlineAction}>Incele</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

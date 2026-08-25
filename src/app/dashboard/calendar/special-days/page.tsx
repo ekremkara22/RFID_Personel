@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarScopeType, SpecialDayType } from "@/generated/prisma/client";
 import { createCalendarSpecialDayAction, updateCalendarSpecialDayAction } from "@/app/dashboard/actions";
@@ -9,16 +10,22 @@ import { formatDate, formatDateInput, scopeLabels, specialDayTypeLabels } from "
 
 const specialTypes = Object.values(SpecialDayType).filter((type) => type !== SpecialDayType.OFFICIAL_HOLIDAY);
 
-export default async function CalendarSpecialDaysPage() {
+export default async function CalendarSpecialDaysPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 
+  const searchParams = (await props.searchParams) ?? {};
+  const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const [records, branches, departments, employees] = await Promise.all([
     prisma.calendarSpecialDay.findMany({
-      where: { companyId: user.companyId, specialDayType: { not: SpecialDayType.OFFICIAL_HOLIDAY } },
+      where: {
+        companyId: user.companyId,
+        specialDayType: { not: SpecialDayType.OFFICIAL_HOLIDAY },
+        ...(query ? { name: { contains: query } } : {}),
+      },
       include: { branch: true, department: true, employee: true },
       orderBy: { dateFrom: "desc" },
       take: 200,
@@ -38,9 +45,10 @@ export default async function CalendarSpecialDaysPage() {
             Sirket, sube, departman veya personel kapsaminda tatil, yarim calisma ya da ek calisma gunu tanimlayin.
           </p>
         </div>
+        <Link href="#new-record" className={styles.primaryLinkButton}>Ozel Gun Ekle</Link>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
+      <section id="new-record" className={`glass-panel ${styles.sectionCard}`}>
         <form action={createCalendarSpecialDayAction} className={styles.formGrid}>
           <label className={styles.field}>
             <span>Kayit Adi</span>
@@ -116,6 +124,12 @@ export default async function CalendarSpecialDaysPage() {
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <input name="q" defaultValue={query} placeholder="Ozel gun ara" />
+            <button type="submit">Ara</button>
+          </form>
+        </div>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -125,12 +139,13 @@ export default async function CalendarSpecialDaysPage() {
                 <th>Kapsam</th>
                 <th>Saat</th>
                 <th>Durum</th>
+                <th>Incele</th>
                 <th>Guncelle</th>
               </tr>
             </thead>
             <tbody>
               {records.length === 0 ? (
-                <tr><td colSpan={6} className={styles.emptyCell}>Henuz ozel gun kaydi yok.</td></tr>
+                <tr><td colSpan={7} className={styles.emptyCell}>Henuz ozel gun kaydi yok.</td></tr>
               ) : records.map((record) => {
                   const scopeName = record.branch?.name
                     ?? record.department?.name
@@ -140,6 +155,7 @@ export default async function CalendarSpecialDaysPage() {
                     <tr key={record.id}>
                       <td>{record.name}<p className={styles.tableSubText}>{specialDayTypeLabels[record.specialDayType]}</p></td>
                       <td>{formatDate(record.dateFrom)} - {formatDate(record.dateTo)}</td>
+                      <td><Link href={`/dashboard/calendar/special-days/${record.id}`} className={styles.inlineAction}>Incele</Link></td>
                       <td>
                         {scopeLabels[record.scopeType]}
                         <p className={styles.tableSubText}>{scopeName}</p>

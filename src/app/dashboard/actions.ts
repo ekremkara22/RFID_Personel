@@ -113,6 +113,15 @@ function revalidateCalendarPaths() {
   revalidatePath("/dashboard/reports");
 }
 
+function getReturnTo(formData: FormData) {
+  const returnTo = getString(formData, "returnTo");
+  return returnTo.startsWith("/dashboard") ? returnTo : "";
+}
+
+function redirectToReturnPath(formData: FormData, fallback?: string) {
+  redirect(getReturnTo(formData) || fallback || "/dashboard");
+}
+
 async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
   const file = formData.get("photo");
 
@@ -355,6 +364,7 @@ export async function createDepartmentAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/settings/departments");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateDepartmentAction(formData: FormData) {
@@ -383,6 +393,7 @@ export async function updateDepartmentAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/settings/departments");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function createBranchAction(formData: FormData) {
@@ -409,6 +420,7 @@ export async function createBranchAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings/branches");
   revalidatePath("/dashboard/employees");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateBranchAction(formData: FormData) {
@@ -434,6 +446,7 @@ export async function updateBranchAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings/branches");
   revalidatePath("/dashboard/employees");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function createManagerAction(formData: FormData) {
@@ -460,6 +473,7 @@ export async function createManagerAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings/managers");
   revalidatePath("/dashboard/employees");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateManagerAction(formData: FormData) {
@@ -488,6 +502,7 @@ export async function updateManagerAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings/managers");
   revalidatePath("/dashboard/employees");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function createEmployeeAction(formData: FormData) {
@@ -877,6 +892,7 @@ export async function createLeaveRequestAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/leaves");
   revalidatePath("/dashboard/reports");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateLeaveRequestAction(formData: FormData) {
@@ -902,6 +918,7 @@ export async function updateLeaveRequestAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/leaves");
   revalidatePath("/dashboard/reports");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function deleteLeaveRequestAction(formData: FormData) {
@@ -924,6 +941,7 @@ export async function deleteLeaveRequestAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/leaves");
   revalidatePath("/dashboard/reports");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function createWorkCalendarTemplateAction(formData: FormData) {
@@ -980,7 +998,7 @@ export async function createWorkCalendarTemplateAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
-  redirect("/dashboard/calendar/templates");
+  redirectToReturnPath(formData, "/dashboard/calendar/templates");
 }
 
 export async function updateWorkCalendarTemplateAction(formData: FormData) {
@@ -1044,6 +1062,7 @@ export async function updateWorkCalendarTemplateAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function createCalendarSpecialDayAction(formData: FormData) {
@@ -1096,6 +1115,7 @@ export async function createCalendarSpecialDayAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateCalendarSpecialDayAction(formData: FormData) {
@@ -1148,6 +1168,7 @@ export async function updateCalendarSpecialDayAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function createCalendarAssignmentAction(formData: FormData) {
@@ -1216,6 +1237,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateCalendarAssignmentAction(formData: FormData) {
@@ -1260,6 +1282,7 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function createCalendarDailyExceptionAction(formData: FormData) {
@@ -1311,6 +1334,7 @@ export async function createCalendarDailyExceptionAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateCalendarDailyExceptionAction(formData: FormData) {
@@ -1355,6 +1379,7 @@ export async function updateCalendarDailyExceptionAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function generateEmployeeDailyCalendarAction(formData: FormData) {
@@ -1409,6 +1434,7 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
   });
 
   revalidateCalendarPaths();
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function logoutAction() {

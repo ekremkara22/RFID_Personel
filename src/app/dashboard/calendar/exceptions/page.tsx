@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarApprovalStatus, CalendarScopeType, WorkDayType } from "@/generated/prisma/client";
 import { createCalendarDailyExceptionAction, updateCalendarDailyExceptionAction } from "@/app/dashboard/actions";
@@ -15,19 +16,24 @@ const exceptionDayTypes = [
   WorkDayType.SPECIAL_WORK,
 ];
 
-export default async function CalendarExceptionsPage() {
+export default async function CalendarExceptionsPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 
+  const searchParams = (await props.searchParams) ?? {};
+  const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const [branches, departments, employees, exceptions] = await Promise.all([
     prisma.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
     prisma.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({ where: { companyId: user.companyId }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
     prisma.calendarDailyException.findMany({
-      where: { companyId: user.companyId },
+      where: {
+        companyId: user.companyId,
+        ...(query ? { changeReason: { contains: query } } : {}),
+      },
       include: { branch: true, department: true, employee: true },
       orderBy: { workDate: "desc" },
       take: 200,
@@ -42,9 +48,10 @@ export default async function CalendarExceptionsPage() {
           <h1 className={styles.title}>Gunluk Istisnalar</h1>
           <p className={styles.subtitle}>Belirli bir tarih icin sirket, sube, departman veya personel seviyesinde calisma kuralini degistirin.</p>
         </div>
+        <Link href="#new-record" className={styles.primaryLinkButton}>Istisna Ekle</Link>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
+      <section id="new-record" className={`glass-panel ${styles.sectionCard}`}>
         <form action={createCalendarDailyExceptionAction} className={styles.formGrid}>
           <label className={styles.field}>
             <span>Tarih</span>
@@ -112,6 +119,12 @@ export default async function CalendarExceptionsPage() {
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <input name="q" defaultValue={query} placeholder="Degisiklik nedeni ara" />
+            <button type="submit">Ara</button>
+          </form>
+        </div>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -121,12 +134,13 @@ export default async function CalendarExceptionsPage() {
                 <th>Yeni Durum</th>
                 <th>Saat</th>
                 <th>Onay</th>
+                <th>Incele</th>
                 <th>Guncelle</th>
               </tr>
             </thead>
             <tbody>
               {exceptions.length === 0 ? (
-                <tr><td colSpan={6} className={styles.emptyCell}>Henuz gunluk istisna yok.</td></tr>
+                <tr><td colSpan={7} className={styles.emptyCell}>Henuz gunluk istisna yok.</td></tr>
               ) : exceptions.map((exception) => {
                 const scopeName = exception.branch?.name
                   ?? exception.department?.name
@@ -139,6 +153,7 @@ export default async function CalendarExceptionsPage() {
                     <td>{dayTypeLabels[exception.newDayType]}</td>
                     <td>{exception.newStartTime ?? "-"} / {exception.newEndTime ?? "-"}</td>
                     <td>{approvalLabels[exception.approvalStatus]}</td>
+                    <td><Link href={`/dashboard/calendar/exceptions/${exception.id}`} className={styles.inlineAction}>Incele</Link></td>
                     <td>
                       <form action={updateCalendarDailyExceptionAction} className={styles.inlineEditForm}>
                         <input type="hidden" name="exceptionId" value={exception.id} />
