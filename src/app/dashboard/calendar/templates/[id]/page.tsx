@@ -61,11 +61,11 @@ export default async function CalendarTemplateDetailPage(props: {
             <span>Aciklama</span>
             <textarea name="description" defaultValue={template.description ?? ""} />
           </label>
-          <label className={styles.checkboxField}>
+          <label className={styles.checkField}>
             <input name="isDefault" type="checkbox" defaultChecked={template.isDefault} />
             <span>Firma varsayilan takvimi</span>
           </label>
-          <label className={styles.checkboxField}>
+          <label className={styles.checkField}>
             <input name="isActive" type="checkbox" defaultChecked={template.isActive} />
             <span>Aktif</span>
           </label>
