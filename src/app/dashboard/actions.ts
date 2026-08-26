@@ -815,6 +815,79 @@ export async function updateAttendanceLogAction(formData: FormData) {
   revalidatePath("/dashboard/movements");
 }
 
+export async function createAttendanceLogAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const employeeId = getString(formData, "employeeId");
+  const deviceId = getString(formData, "deviceId") || null;
+  const type = getString(formData, "type") as AttendanceType;
+  const scannedAtValue = getString(formData, "scannedAt");
+  const rfidCardId = normalizeOptionalRfidCardId(getString(formData, "rfidCardId"));
+  const allowedTypes = new Set<string>(Object.values(AttendanceType));
+
+  if (!employeeId || !allowedTypes.has(type) || !scannedAtValue) {
+    throw new Error("Hareket bilgileri gecersiz.");
+  }
+
+  const scannedAt = new Date(scannedAtValue);
+
+  if (Number.isNaN(scannedAt.getTime())) {
+    throw new Error("Hareket tarihi gecersiz.");
+  }
+
+  const employee = await prisma.employee.findFirst({
+    where: {
+      id: employeeId,
+      companyId: user.companyId,
+    },
+    select: {
+      id: true,
+      rfidCardId: true,
+    },
+  });
+
+  if (!employee) {
+    throw new Error("Personel bulunamadi.");
+  }
+
+  if (deviceId) {
+    const device = await prisma.device.findFirst({
+      where: {
+        id: deviceId,
+        companyId: user.companyId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!device) {
+      throw new Error("Cihaz bulunamadi.");
+    }
+  }
+
+  await saveResolvedEmployeeWorkCalendar(employee.id, scannedAt);
+
+  await prisma.attendanceLog.create({
+    data: {
+      employeeId: employee.id,
+      deviceId,
+      type,
+      scannedAt,
+      rfidCardId: rfidCardId ?? employee.rfidCardId,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/movements");
+  revalidatePath("/dashboard/reports");
+  redirectToReturnPath(formData, "/dashboard/movements");
+}
+
 export async function deleteAttendanceLogAction(formData: FormData) {
   const { user } = await requireSessionUser();
 

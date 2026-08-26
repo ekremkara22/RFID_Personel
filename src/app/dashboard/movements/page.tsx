@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Filter } from "lucide-react";
+import { CirclePlus, Filter } from "lucide-react";
 import { AttendanceType } from "@/generated/prisma/client";
 import {
   deleteAttendanceLogAction,
@@ -177,20 +178,26 @@ export default async function MovementsPage(props: {
           </p>
         </div>
 
-        <ExportButton
-          rows={exportRows}
-          columns={[
-            { key: "employee", label: "Personel" },
-            { key: "department", label: "Departman" },
-            { key: "type", label: "Hareket Tipi" },
-            { key: "status", label: "Durum" },
-            { key: "scannedAt", label: "Tarih" },
-            { key: "rfidCardId", label: "RFID Kart" },
-            { key: "device", label: "Cihaz" },
-          ]}
-          filename="personel-hareketleri"
-          className={styles.primaryLinkButton}
-        />
+        <div className={styles.heroMeta}>
+          <Link href="/dashboard/movements/new" className={styles.primaryLinkButton}>
+            <CirclePlus size={18} />
+            <span>Hareket Ekle</span>
+          </Link>
+          <ExportButton
+            rows={exportRows}
+            columns={[
+              { key: "employee", label: "Personel" },
+              { key: "department", label: "Departman" },
+              { key: "type", label: "Hareket Tipi" },
+              { key: "status", label: "Durum" },
+              { key: "scannedAt", label: "Tarih" },
+              { key: "rfidCardId", label: "RFID Kart" },
+              { key: "device", label: "Cihaz" },
+            ]}
+            filename="personel-hareketleri"
+            className={styles.primaryLinkButton}
+          />
+        </div>
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
