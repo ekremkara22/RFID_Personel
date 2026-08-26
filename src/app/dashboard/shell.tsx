@@ -55,7 +55,6 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     ...(user.role === "SUPERADMIN"
       ? [{ href: "/dashboard/users", label: "Kullanıcılar", icon: Users }]
       : [
-          { href: "/dashboard/companies", label: "Firmalar", icon: Building2 },
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
           { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },
           { href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane },
@@ -80,10 +79,11 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   const definitionItems = [
     ...(user.role === "SUPERADMIN"
       ? [
-          { href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags },
-          { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },
+          { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: Tags },
         ]
       : [
+          { href: "/dashboard/companies", label: "Firmalar", icon: Building2 },
+          { href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags },
           { href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags },
           { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },
           { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users },

@@ -11,7 +11,7 @@ import styles from "../../page.module.css";
 export default async function CompanyCategoriesPage() {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN") {
+  if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 

@@ -50,11 +50,7 @@ export default async function DevicesPage(props: {
 
   const devices = await prisma.device.findMany({
     where: {
-      ...(deviceIds.length > 0
-        ? { id: { in: deviceIds } }
-        : companyIds
-          ? { companyId: { in: companyIds } }
-          : {}),
+      ...(deviceIds.length > 0 ? { id: { in: deviceIds } } : { id: "__none__" }),
       ...(query
         ? {
             OR: [
@@ -68,12 +64,19 @@ export default async function DevicesPage(props: {
     include: { company: true },
     orderBy: { createdAt: "desc" },
   });
-  const branchCompanyIds = Array.from(new Set(devices.map((device) => device.companyId)));
+  const companyIdList = companyIds ?? [];
+  const companies =
+    companyIdList.length > 0
+      ? await prisma.company.findMany({
+          where: { id: { in: companyIdList }, isActive: true },
+          orderBy: { name: "asc" },
+        })
+      : [];
   const branches =
-    branchCompanyIds.length > 0
+    companyIdList.length > 0
       ? await prisma.branch.findMany({
           where: {
-            companyId: { in: branchCompanyIds },
+            companyId: { in: companyIdList },
             isActive: true,
           },
           include: { company: true },
@@ -172,13 +175,24 @@ export default async function DevicesPage(props: {
             </label>
 
             <label className={styles.field}>
+              <span>Firma</span>
+              <select name="companyId" defaultValue={selectedDevice.companyId} required>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.field}>
               <span>Sube/Lokasyon</span>
               <select name="branchLocation" defaultValue={selectedDevice.branchLocation ?? ""}>
                 <option value="">Seciniz</option>
                 {selectedDevice.branchLocation && !hasSelectedBranchLocation ? (
                   <option value={selectedDevice.branchLocation}>{selectedDevice.branchLocation}</option>
                 ) : null}
-                {selectedDeviceBranches.map((branch) => (
+                {branches.map((branch) => (
                   <option key={branch.id} value={branch.name}>
                     {branch.company.name} / {branch.name}
                   </option>
