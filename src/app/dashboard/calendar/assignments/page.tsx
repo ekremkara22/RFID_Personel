@@ -12,10 +12,11 @@ export default async function CalendarAssignmentsPage(props: { searchParams?: Pr
     redirect("/dashboard");
   }
 
+  const currentCompanyId = user.companyId ?? "";
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim().toLocaleLowerCase("tr-TR") : "";
   const assignments = await prisma.calendarAssignment.findMany({
-    where: user.role === "COMPANY_ADMIN" ? { companyId: user.companyId } : {},
+    where: user.role === "COMPANY_ADMIN" ? { companyId: currentCompanyId } : {},
     include: { company: true, calendarTemplate: true, branch: true, department: true, employee: true },
     orderBy: [{ isActive: "desc" }, { validFrom: "desc" }],
     take: 300,
