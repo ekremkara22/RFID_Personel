@@ -524,7 +524,6 @@ export async function createDashboardUserAction(formData: FormData) {
 
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
-  const companyId = await getScopedCompanyId(formData, user.companyId, user.id);
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const role = await getAssignableRole(formData);
@@ -902,6 +901,7 @@ export async function createEmployeeAction(formData: FormData) {
 
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
+  const companyId = await getScopedCompanyId(formData, user.companyId, user.id);
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const department = getString(formData, "department");
