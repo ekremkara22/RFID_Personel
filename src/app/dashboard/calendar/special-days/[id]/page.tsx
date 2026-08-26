@@ -4,6 +4,7 @@ import { CalendarScopeType, SpecialDayType } from "@/generated/prisma/client";
 import { deleteCalendarSpecialDayAction, updateCalendarSpecialDayAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 import { formatDateInput, scopeLabels, specialDayTypeLabels } from "../../calendar-labels";
@@ -12,7 +13,7 @@ export default async function SpecialDayDetailPage(props: { params: Promise<{ id
   const { user } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
 
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const [record, branches, departments, employees] = await Promise.all([
     prisma.calendarSpecialDay.findFirst({ where: { id, companyId: user.companyId } }),
     prisma.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),

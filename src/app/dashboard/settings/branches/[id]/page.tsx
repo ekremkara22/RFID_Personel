@@ -4,6 +4,7 @@ import { updateBranchAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 
@@ -11,7 +12,7 @@ export default async function BranchDetailPage(props: { params: Promise<{ id: st
   const { user } = await requireSessionUser();
   if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) redirect("/dashboard");
   const companyIds = await getAccessibleCompanyIds(user);
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const branch = await prisma.branch.findFirst({
     where: {
       id,

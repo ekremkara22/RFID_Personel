@@ -38,6 +38,27 @@ function getStringList(formData: FormData, key: string) {
     .filter(Boolean);
 }
 
+function parseIdValue(value: string, fieldName: string) {
+  const id = Number(value);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new Error(`${fieldName} bilgisi gecersiz.`);
+  }
+  return id;
+}
+
+function getId(formData: FormData, key: string) {
+  return parseIdValue(getString(formData, key), key);
+}
+
+function getOptionalId(formData: FormData, key: string) {
+  const value = getString(formData, key);
+  return value ? parseIdValue(value, key) : null;
+}
+
+function getIdList(formData: FormData, key: string) {
+  return getStringList(formData, key).map((value) => parseIdValue(value, key));
+}
+
 function normalizeOptionalEmail(email: string) {
   return email ? email.toLowerCase() : null;
 }
@@ -103,14 +124,14 @@ function parseCalendarScope(formData: FormData) {
 
   return {
     scopeType,
-    branchId: scopeType === CalendarScopeType.BRANCH ? getString(formData, "branchId") || null : null,
-    departmentId: scopeType === CalendarScopeType.DEPARTMENT ? getString(formData, "departmentId") || null : null,
-    employeeId: scopeType === CalendarScopeType.EMPLOYEE ? getString(formData, "employeeId") || null : null,
+    branchId: scopeType === CalendarScopeType.BRANCH ? getOptionalId(formData, "branchId") : null,
+    departmentId: scopeType === CalendarScopeType.DEPARTMENT ? getOptionalId(formData, "departmentId") : null,
+    employeeId: scopeType === CalendarScopeType.EMPLOYEE ? getOptionalId(formData, "employeeId") : null,
   };
 }
 
 async function assertCalendarScopeBelongsToCompany(
-  companyId: string,
+  companyId: number,
   scope: ReturnType<typeof parseCalendarScope>,
 ) {
   if (scope.branchId) {
@@ -199,8 +220,8 @@ function redirectToReturnPath(formData: FormData, fallback?: string) {
   redirect(getReturnTo(formData) || fallback || "/dashboard");
 }
 
-async function getScopedCompanyId(formData: FormData, fallbackCompanyId?: string | null, userId?: string) {
-  const requestedCompanyId = getString(formData, "companyId");
+async function getScopedCompanyId(formData: FormData, fallbackCompanyId?: number | null, userId?: number) {
+  const requestedCompanyId = getOptionalId(formData, "companyId");
   const companyId = requestedCompanyId || fallbackCompanyId;
 
   if (!companyId) {
@@ -351,8 +372,8 @@ export async function updateCompanyAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = getString(formData, "companyId");
-  const adminId = getString(formData, "adminId");
+  const companyId = getId(formData, "companyId");
+  const adminId = getId(formData, "adminId");
   const companyName = getString(formData, "companyName");
   const contactName = getString(formData, "contactName");
   const contactEmail = getString(formData, "contactEmail").toLowerCase();
@@ -442,7 +463,7 @@ export async function deleteCompanyAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = getString(formData, "companyId");
+  const companyId = getId(formData, "companyId");
 
   if (!companyId) {
     throw new Error("Firma bilgisi eksik.");
@@ -467,7 +488,7 @@ async function assertSuperadminUser() {
   return user;
 }
 
-async function syncUserAccess(userId: string, companyIds: string[], deviceIds: string[]) {
+async function syncUserAccess(userId: number, companyIds: number[], deviceIds: number[]) {
   const uniqueCompanyIds = Array.from(new Set(companyIds));
   const uniqueDeviceIds = Array.from(new Set(deviceIds));
 
@@ -527,8 +548,8 @@ export async function createDashboardUserAction(formData: FormData) {
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const role = await getAssignableRole(formData);
-  const companyIds = getStringList(formData, "companyIds");
-  const deviceIds = getStringList(formData, "deviceIds");
+  const companyIds = getIdList(formData, "companyIds");
+  const deviceIds = getIdList(formData, "deviceIds");
 
   if (!firstName || !lastName || !email || !password) {
     throw new Error("Kullanici bilgileri eksik.");
@@ -556,13 +577,13 @@ export async function createDashboardUserAction(formData: FormData) {
 export async function updateDashboardUserAction(formData: FormData) {
   const currentUser = await assertSuperadminUser();
 
-  const userId = getString(formData, "userId");
+  const userId = getId(formData, "userId");
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
-  const companyIds = getStringList(formData, "companyIds");
-  const deviceIds = getStringList(formData, "deviceIds");
+  const companyIds = getIdList(formData, "companyIds");
+  const deviceIds = getIdList(formData, "deviceIds");
   const targetUser = userId
     ? await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
     : null;
@@ -602,7 +623,7 @@ export async function updateDashboardUserAction(formData: FormData) {
 
 export async function deleteDashboardUserAction(formData: FormData) {
   const currentUser = await assertSuperadminUser();
-  const userId = getString(formData, "userId");
+  const userId = getId(formData, "userId");
 
   if (!userId || userId === currentUser.id) {
     throw new Error("Kullanici silinemez.");
@@ -645,7 +666,7 @@ export async function createRoleDefinitionAction(formData: FormData) {
 export async function updateRoleDefinitionAction(formData: FormData) {
   await assertSuperadminUser();
 
-  const roleDefinitionId = getString(formData, "roleDefinitionId");
+  const roleDefinitionId = getId(formData, "roleDefinitionId");
   const name = getString(formData, "name");
   const description = getString(formData, "description") || null;
   const isActive = formData.get("isActive") === "on";
@@ -695,7 +716,7 @@ export async function updateCompanyCategoryAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const categoryId = getString(formData, "categoryId");
+  const categoryId = getId(formData, "categoryId");
   const name = getString(formData, "name");
   const isActive = formData.get("isActive") === "on";
 
@@ -712,7 +733,7 @@ export async function updateCompanyCategoryAction(formData: FormData) {
   revalidatePath("/dashboard/companies");
 }
 
-async function assertCompanyDepartment(companyId: string, department: string) {
+async function assertCompanyDepartment(companyId: number, department: string) {
   const existingDepartment = await prisma.department.findFirst({
     where: {
       companyId,
@@ -759,7 +780,7 @@ export async function updateDepartmentAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const departmentId = getString(formData, "departmentId");
+  const departmentId = getId(formData, "departmentId");
   const name = getString(formData, "name");
   const isActive = formData.get("isActive") === "on";
 
@@ -816,7 +837,7 @@ export async function updateBranchAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const branchId = getString(formData, "branchId");
+  const branchId = getId(formData, "branchId");
   const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
   const name = getString(formData, "name");
   const location = getString(formData, "location");
@@ -870,7 +891,7 @@ export async function updateManagerAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const managerId = getString(formData, "managerId");
+  const managerId = getId(formData, "managerId");
   const name = getString(formData, "name");
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const isActive = formData.get("isActive") === "on";
@@ -951,7 +972,7 @@ export async function updateEmployeeAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const employeeId = getString(formData, "employeeId");
+  const employeeId = getId(formData, "employeeId");
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
   const companyId = await getScopedCompanyId(formData, user.companyId, user.id);
@@ -978,7 +999,7 @@ export async function updateEmployeeAction(formData: FormData) {
     select: { companyId: true },
   });
   const accessibleCompanyIds = Array.from(
-    new Set([user.companyId, ...accessRows.map((access) => access.companyId)].filter((value): value is string => Boolean(value))),
+    new Set([user.companyId, ...accessRows.map((access) => access.companyId)].filter((value): value is number => value !== null)),
   );
   const currentEmployee = await prisma.employee.findFirst({
     where: {
@@ -1025,7 +1046,7 @@ export async function deleteEmployeeAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const employeeId = getString(formData, "employeeId");
+  const employeeId = getId(formData, "employeeId");
 
   if (!employeeId) {
     throw new Error("Personel bilgisi eksik.");
@@ -1050,7 +1071,7 @@ export async function createCompanyDeviceAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = getString(formData, "companyId");
+  const companyId = getId(formData, "companyId");
   const code = getString(formData, "code") || null;
   const name = getString(formData, "name");
   const macAddress = getString(formData, "macAddress");
@@ -1090,8 +1111,8 @@ export async function updateCompanyDeviceAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = getString(formData, "companyId");
-  const deviceId = getString(formData, "deviceId");
+  const companyId = getId(formData, "companyId");
+  const deviceId = getId(formData, "deviceId");
   const code = getString(formData, "code") || null;
   const name = getString(formData, "name");
   const macAddress = getString(formData, "macAddress");
@@ -1130,8 +1151,8 @@ export async function deleteCompanyDeviceAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = getString(formData, "companyId");
-  const deviceId = getString(formData, "deviceId");
+  const companyId = getId(formData, "companyId");
+  const deviceId = getId(formData, "deviceId");
 
   if (!companyId || !deviceId) {
     throw new Error("Cihaz bilgisi eksik.");
@@ -1148,7 +1169,7 @@ export async function deleteCompanyDeviceAction(formData: FormData) {
 export async function createUserDeviceAction(formData: FormData) {
   await assertSuperadminUser();
 
-  const userId = getString(formData, "userId");
+  const userId = getId(formData, "userId");
   const code = getString(formData, "code") || null;
   const name = getString(formData, "name");
   const macAddress = getString(formData, "macAddress");
@@ -1196,8 +1217,8 @@ export async function createUserDeviceAction(formData: FormData) {
 export async function deleteUserDeviceAccessAction(formData: FormData) {
   await assertSuperadminUser();
 
-  const userId = getString(formData, "userId");
-  const deviceId = getString(formData, "deviceId");
+  const userId = getId(formData, "userId");
+  const deviceId = getId(formData, "deviceId");
 
   if (!userId || !deviceId) {
     throw new Error("Cihaz bilgisi eksik.");
@@ -1222,8 +1243,8 @@ export async function updateDeviceAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const deviceId = getString(formData, "deviceId");
-  const companyId = getString(formData, "companyId");
+  const deviceId = getId(formData, "deviceId");
+  const companyId = getId(formData, "companyId");
   const name = getString(formData, "name");
   const branchLocation = getString(formData, "branchLocation") || null;
 
@@ -1269,7 +1290,7 @@ export async function updateAttendanceLogAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const logId = getString(formData, "logId");
+  const logId = getId(formData, "logId");
   const type = getString(formData, "type") as AttendanceType;
   const scannedAtValue = getString(formData, "scannedAt");
   const allowedTypes = new Set<string>(Object.values(AttendanceType));
@@ -1308,8 +1329,8 @@ export async function createAttendanceLogAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const employeeId = getString(formData, "employeeId");
-  const deviceId = getString(formData, "deviceId") || null;
+  const employeeId = getId(formData, "employeeId");
+  const deviceId = getOptionalId(formData, "deviceId");
   const type = getString(formData, "type") as AttendanceType;
   const scannedAtValue = getString(formData, "scannedAt");
   const rfidCardId = normalizeOptionalRfidCardId(getString(formData, "rfidCardId"));
@@ -1381,7 +1402,7 @@ export async function deleteAttendanceLogAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const logId = getString(formData, "logId");
+  const logId = getId(formData, "logId");
 
   if (!logId) {
     throw new Error("Hareket bilgisi eksik.");
@@ -1407,7 +1428,7 @@ export async function createLeaveRequestAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const employeeId = getString(formData, "employeeId");
+  const employeeId = getId(formData, "employeeId");
   const type = getString(formData, "type") as LeaveType;
   const durationType = getString(formData, "durationType") as LeaveDurationType;
   const approvalStatus = getString(formData, "approvalStatus") as LeaveApprovalStatus;
@@ -1465,8 +1486,8 @@ export async function updateLeaveRequestAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const leaveId = getString(formData, "leaveId");
-  const employeeId = getString(formData, "employeeId");
+  const leaveId = getId(formData, "leaveId");
+  const employeeId = getId(formData, "employeeId");
   const type = getString(formData, "type") as LeaveType;
   const durationType = getString(formData, "durationType") as LeaveDurationType;
   const approvalStatus = getString(formData, "approvalStatus") as LeaveApprovalStatus;
@@ -1523,7 +1544,7 @@ export async function deleteLeaveRequestAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const leaveId = getString(formData, "leaveId");
+  const leaveId = getId(formData, "leaveId");
 
   if (!leaveId) {
     throw new Error("Izin bilgisi eksik.");
@@ -1604,7 +1625,7 @@ export async function updateWorkCalendarTemplateAction(formData: FormData) {
   }
 
   const companyId = user.companyId;
-  const templateId = getString(formData, "templateId");
+  const templateId = getId(formData, "templateId");
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
   const description = getString(formData, "description") || null;
@@ -1668,7 +1689,7 @@ export async function deleteWorkCalendarTemplateAction(formData: FormData) {
   }
 
   const companyId = user.companyId;
-  const templateId = getString(formData, "templateId");
+  const templateId = getId(formData, "templateId");
 
   if (!templateId) {
     throw new Error("Takvim sablon bilgisi eksik.");
@@ -1753,7 +1774,7 @@ export async function updateCalendarSpecialDayAction(formData: FormData) {
   }
 
   const companyId = user.companyId;
-  const specialDayId = getString(formData, "specialDayId");
+  const specialDayId = getId(formData, "specialDayId");
   const name = getString(formData, "name");
   const specialDayType = getString(formData, "specialDayType") as SpecialDayType;
   const scope = parseCalendarScope(formData);
@@ -1806,7 +1827,7 @@ export async function deleteCalendarSpecialDayAction(formData: FormData) {
   }
 
   const companyId = user.companyId;
-  const specialDayId = getString(formData, "specialDayId");
+  const specialDayId = getId(formData, "specialDayId");
 
   if (!specialDayId) {
     throw new Error("Takvim kaydi eksik.");
@@ -1841,7 +1862,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
   }
 
   const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
-  const calendarTemplateId = getString(formData, "calendarTemplateId");
+  const calendarTemplateId = getId(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
   const validFrom = getRequiredDate(formData, "validFrom");
   const validTo = getOptionalDate(formData, "validTo");
@@ -1921,8 +1942,8 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
   }
 
   const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
-  const assignmentId = getString(formData, "assignmentId");
-  const calendarTemplateId = getString(formData, "calendarTemplateId");
+  const assignmentId = getId(formData, "assignmentId");
+  const calendarTemplateId = getId(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
   const priority = getOptionalNumber(formData, "priority") ?? 100;
 
@@ -1982,7 +2003,7 @@ export async function deleteCalendarAssignmentAction(formData: FormData) {
   }
 
   const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
-  const assignmentId = getString(formData, "assignmentId");
+  const assignmentId = getId(formData, "assignmentId");
 
   if (!assignmentId) {
     throw new Error("Takvim atama bilgisi eksik.");
@@ -2066,7 +2087,7 @@ export async function updateCalendarDailyExceptionAction(formData: FormData) {
   }
 
   const companyId = user.companyId;
-  const exceptionId = getString(formData, "exceptionId");
+  const exceptionId = getId(formData, "exceptionId");
   const newDayType = getString(formData, "newDayType") as WorkDayType;
   const changeReason = getString(formData, "changeReason");
 
@@ -2113,7 +2134,7 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
   const companyId = user.companyId;
   const fromDate = getRequiredDate(formData, "fromDate");
   const toDate = getRequiredDate(formData, "toDate");
-  const employeeId = getString(formData, "employeeId");
+  const employeeId = getId(formData, "employeeId");
   const department = getString(formData, "department");
 
   const employees = await prisma.employee.findMany({

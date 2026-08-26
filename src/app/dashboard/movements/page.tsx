@@ -125,7 +125,7 @@ export default async function MovementsPage(props: {
     }),
   ]);
 
-  const calendarKeys = new Map<string, { employeeId: string; workDate: Date }>();
+  const calendarKeys = new Map<string, { employeeId: number; workDate: Date }>();
   logs.forEach((log) => {
     const workDate = getDayStart(log.scannedAt);
     calendarKeys.set(`${log.employeeId}-${getDayKey(workDate)}`, { employeeId: log.employeeId, workDate });

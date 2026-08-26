@@ -52,9 +52,9 @@ function scopeMatchesEmployee(
     scopeType: CalendarScopeType;
     branch?: { name: string } | null;
     department?: { name: string } | null;
-    employeeId?: string | null;
+    employeeId?: number | null;
   },
-  employee: { id: string; branch: string | null; department: string },
+  employee: { id: number; branch: string | null; department: string },
 ) {
   if (item.scopeType === CalendarScopeType.EMPLOYEE) return item.employeeId === employee.id;
   if (item.scopeType === CalendarScopeType.DEPARTMENT) return item.department?.name === employee.department;
@@ -70,7 +70,7 @@ function getScopeWeight(scopeType: CalendarScopeType) {
 }
 
 function createClosedResult(
-  employeeId: string,
+  employeeId: number,
   workDate: Date,
   employmentStatus: EmploymentStatus,
   reason: string,
@@ -100,7 +100,7 @@ function createClosedResult(
   };
 }
 
-export async function resolveEmployeeWorkCalendar(employeeId: string, workDateInput: Date) {
+export async function resolveEmployeeWorkCalendar(employeeId: number, workDateInput: Date) {
   const workDate = toDateOnly(workDateInput);
   const nextDate = nextDateOnly(workDate);
   const employee = await prisma.employee.findUnique({
@@ -393,7 +393,7 @@ export async function resolveEmployeeWorkCalendar(employeeId: string, workDateIn
   };
 }
 
-export async function saveResolvedEmployeeWorkCalendar(employeeId: string, workDate: Date) {
+export async function saveResolvedEmployeeWorkCalendar(employeeId: number, workDate: Date) {
   const result = await resolveEmployeeWorkCalendar(employeeId, workDate);
 
   return prisma.employeeDailyCalendar.upsert({

@@ -3,6 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { updateDepartmentAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 
@@ -10,7 +11,7 @@ export default async function DepartmentDetailPage(props: { params: Promise<{ id
   const { user } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
 
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const department = await prisma.department.findFirst({ where: { id, companyId: user.companyId } });
   if (!department) notFound();
 

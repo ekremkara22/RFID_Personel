@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 
 export async function getAccessibleCompanyIds(user: {
-  id: string;
+  id: number;
   role: string;
-  companyId: string | null;
+  companyId: number | null;
 }) {
   if (user.role === "SUPERADMIN") {
     return null;
@@ -22,6 +22,6 @@ export async function getAccessibleCompanyIds(user: {
   return Array.from(companyIds);
 }
 
-export function scopedCompanyFilter(companyIds: string[] | null) {
+export function scopedCompanyFilter(companyIds: number[] | null) {
   return companyIds === null ? {} : { companyId: { in: companyIds } };
 }

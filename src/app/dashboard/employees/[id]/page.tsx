@@ -4,6 +4,7 @@ import { deleteEmployeeAction, updateEmployeeAction } from "@/app/dashboard/acti
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -16,7 +17,7 @@ export default async function EmployeeDetailPage(props: {
     redirect("/dashboard");
   }
 
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const companyIds = await getAccessibleCompanyIds(user);
   const scopedCompanyIds = companyIds ?? [user.companyId];
   const [employee, companies, departments, branches, managers] = await Promise.all([
@@ -69,7 +70,7 @@ export default async function EmployeeDetailPage(props: {
 
   if (!departmentOptions.some((department) => department.name === employee.department)) {
     departmentOptions.unshift({
-      id: "current",
+      id: 0,
       name: employee.department,
       companyName: currentCompanyName,
     });

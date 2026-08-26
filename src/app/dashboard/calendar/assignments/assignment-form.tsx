@@ -15,42 +15,42 @@ const scopeLabels: Record<CalendarScopeType, string> = {
 };
 
 type CompanyOption = {
-  id: string;
+  id: number;
   name: string;
 };
 
 type TemplateOption = {
-  id: string;
+  id: number;
   name: string;
-  companyId: string;
+  companyId: number;
 };
 
 type BranchOption = {
-  id: string;
+  id: number;
   name: string;
-  companyId: string;
+  companyId: number;
 };
 
 type DepartmentOption = {
-  id: string;
+  id: number;
   name: string;
-  companyId: string;
+  companyId: number;
 };
 
 type EmployeeOption = {
-  id: string;
+  id: number;
   name: string;
-  companyId: string;
+  companyId: number;
 };
 
 type AssignmentFormValues = {
-  assignmentId?: string;
-  companyId?: string;
-  calendarTemplateId?: string;
+  assignmentId?: number;
+  companyId?: number;
+  calendarTemplateId?: number;
   scopeType?: CalendarScopeType;
-  branchId?: string | null;
-  departmentId?: string | null;
-  employeeId?: string | null;
+  branchId?: number | null;
+  departmentId?: number | null;
+  employeeId?: number | null;
   validFrom?: string;
   validTo?: string;
   priority?: number;
@@ -85,7 +85,7 @@ export function AssignmentForm({
   returnTo?: string;
   lockCompany?: boolean;
 }) {
-  const initialCompanyId = values?.companyId || companies[0]?.id || "";
+  const initialCompanyId = values?.companyId || companies[0]?.id || 0;
   const [companyId, setCompanyId] = useState(initialCompanyId);
   const [scopeType, setScopeType] = useState<CalendarScopeType>(values?.scopeType ?? "COMPANY");
   const selectedCompanyName = companies.find((company) => company.id === companyId)?.name ?? "";
@@ -121,7 +121,7 @@ export function AssignmentForm({
       ) : (
         <label className={styles.field}>
           <span>Firma</span>
-          <select name="companyId" required value={companyId} onChange={(event) => setCompanyId(event.target.value)}>
+          <select name="companyId" required value={companyId} onChange={(event) => setCompanyId(Number(event.target.value))}>
             <option value="" disabled>Firma sec</option>
             {companies.map((company) => (
               <option key={company.id} value={company.id}>{company.name}</option>

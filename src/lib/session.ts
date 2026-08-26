@@ -17,6 +17,10 @@ export async function requireSessionUser() {
     redirect("/login");
   }
 
+  if (!Number.isSafeInteger(session.id) || session.id <= 0) {
+    redirect("/login");
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: session.id },
     include: {

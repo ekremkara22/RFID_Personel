@@ -8,7 +8,7 @@ import { ExportButton } from "@/app/dashboard/export-button";
 import styles from "../page.module.css";
 
 type EmployeeRow = {
-  id: string;
+  id: number;
   photoUrl: string;
   fullName: string;
   registrationNumber: string;
@@ -146,7 +146,8 @@ export function EmployeesTable({ employees }: { employees: EmployeeRow[] }) {
   const [draggedColumn, setDraggedColumn] = useState<ColumnKey | null>(null);
 
   useEffect(() => {
-    setColumnOrder(getSavedOrder());
+    const frame = window.requestAnimationFrame(() => setColumnOrder(getSavedOrder()));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {

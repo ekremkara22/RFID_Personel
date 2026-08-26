@@ -42,7 +42,8 @@ export default async function CalendarOverviewPage(props: {
   const month = Number(searchParams.month ?? now.getMonth() + 1);
   const view = String(searchParams.view ?? "calendar");
   const department = String(searchParams.department ?? "");
-  const employeeId = String(searchParams.employeeId ?? "");
+  const employeeIdValue = Number(searchParams.employeeId);
+  const employeeId = Number.isSafeInteger(employeeIdValue) && employeeIdValue > 0 ? employeeIdValue : null;
   const dayType = String(searchParams.dayType ?? "");
   const selectedDate = String(searchParams.selected ?? "");
   const { start, end } = getMonthRange(year, month);
@@ -62,7 +63,7 @@ export default async function CalendarOverviewPage(props: {
         employee: {
           companyId: user.companyId,
           ...(department ? { department } : {}),
-          ...(employeeId ? { id: employeeId } : {}),
+          ...(employeeId !== null ? { id: employeeId } : {}),
         },
         workDate: { gte: start, lte: end },
         ...(dayType ? { dayType: dayType as WorkDayType } : {}),
@@ -153,7 +154,7 @@ export default async function CalendarOverviewPage(props: {
           </label>
           <label className={styles.field}>
             <span>Personel</span>
-            <select name="employeeId" defaultValue={employeeId}>
+            <select name="employeeId" defaultValue={employeeId ?? ""}>
               <option value="">Tumu</option>
               {employees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
@@ -278,7 +279,7 @@ export default async function CalendarOverviewPage(props: {
               </label>
               <label className={styles.field}>
                 <span>Personel</span>
-                <select name="employeeId" defaultValue={employeeId}>
+                <select name="employeeId" defaultValue={employeeId ?? ""}>
                   <option value="">Tumu</option>
                   {employees.map((employee) => (
                     <option key={employee.id} value={employee.id}>

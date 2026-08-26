@@ -10,6 +10,7 @@ import {
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { DevicePurpose, Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -35,7 +36,7 @@ const purposeLabels: Record<DevicePurpose, string> = {
   BIDIRECTIONAL: "Cift yonlu okuyucu",
 };
 
-function buildUserUrl(userId: string, tab: TabKey) {
+function buildUserUrl(userId: number, tab: TabKey) {
   return `/dashboard/users/${userId}?tab=${tab}`;
 }
 
@@ -49,7 +50,7 @@ export default async function UserDetailPage(props: {
     redirect("/dashboard");
   }
 
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const searchParams = await props.searchParams;
   const activeTab = tabs.some((tab) => tab.key === searchParams.tab)
     ? (searchParams.tab as TabKey)
@@ -85,7 +86,7 @@ export default async function UserDetailPage(props: {
 
   const [visibleEmployees, visibleDevices] = await Promise.all([
     prisma.employee.findMany({
-      where: selectedCompanyIdList.length > 0 ? { companyId: { in: selectedCompanyIdList } } : { id: "__none__" },
+      where: selectedCompanyIdList.length > 0 ? { companyId: { in: selectedCompanyIdList } } : { id: -1 },
       include: { company: true },
       orderBy: [{ company: { name: "asc" } }, { firstName: "asc" }],
       take: 100,
@@ -93,7 +94,7 @@ export default async function UserDetailPage(props: {
     prisma.device.findMany({
       where: selectedDeviceIds.size > 0
         ? { id: { in: Array.from(selectedDeviceIds) } }
-        : { id: "__none__" },
+        : { id: -1 },
       include: { company: true },
       orderBy: { name: "asc" },
     }),

@@ -73,7 +73,7 @@ function addMinutes(date: Date, minutes: number) {
   return nextDate;
 }
 
-async function ensureDepartment(companyId: string, name: string) {
+async function ensureDepartment(companyId: number, name: string) {
   await prisma.department.upsert({
     where: { companyId_name: { companyId, name } },
     update: { isActive: true },
@@ -81,7 +81,7 @@ async function ensureDepartment(companyId: string, name: string) {
   });
 }
 
-async function ensureBranch(companyId: string) {
+async function ensureBranch(companyId: number) {
   return prisma.branch.upsert({
     where: { companyId_name: { companyId, name: "Merkez" } },
     update: { isActive: true, location: "Termosa Merkez" },
@@ -89,7 +89,7 @@ async function ensureBranch(companyId: string) {
   });
 }
 
-async function ensureTemplate(companyId: string) {
+async function ensureTemplate(companyId: number) {
   await prisma.workCalendarTemplate.updateMany({
     where: { companyId, isDefault: true },
     data: { isDefault: false },
@@ -205,27 +205,33 @@ async function main() {
 
   const template = await ensureTemplate(company.id);
 
-  await prisma.calendarSpecialDay.upsert({
-    where: { id: `${company.id}-2026-08-30-official` },
-    update: {
-      name: "30 Ağustos Zafer Bayramı",
-      specialDayType: SpecialDayType.OFFICIAL_HOLIDAY,
-      dateFrom: new Date("2026-08-30T00:00:00"),
-      dateTo: new Date("2026-08-30T23:59:59"),
-      isActive: true,
-    },
-    create: {
-      id: `${company.id}-2026-08-30-official`,
+  const officialHolidayData = {
+    name: "30 Ağustos Zafer Bayramı",
+    specialDayType: SpecialDayType.OFFICIAL_HOLIDAY,
+    dateFrom: new Date("2026-08-30T00:00:00"),
+    dateTo: new Date("2026-08-30T23:59:59"),
+    isActive: true,
+  };
+  const existingOfficialHoliday = await prisma.calendarSpecialDay.findFirst({
+    where: {
       companyId: company.id,
-      name: "30 Ağustos Zafer Bayramı",
-      specialDayType: SpecialDayType.OFFICIAL_HOLIDAY,
-      dateFrom: new Date("2026-08-30T00:00:00"),
-      dateTo: new Date("2026-08-30T23:59:59"),
-      scopeType: CalendarScopeType.COMPANY,
-      description: "Ağustos test verisi resmi tatil kaydı",
-      isActive: true,
+      name: officialHolidayData.name,
+      dateFrom: officialHolidayData.dateFrom,
     },
   });
+  const officialHoliday = existingOfficialHoliday
+    ? await prisma.calendarSpecialDay.update({
+        where: { id: existingOfficialHoliday.id },
+        data: officialHolidayData,
+      })
+    : await prisma.calendarSpecialDay.create({
+        data: {
+          ...officialHolidayData,
+          companyId: company.id,
+          scopeType: CalendarScopeType.COMPANY,
+          description: "Ağustos test verisi resmi tatil kaydı",
+        },
+      });
 
   const employees = [];
   for (let index = 0; index < termosaEmployees.length; index += 1) {
@@ -395,7 +401,7 @@ async function main() {
         leaveId: leave?.id ?? null,
         calendarTemplateId: template.id,
         ruleSourceType: fullDayLeave ? "APPROVED_LEAVE" : isOfficialHoliday ? "OFFICIAL_HOLIDAY" : "COMPANY_DEFAULT_CALENDAR",
-        ruleSourceId: fullDayLeave ? leave?.id ?? null : isOfficialHoliday ? `${company.id}-2026-08-30-official` : template.id,
+        ruleSourceId: fullDayLeave ? leave?.id ?? null : isOfficialHoliday ? officialHoliday.id : template.id,
         calculationStatus: CalendarCalculationStatus.CALCULATED,
         calculationReason: fullDayLeave
           ? "Onaylı tam gün izin/rapor"

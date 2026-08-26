@@ -9,6 +9,7 @@ import {
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -31,16 +32,7 @@ const purposeLabels = {
 
 type TabKey = (typeof tabs)[number]["key"];
 
-function getUserFullName(user: {
-  firstName: string | null;
-  lastName: string | null;
-  name: string | null;
-  email: string;
-}) {
-  return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.name || user.email;
-}
-
-function buildCompanyUrl(companyId: string, tab: TabKey, extra?: Record<string, string>) {
+function buildCompanyUrl(companyId: number, tab: TabKey, extra?: Record<string, string>) {
   const params = new URLSearchParams({ tab });
 
   Object.entries(extra ?? {}).forEach(([key, value]) => {
@@ -62,7 +54,7 @@ export default async function CompanyDetailPage(props: {
     redirect("/dashboard");
   }
 
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const companyIds = await getAccessibleCompanyIds(user);
   if (companyIds && !companyIds.includes(id)) {
     redirect("/dashboard/companies");
@@ -72,7 +64,10 @@ export default async function CompanyDetailPage(props: {
     ? (searchParams.tab as TabKey)
     : "general";
   const employeeQuery = typeof searchParams.employeeQ === "string" ? searchParams.employeeQ.trim() : "";
-  const selectedEmployeeId = typeof searchParams.employeeId === "string" ? searchParams.employeeId : "";
+  const selectedEmployeeIdValue = Number(searchParams.employeeId);
+  const selectedEmployeeId = Number.isSafeInteger(selectedEmployeeIdValue) && selectedEmployeeIdValue > 0
+    ? selectedEmployeeIdValue
+    : null;
 
   const [company, categories] = await Promise.all([
     prisma.company.findUnique({
@@ -307,7 +302,7 @@ export default async function CompanyDetailPage(props: {
                       key={employee.id}
                       href={buildCompanyUrl(company.id, "employees", {
                         employeeQ: employeeQuery,
-                        employeeId: employee.id,
+                        employeeId: String(employee.id),
                       })}
                       className={selectedEmployee?.id === employee.id ? styles.listItemActive : styles.listItemLink}
                     >

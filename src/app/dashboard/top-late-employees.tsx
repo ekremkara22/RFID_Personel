@@ -4,7 +4,7 @@ import { useState } from "react";
 import styles from "./page.module.css";
 
 export type TopLateEmployeeRow = {
-  employeeId: string;
+  employeeId: number;
   employeeName: string;
   department: string;
   count: number;

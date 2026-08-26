@@ -4,6 +4,7 @@ import { DevicePurpose } from "@/generated/prisma/client";
 import { createCompanyDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../../page.module.css";
 
@@ -24,7 +25,7 @@ export default async function NewCompanyDevicePage(props: {
     redirect("/dashboard");
   }
 
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const company = await prisma.company.findUnique({ where: { id } });
 
   if (!company) {

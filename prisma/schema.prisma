@@ -114,33 +114,33 @@ enum CalendarApprovalStatus {
 }
 
 model Company {
-  id            String   @id @default(uuid())
-  name          String
-  contactName   String?
-  contactEmail  String?
-  contactPhone  String?
-  address       String?
-  city          String?
-  district      String?
-  category      String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  users         User[]
-  userAccess    UserCompanyAccess[]
-  employees     Employee[]
-  devices       Device[]
-  departments   Department[]
-  branches      Branch[]
-  managers      Manager[]
-  calendarTemplates WorkCalendarTemplate[]
+  id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
+  name                String
+  contactName         String?
+  contactEmail        String?
+  contactPhone        String?
+  address             String?
+  city                String?
+  district            String?
+  category            String?
+  isActive            Boolean                  @default(true)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  users               User[]
+  userAccess          UserCompanyAccess[]
+  employees           Employee[]
+  devices             Device[]
+  departments         Department[]
+  branches            Branch[]
+  managers            Manager[]
+  calendarTemplates   WorkCalendarTemplate[]
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
-  dailyExceptions CalendarDailyException[]
+  dailyExceptions     CalendarDailyException[]
 }
 
 model CompanyCategory {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
   name      String   @unique
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -148,7 +148,7 @@ model CompanyCategory {
 }
 
 model RoleDefinition {
-  id          String   @id @default(uuid())
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
   code        Role     @unique
   name        String
   description String?
@@ -158,27 +158,27 @@ model RoleDefinition {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  firstName String?
-  lastName  String?
-  tcNo      String?
-  role      Role     @default(COMPANY_ADMIN)
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id            Int                 @id @default(autoincrement()) @db.UnsignedInt
+  email         String              @unique
+  password      String
+  name          String?
+  firstName     String?
+  lastName      String?
+  tcNo          String?
+  role          Role                @default(COMPANY_ADMIN)
+  companyId     Int?                @db.UnsignedInt
+  company       Company?            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyAccess UserCompanyAccess[]
   deviceAccess  UserDeviceAccess[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 }
 
 model UserCompanyAccess {
-  id        String   @id @default(uuid())
-  userId    String
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int      @db.UnsignedInt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyId String
+  companyId Int      @db.UnsignedInt
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -186,72 +186,72 @@ model UserCompanyAccess {
 }
 
 model Employee {
-  id                String          @id @default(uuid())
-  firstName         String
-  lastName          String
-  photoUrl          String?
-  registrationNumber String?
-  email             String?         @unique
-  password          String?
-  department        String
-  branch            String?
-  managerName       String?
-  hireDate          DateTime?
-  terminationDate   DateTime?
-  age               Int
-  rfidCardId        String?         @unique
-  isActive          Boolean         @default(true)
-  companyId         String
-  company           Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  logs              AttendanceLog[]
-  leaves            LeaveRequest[]
+  id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
+  firstName           String
+  lastName            String
+  photoUrl            String?
+  registrationNumber  String?
+  email               String?                  @unique
+  password            String?
+  department          String
+  branch              String?
+  managerName         String?
+  hireDate            DateTime?
+  terminationDate     DateTime?
+  age                 Int
+  rfidCardId          String?                  @unique
+  isActive            Boolean                  @default(true)
+  companyId           Int                      @db.UnsignedInt
+  company             Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  logs                AttendanceLog[]
+  leaves              LeaveRequest[]
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
-  dailyExceptions  CalendarDailyException[]
-  dailyCalendars   EmployeeDailyCalendar[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  dailyExceptions     CalendarDailyException[]
+  dailyCalendars      EmployeeDailyCalendar[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@unique([companyId, registrationNumber])
 }
 
 model Department {
-  id        String   @id @default(uuid())
-  name      String
-  isActive  Boolean  @default(true)
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
+  name                String
+  isActive            Boolean                  @default(true)
+  companyId           Int                      @db.UnsignedInt
+  company             Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
-  dailyExceptions CalendarDailyException[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dailyExceptions     CalendarDailyException[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@unique([companyId, name])
 }
 
 model Branch {
-  id        String   @id @default(uuid())
-  name      String
-  location  String?
-  isActive  Boolean  @default(true)
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
+  name                String
+  location            String?
+  isActive            Boolean                  @default(true)
+  companyId           Int                      @db.UnsignedInt
+  company             Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
-  dailyExceptions CalendarDailyException[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dailyExceptions     CalendarDailyException[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@unique([companyId, name])
 }
 
 model Manager {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
   name      String
   email     String?
   isActive  Boolean  @default(true)
-  companyId String
+  companyId Int      @db.UnsignedInt
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -260,32 +260,32 @@ model Manager {
 }
 
 model Device {
-  id              String          @id @default(uuid())
-  code            String?
-  name            String
-  macAddress      String?         @unique
-  ipAddress       String?
-  branchLocation  String?
-  purpose         DevicePurpose   @default(BIDIRECTIONAL)
-  secretKey       String          @default(uuid())
-  lastSeenAt      DateTime?
+  id                 Int                @id @default(autoincrement()) @db.UnsignedInt
+  code               String?
+  name               String
+  macAddress         String?            @unique
+  ipAddress          String?
+  branchLocation     String?
+  purpose            DevicePurpose      @default(BIDIRECTIONAL)
+  secretKey          String             @default(uuid())
+  lastSeenAt         DateTime?
   lastDataTransferAt DateTime?
   clockOffsetMinutes Int?
-  companyId       String?
-  company         Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  userAccess      UserDeviceAccess[]
-  logs            AttendanceLog[]
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  companyId          Int?               @db.UnsignedInt
+  company            Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  userAccess         UserDeviceAccess[]
+  logs               AttendanceLog[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   @@unique([companyId, code])
 }
 
 model UserDeviceAccess {
-  id        String   @id @default(uuid())
-  userId    String
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int      @db.UnsignedInt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceId  String
+  deviceId  Int      @db.UnsignedInt
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -293,156 +293,156 @@ model UserDeviceAccess {
 }
 
 model AttendanceLog {
-  id                String         @id @default(uuid())
-  employeeId        String
-  employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  deviceId          String?
-  device            Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
-  scannedAt         DateTime       @default(now())
-  type              AttendanceType
-  rfidCardId        String?
+  id         Int            @id @default(autoincrement()) @db.UnsignedInt
+  employeeId Int            @db.UnsignedInt
+  employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deviceId   Int?           @db.UnsignedInt
+  device     Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  scannedAt  DateTime       @default(now())
+  type       AttendanceType
+  rfidCardId String?
 }
 
 model LeaveRequest {
-  id             String              @id @default(uuid())
-  employeeId     String
-  employee       Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  companyId      String
+  id             Int                     @id @default(autoincrement()) @db.UnsignedInt
+  employeeId     Int                     @db.UnsignedInt
+  employee       Employee                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  companyId      Int                     @db.UnsignedInt
   type           LeaveType
   durationType   LeaveDurationType
-  approvalStatus LeaveApprovalStatus @default(PENDING)
+  approvalStatus LeaveApprovalStatus     @default(PENDING)
   startDate      DateTime
   endDate        DateTime
   startTime      String?
   endTime        String?
   description    String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
   dailyCalendars EmployeeDailyCalendar[]
 }
 
 model WorkCalendarTemplate {
-  id          String   @id @default(uuid())
-  code        String
-  name        String
-  description String?
-  validFrom   DateTime?
-  validTo     DateTime?
-  isDefault   Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  weekdays    WorkCalendarWeekday[]
-  assignments CalendarAssignment[]
+  id             Int                     @id @default(autoincrement()) @db.UnsignedInt
+  code           String
+  name           String
+  description    String?
+  validFrom      DateTime?
+  validTo        DateTime?
+  isDefault      Boolean                 @default(false)
+  isActive       Boolean                 @default(true)
+  companyId      Int                     @db.UnsignedInt
+  company        Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  weekdays       WorkCalendarWeekday[]
+  assignments    CalendarAssignment[]
   dailyCalendars EmployeeDailyCalendar[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   @@unique([companyId, code])
 }
 
 model WorkCalendarWeekday {
-  id                  String       @id @default(uuid())
-  calendarTemplateId  String
+  id                  Int                  @id @default(autoincrement()) @db.UnsignedInt
+  calendarTemplateId  Int                  @db.UnsignedInt
   calendarTemplate    WorkCalendarTemplate @relation(fields: [calendarTemplateId], references: [id], onDelete: Cascade)
   weekday             Int
-  dayType             WorkDayType  @default(NORMAL_WORK)
+  dayType             WorkDayType          @default(NORMAL_WORK)
   startTime           String?
   endTime             String?
   breakStartTime      String?
   breakEndTime        String?
-  crossesMidnight     Boolean      @default(false)
-  breakMinutes        Int          @default(0)
-  plannedGrossMinutes Int          @default(0)
-  plannedNetMinutes   Int          @default(0)
-  checkLateArrival    Boolean      @default(true)
-  checkEarlyDeparture Boolean      @default(true)
-  checkAbsence        Boolean      @default(true)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  crossesMidnight     Boolean              @default(false)
+  breakMinutes        Int                  @default(0)
+  plannedGrossMinutes Int                  @default(0)
+  plannedNetMinutes   Int                  @default(0)
+  checkLateArrival    Boolean              @default(true)
+  checkEarlyDeparture Boolean              @default(true)
+  checkAbsence        Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@unique([calendarTemplateId, weekday])
 }
 
 model CalendarAssignment {
-  id                 String       @id @default(uuid())
-  calendarTemplateId String
+  id                 Int                  @id @default(autoincrement()) @db.UnsignedInt
+  calendarTemplateId Int                  @db.UnsignedInt
   calendarTemplate   WorkCalendarTemplate @relation(fields: [calendarTemplateId], references: [id], onDelete: Cascade)
   scopeType          CalendarScopeType
-  companyId          String
-  company            Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  branchId           String?
-  branch             Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  departmentId       String?
-  department         Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  employeeId         String?
-  employee           Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  companyId          Int                  @db.UnsignedInt
+  company            Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId           Int?                 @db.UnsignedInt
+  branch             Branch?              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  departmentId       Int?                 @db.UnsignedInt
+  department         Department?          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  employeeId         Int?                 @db.UnsignedInt
+  employee           Employee?            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   validFrom          DateTime
   validTo            DateTime?
-  priority           Int          @default(100)
-  isActive           Boolean      @default(true)
+  priority           Int                  @default(100)
+  isActive           Boolean              @default(true)
   description        String?
-  conflictApproved   Boolean      @default(false)
+  conflictApproved   Boolean              @default(false)
   conflictReason     String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 }
 
 model CalendarSpecialDay {
-  id            String       @id @default(uuid())
-  name          String
+  id             Int               @id @default(autoincrement()) @db.UnsignedInt
+  name           String
   specialDayType SpecialDayType
-  dateFrom      DateTime
-  dateTo        DateTime
-  isHalfDay     Boolean      @default(false)
-  startTime     String?
-  endTime       String?
-  breakMinutes  Int          @default(0)
-  scopeType     CalendarScopeType @default(COMPANY)
-  companyId     String
-  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  branchId      String?
-  branch        Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  departmentId  String?
-  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  employeeId    String?
-  employee      Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  description   String?
-  repeatsYearly Boolean      @default(false)
-  isActive      Boolean      @default(true)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  dateFrom       DateTime
+  dateTo         DateTime
+  isHalfDay      Boolean           @default(false)
+  startTime      String?
+  endTime        String?
+  breakMinutes   Int               @default(0)
+  scopeType      CalendarScopeType @default(COMPANY)
+  companyId      Int               @db.UnsignedInt
+  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId       Int?              @db.UnsignedInt
+  branch         Branch?           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  departmentId   Int?              @db.UnsignedInt
+  department     Department?       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  employeeId     Int?              @db.UnsignedInt
+  employee       Employee?         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  description    String?
+  repeatsYearly  Boolean           @default(false)
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
 
 model CalendarDailyException {
-  id            String       @id @default(uuid())
-  workDate      DateTime
-  scopeType     CalendarScopeType
-  companyId     String
-  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  branchId      String?
-  branch        Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  departmentId  String?
-  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  employeeId    String?
-  employee      Employee?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id              Int                    @id @default(autoincrement()) @db.UnsignedInt
+  workDate        DateTime
+  scopeType       CalendarScopeType
+  companyId       Int                    @db.UnsignedInt
+  company         Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId        Int?                   @db.UnsignedInt
+  branch          Branch?                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  departmentId    Int?                   @db.UnsignedInt
+  department      Department?            @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  employeeId      Int?                   @db.UnsignedInt
+  employee        Employee?              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   originalDayType WorkDayType?
-  newDayType    WorkDayType
-  newStartTime  String?
-  newEndTime    String?
+  newDayType      WorkDayType
+  newStartTime    String?
+  newEndTime      String?
   newBreakMinutes Int?
-  changeReason  String
-  approvalStatus CalendarApprovalStatus @default(APPROVED)
-  createdById   String?
-  approvedById  String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  changeReason    String
+  approvalStatus  CalendarApprovalStatus @default(APPROVED)
+  createdById     Int?                   @db.UnsignedInt
+  approvedById    Int?                   @db.UnsignedInt
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 }
 
 model EmployeeDailyCalendar {
-  id                  String       @id @default(uuid())
-  employeeId          String
-  employee            Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id                  Int                       @id @default(autoincrement()) @db.UnsignedInt
+  employeeId          Int                       @db.UnsignedInt
+  employee            Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   workDate            DateTime
   employmentStatus    EmploymentStatus
   dayType             WorkDayType
@@ -450,35 +450,35 @@ model EmployeeDailyCalendar {
   plannedEnd          String?
   plannedBreakStart   String?
   plannedBreakEnd     String?
-  crossesMidnight     Boolean      @default(false)
-  plannedBreakMinutes Int          @default(0)
-  plannedGrossMinutes Int          @default(0)
-  plannedNetMinutes   Int          @default(0)
-  checkLateArrival    Boolean      @default(false)
-  checkEarlyDeparture Boolean      @default(false)
-  checkAbsence        Boolean      @default(false)
-  leaveId             String?
-  leave               LeaveRequest? @relation(fields: [leaveId], references: [id], onDelete: SetNull)
-  calendarTemplateId  String?
-  calendarTemplate    WorkCalendarTemplate? @relation(fields: [calendarTemplateId], references: [id], onDelete: SetNull)
+  crossesMidnight     Boolean                   @default(false)
+  plannedBreakMinutes Int                       @default(0)
+  plannedGrossMinutes Int                       @default(0)
+  plannedNetMinutes   Int                       @default(0)
+  checkLateArrival    Boolean                   @default(false)
+  checkEarlyDeparture Boolean                   @default(false)
+  checkAbsence        Boolean                   @default(false)
+  leaveId             Int?                      @db.UnsignedInt
+  leave               LeaveRequest?             @relation(fields: [leaveId], references: [id], onDelete: SetNull)
+  calendarTemplateId  Int?                      @db.UnsignedInt
+  calendarTemplate    WorkCalendarTemplate?     @relation(fields: [calendarTemplateId], references: [id], onDelete: SetNull)
   ruleSourceType      String
-  ruleSourceId        String?
+  ruleSourceId        Int?                      @db.UnsignedInt
   calculationStatus   CalendarCalculationStatus @default(CALCULATED)
   calculationReason   String
-  calculatedAt        DateTime     @default(now())
+  calculatedAt        DateTime                  @default(now())
 
   @@unique([employeeId, workDate])
 }
 
 model CalendarChangeLog {
-  id           String       @id @default(uuid())
-  companyId    String?
+  id           Int                @id @default(autoincrement()) @db.UnsignedInt
+  companyId    Int?               @db.UnsignedInt
   recordType   CalendarRecordType
-  recordId     String
-  oldValue     String?      @db.Text
-  newValue     String?      @db.Text
-  changeReason String?      @db.Text
-  changedById  String?
-  approvedById String?
-  changedAt    DateTime     @default(now())
+  recordId     Int                @db.UnsignedInt
+  oldValue     String?            @db.Text
+  newValue     String?            @db.Text
+  changeReason String?            @db.Text
+  changedById  Int?               @db.UnsignedInt
+  approvedById Int?               @db.UnsignedInt
+  changedAt    DateTime           @default(now())
 }

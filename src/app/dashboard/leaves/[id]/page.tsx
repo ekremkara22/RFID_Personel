@@ -4,6 +4,7 @@ import { LeaveApprovalStatus, LeaveDurationType, LeaveType } from "@/generated/p
 import { updateLeaveRequestAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -26,7 +27,7 @@ function formatDateInput(date: Date) {
 export default async function LeaveDetailPage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const [leave, employees] = await Promise.all([
     prisma.leaveRequest.findFirst({ where: { id, companyId: user.companyId }, include: { employee: true } }),
     prisma.employee.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),

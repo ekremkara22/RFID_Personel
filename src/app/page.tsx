@@ -13,7 +13,6 @@ import {
   Factory,
   FileSpreadsheet,
   HardHat,
-  LayoutDashboard,
   Mail,
   MapPin,
   MessageCircle,

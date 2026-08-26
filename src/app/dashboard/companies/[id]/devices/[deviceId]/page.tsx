@@ -4,6 +4,7 @@ import { DevicePurpose } from "@/generated/prisma/client";
 import { updateCompanyDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../../page.module.css";
 
@@ -24,7 +25,9 @@ export default async function CompanyDeviceDetailPage(props: {
     redirect("/dashboard");
   }
 
-  const { id, deviceId } = await props.params;
+  const params = await props.params;
+  const id = parseRouteId(params.id);
+  const deviceId = parseRouteId(params.deviceId);
   const [company, device] = await Promise.all([
     prisma.company.findUnique({ where: { id } }),
     prisma.device.findFirst({ where: { id: deviceId, companyId: id } }),

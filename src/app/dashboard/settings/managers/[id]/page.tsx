@@ -3,13 +3,14 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { updateManagerAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 
 export default async function ManagerDetailPage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const manager = await prisma.manager.findFirst({ where: { id, companyId: user.companyId } });
   if (!manager) notFound();
   return (

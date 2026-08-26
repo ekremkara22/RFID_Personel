@@ -15,7 +15,7 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-function buildDeviceUrl(deviceQ: string, deviceId?: string) {
+function buildDeviceUrl(deviceQ: string, deviceId?: number) {
   const params = new URLSearchParams();
 
   if (deviceQ) {
@@ -23,7 +23,7 @@ function buildDeviceUrl(deviceQ: string, deviceId?: string) {
   }
 
   if (deviceId) {
-    params.set("deviceId", deviceId);
+    params.set("deviceId", String(deviceId));
   }
 
   return `/dashboard/devices${params.toString() ? `?${params.toString()}` : ""}`;
@@ -46,11 +46,14 @@ export default async function DevicesPage(props: {
   const deviceIds = assignedDeviceIds.map((access) => access.deviceId);
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const selectedDeviceId = typeof searchParams.deviceId === "string" ? searchParams.deviceId : "";
+  const selectedDeviceIdValue = Number(searchParams.deviceId);
+  const selectedDeviceId = Number.isSafeInteger(selectedDeviceIdValue) && selectedDeviceIdValue > 0
+    ? selectedDeviceIdValue
+    : null;
 
   const devices = await prisma.device.findMany({
     where: {
-      ...(deviceIds.length > 0 ? { id: { in: deviceIds } } : { id: "__none__" }),
+      ...(deviceIds.length > 0 ? { id: { in: deviceIds } } : { id: -1 }),
       ...(query
         ? {
             OR: [

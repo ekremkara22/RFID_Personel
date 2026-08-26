@@ -7,11 +7,11 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 export type AuthTokenPayload = JWTPayload & {
-  id: string;
+  id: number;
   email: string;
   name: string;
   role: string;
-  companyId?: string | null;
+  companyId?: number | null;
   actorType?: "admin" | "employee";
 };
 

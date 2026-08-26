@@ -16,7 +16,7 @@ import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "./page.module.css";
 
 type LateRecord = {
-  employeeId: string;
+  employeeId: number;
   employeeName: string;
   department: string;
   workDate: Date;
@@ -111,7 +111,7 @@ function summarizeLateRecords(records: LateRecord[]): TopLateEmployeeRow[] {
       current.totalMinutes += record.lateMinutes;
       summary.set(record.employeeId, current);
       return summary;
-    }, new Map<string, TopLateEmployeeRow>()),
+    }, new Map<number, TopLateEmployeeRow>()),
   )
     .map(([, value]) => value)
     .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
@@ -295,7 +295,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
   ]);
 
-  const latestEntryExitByEmployee = new Map<string, (typeof todayLogsForDashboard)[number]>();
+  const latestEntryExitByEmployee = new Map<number, (typeof todayLogsForDashboard)[number]>();
   todayLogsForDashboard
     .filter((log) => log.type === "ENTRY" || log.type === "EXIT")
     .sort((first, second) => second.scannedAt.getTime() - first.scannedAt.getTime())
@@ -306,7 +306,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     });
   const currentlyInside = Array.from(latestEntryExitByEmployee.values()).filter((log) => log.type === "ENTRY").length;
   const leaveEmployeeIds = new Set(todayApprovedLeaves.map((leave) => leave.employeeId));
-  const firstTodayEntryByEmployee = new Map<string, (typeof todayLogsForDashboard)[number]>();
+  const firstTodayEntryByEmployee = new Map<number, (typeof todayLogsForDashboard)[number]>();
   todayLogsForDashboard
     .filter((log) => log.type === "ENTRY")
     .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())

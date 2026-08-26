@@ -28,6 +28,8 @@ export default async function CompaniesPage(props: {
   const companyIds = await getAccessibleCompanyIds(user);
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
+  const queryId = Number(query);
+  const hasNumericQueryId = Number.isSafeInteger(queryId) && queryId > 0;
 
   const companies = await prisma.company.findMany({
     where: {
@@ -35,7 +37,7 @@ export default async function CompaniesPage(props: {
       ...(query
         ? {
           OR: [
-            { id: { contains: query } },
+            ...(hasNumericQueryId ? [{ id: queryId }] : []),
             { name: { contains: query } },
             { contactName: { contains: query } },
             { contactEmail: { contains: query } },
@@ -135,7 +137,7 @@ export default async function CompaniesPage(props: {
                   <tr key={company.id}>
                     <td>
                       <Link href={`/dashboard/companies/${company.id}`} className={styles.monoLink}>
-                        {company.id.slice(0, 8)}
+                        {company.id}
                       </Link>
                     </td>
                     <td>

@@ -31,26 +31,31 @@ async function main() {
   const companyAdminPassword = await bcrypt.hash("Firma123!", 10);
   const employeePassword = await bcrypt.hash("Personel123!", 10);
 
-  const company = await prisma.company.upsert({
-    where: { id: "demo-company" },
-    update: {
-      name: "Demo Sirketi",
-      contactName: "Ayse Kaya",
-      contactEmail: "iletisim@demosirketi.com",
-      contactPhone: "0555 000 00 00",
-      address: "Istanbul",
-      isActive: true,
-    },
-    create: {
-      id: "demo-company",
-      name: "Demo Sirketi",
-      contactName: "Ayse Kaya",
-      contactEmail: "iletisim@demosirketi.com",
-      contactPhone: "0555 000 00 00",
-      address: "Istanbul",
-      isActive: true,
-    },
+  const existingCompany = await prisma.company.findFirst({
+    where: { name: "Demo Sirketi" },
   });
+  const company = existingCompany
+    ? await prisma.company.update({
+        where: { id: existingCompany.id },
+        data: {
+      name: "Demo Sirketi",
+      contactName: "Ayse Kaya",
+      contactEmail: "iletisim@demosirketi.com",
+      contactPhone: "0555 000 00 00",
+      address: "Istanbul",
+      isActive: true,
+        },
+      })
+    : await prisma.company.create({
+        data: {
+      name: "Demo Sirketi",
+      contactName: "Ayse Kaya",
+      contactEmail: "iletisim@demosirketi.com",
+      contactPhone: "0555 000 00 00",
+      address: "Istanbul",
+      isActive: true,
+        },
+      });
 
   await prisma.user.upsert({
     where: { email: "admin@rfidpersonel.local" },

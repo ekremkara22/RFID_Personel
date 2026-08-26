@@ -4,6 +4,7 @@ import { WorkDayType } from "@/generated/prisma/client";
 import { deleteWorkCalendarTemplateAction, updateWorkCalendarTemplateAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 import { dayTypeLabels, formatDateInput, weekdayLabels } from "../../calendar-labels";
@@ -17,7 +18,7 @@ export default async function CalendarTemplateDetailPage(props: {
     redirect("/dashboard");
   }
 
-  const { id } = await props.params;
+  const id = parseRouteId((await props.params).id);
   const template = await prisma.workCalendarTemplate.findFirst({
     where: { id, companyId: user.companyId },
     include: { weekdays: { orderBy: { weekday: "asc" } } },

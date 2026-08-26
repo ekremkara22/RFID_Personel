@@ -22,7 +22,7 @@ function formatPercent(value: number, total: number) {
   return `%${Math.round((value / total) * 100)}`;
 }
 
-export async function getPdksReportData(companyId: string) {
+export async function getPdksReportData(companyId: number) {
   const monthStart = getMonthStart();
   const [employees, logs, leaves, dailyCalendars] = await Promise.all([
     prisma.employee.findMany({
