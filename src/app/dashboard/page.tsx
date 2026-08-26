@@ -1,7 +1,6 @@
 import {
   Building2,
   CalendarDays,
-  CalendarRange,
   DoorOpen,
   AlertTriangle,
   MonitorSmartphone,
@@ -166,10 +165,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     highlightedCompanies,
     scopedEmployees,
     todayEntryCount,
-    todayExitCount,
-    todayMovementCount,
-    weekMovementCount,
-    monthMovementCount,
     monthlyLogsForReport,
     monthlyDailyCalendarsForReport,
     todayLogsForDashboard,
@@ -213,31 +208,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       where: {
         scannedAt: { gte: today },
         type: "ENTRY",
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: today },
-        type: "EXIT",
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: today },
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: weekStart },
-        ...attendanceWhere,
-      },
-    }),
-    prisma.attendanceLog.count({
-      where: {
-        scannedAt: { gte: monthStart },
         ...attendanceWhere,
       },
     }),
@@ -324,26 +294,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       include: { employee: true },
     }),
   ]);
-
-  const summaryCards = isSuperadmin
-    ? [
-        { label: "Toplam Firma", value: companyCount, icon: Building2 },
-        { label: "Firma Yöneticisi", value: companyAdminCount, icon: ShieldCheck },
-        { label: "Toplam Personel", value: employeeCount, icon: Users },
-        { label: "Toplam Cihaz", value: deviceCount, icon: MonitorSmartphone },
-      ]
-    : [
-        { label: "Firma", value: user.company?.name ?? "-", icon: Building2 },
-        { label: "Kayıtlı Personel", value: employeeCount, icon: Users },
-        { label: "RFID Cihazı", value: deviceCount, icon: MonitorSmartphone },
-        { label: "Bugün Giriş", value: todayEntryCount, icon: DoorOpen },
-      ];
-
-  const periodCards = [
-    { label: "Bugün PDKS", value: todayMovementCount, icon: CalendarDays },
-    { label: "Haftalık PDKS", value: weekMovementCount, icon: CalendarRange },
-    { label: "Aylık PDKS", value: monthMovementCount, icon: CalendarRange },
-  ];
 
   const latestEntryExitByEmployee = new Map<string, (typeof todayLogsForDashboard)[number]>();
   todayLogsForDashboard
@@ -447,6 +397,21 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     { label: "Gec", value: lateTodayCount, color: "orange" },
     { label: "Izinli", value: leaveEmployeeIds.size, color: "blue" },
   ];
+  const summaryCards = isSuperadmin
+    ? [
+        { label: "Toplam Firma", value: companyCount, icon: Building2 },
+        { label: "Firma Yöneticisi", value: companyAdminCount, icon: ShieldCheck },
+        { label: "Toplam Personel", value: employeeCount, icon: Users },
+        { label: "Toplam Cihaz", value: deviceCount, icon: MonitorSmartphone },
+      ]
+    : [
+        { label: "Firma", value: user.company?.name ?? "-", icon: Building2 },
+        { label: "Kayıtlı Personel", value: employeeCount, icon: Users },
+        { label: "RFID Cihazı", value: deviceCount, icon: MonitorSmartphone },
+        { label: "Giriş Sayısı", value: todayEntryCount, icon: DoorOpen },
+        { label: "Geç Kalan Sayısı", value: lateTodayCount, icon: AlertTriangle },
+        { label: "İzinli Sayısı", value: leaveEmployeeIds.size, icon: CalendarDays },
+      ];
   const dashboardExportRows = todayLogsForDashboard.map((log) => ({
     employee: `${log.employee.firstName} ${log.employee.lastName}`.trim(),
     department: log.employee.department,
@@ -536,30 +501,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       </section>
 
       {!isSuperadmin ? (
-        <section className={styles.metricsGrid}>
-          {periodCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <article key={card.label} className={`glass-panel ${styles.metricCard}`}>
-                <div className={styles.metricIcon}>
-                  <Icon size={18} />
-                </div>
-                <p className={styles.metricLabel}>{card.label}</p>
-                <p className={styles.metricValue}>{card.value}</p>
-              </article>
-            );
-          })}
-          <article className={`glass-panel ${styles.metricCard}`}>
-            <div className={styles.metricIcon}>
-              <Users size={18} />
-            </div>
-            <p className={styles.metricLabel}>Aktif Personel</p>
-            <p className={styles.metricValue}>{employeeCount}</p>
-          </article>
-        </section>
-      ) : null}
-
-      {!isSuperadmin ? (
         <section className={`glass-panel ${styles.operationInsightPanel}`}>
           <div className={styles.sectionHeader}>
             <div>
@@ -577,7 +518,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
 
           <div className={styles.operationInsightGrid}>
             <div className={styles.attendanceBrief}>
-              <div>
+              <div className={styles.attendanceBriefPanel}>
                 <h3 className={styles.miniTitle}>Gec Kalanlar</h3>
                 <div className={styles.personBriefList}>
                   {selectedLateEmployees.length === 0 ? (
@@ -602,7 +543,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                 </div>
               </div>
 
-              <div>
+              <div className={styles.attendanceBriefPanel}>
                 <h3 className={styles.miniTitle}>Izinli Personel</h3>
                 <div className={styles.personBriefList}>
                   {selectedLeaveSummaries.length === 0 ? (

@@ -1312,6 +1312,41 @@ export async function updateCalendarSpecialDayAction(formData: FormData) {
   if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
+export async function deleteCalendarSpecialDayAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  const companyId = user.companyId;
+  const specialDayId = getString(formData, "specialDayId");
+
+  if (!specialDayId) {
+    throw new Error("Takvim kaydi eksik.");
+  }
+
+  await prisma.calendarSpecialDay.deleteMany({
+    where: {
+      id: specialDayId,
+      companyId,
+    },
+  });
+
+  await prisma.calendarChangeLog.create({
+    data: {
+      companyId,
+      recordType: "SPECIAL_DAY",
+      recordId: specialDayId,
+      changeReason: "Takvim ozel gunu silindi",
+      changedById: user.id,
+    },
+  });
+
+  revalidateCalendarPaths();
+  redirectToReturnPath(formData, "/dashboard/calendar/special-days");
+}
+
 export async function createCalendarAssignmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 

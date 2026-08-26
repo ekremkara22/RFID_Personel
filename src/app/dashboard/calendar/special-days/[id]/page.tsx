@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { CalendarScopeType, SpecialDayType } from "@/generated/prisma/client";
-import { updateCalendarSpecialDayAction } from "@/app/dashboard/actions";
+import { deleteCalendarSpecialDayAction, updateCalendarSpecialDayAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -56,6 +56,11 @@ export default async function SpecialDayDetailPage(props: { params: Promise<{ id
           <label className={`${styles.field} ${styles.fullWidth}`}><span>Aciklama</span><textarea name="description" defaultValue={record.description ?? ""} /></label>
           <label className={`${styles.field} ${styles.fullWidth}`}><span>Degisiklik Nedeni</span><input name="changeReason" placeholder="Degisiklik nedeni" /></label>
           <div className={styles.fullWidthActionRow}><SubmitButton idleLabel="Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} /></div>
+        </form>
+        <form action={deleteCalendarSpecialDayAction} className={styles.dangerForm}>
+          <input type="hidden" name="returnTo" value={returnPath} />
+          <input type="hidden" name="specialDayId" value={record.id} />
+          <SubmitButton idleLabel="Kaydi Sil" pendingLabel="Siliniyor..." className={styles.dangerButton} />
         </form>
       </section>
     </div>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { deleteCalendarSpecialDayAction } from "@/app/dashboard/actions";
+import { SubmitButton } from "@/app/dashboard/submit-button";
 import { SpecialDayType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -41,10 +43,10 @@ export default async function OfficialHolidaysPage(props: { searchParams?: Promi
         </div>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
-            <thead><tr><th>Tatil</th><th>Tarih</th><th>Kapsam</th><th>Durum</th><th>Islem</th></tr></thead>
+            <thead><tr><th>Tatil</th><th>Tarih</th><th>Kapsam</th><th>Durum</th><th>Islem</th><th>Sil</th></tr></thead>
             <tbody>
               {holidays.length === 0 ? (
-                <tr><td colSpan={5} className={styles.emptyCell}>Kayit bulunamadi.</td></tr>
+                <tr><td colSpan={6} className={styles.emptyCell}>Kayit bulunamadi.</td></tr>
               ) : holidays.map((holiday) => (
                 <tr key={holiday.id}>
                   <td>{holiday.name}<p className={styles.tableSubText}>{specialDayTypeLabels[holiday.specialDayType]}</p></td>
@@ -52,6 +54,13 @@ export default async function OfficialHolidaysPage(props: { searchParams?: Promi
                   <td>{scopeLabels[holiday.scopeType]}</td>
                   <td>{holiday.isActive ? "Aktif" : "Pasif"}</td>
                   <td><Link href={`/dashboard/calendar/special-days/${holiday.id}`} className={styles.inlineAction}>Incele</Link></td>
+                  <td>
+                    <form action={deleteCalendarSpecialDayAction}>
+                      <input type="hidden" name="specialDayId" value={holiday.id} />
+                      <input type="hidden" name="returnTo" value="/dashboard/calendar/official-holidays" />
+                      <SubmitButton idleLabel="Sil" pendingLabel="..." className={styles.dangerMiniButton} />
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>
