@@ -636,7 +636,7 @@ async function assertCompanyDepartment(companyId: string, department: string) {
 export async function createDepartmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN") {
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
