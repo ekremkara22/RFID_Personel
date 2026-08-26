@@ -8,15 +8,15 @@ import { formatDateInput, scopeLabels } from "../calendar-labels";
 export default async function CalendarAssignmentsPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
     redirect("/dashboard");
   }
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim().toLocaleLowerCase("tr-TR") : "";
   const assignments = await prisma.calendarAssignment.findMany({
-    where: { companyId: user.companyId },
-    include: { calendarTemplate: true, branch: true, department: true, employee: true },
+    where: user.role === "COMPANY_ADMIN" ? { companyId: user.companyId } : {},
+    include: { company: true, calendarTemplate: true, branch: true, department: true, employee: true },
     orderBy: [{ isActive: "desc" }, { validFrom: "desc" }],
     take: 300,
   });
@@ -28,6 +28,7 @@ export default async function CalendarAssignmentsPage(props: { searchParams?: Pr
         return [
           assignment.calendarTemplate.name,
           assignment.calendarTemplate.code,
+          assignment.company.name,
           assignment.description,
           scopeLabels[assignment.scopeType],
           scopeName,
@@ -58,6 +59,7 @@ export default async function CalendarAssignmentsPage(props: { searchParams?: Pr
             <thead>
               <tr>
                 <th>Sablon</th>
+                <th>Firma</th>
                 <th>Kapsam</th>
                 <th>Tarih</th>
                 <th>Oncelik</th>
@@ -67,7 +69,7 @@ export default async function CalendarAssignmentsPage(props: { searchParams?: Pr
             </thead>
             <tbody>
               {filteredAssignments.length === 0 ? (
-                <tr><td colSpan={6} className={styles.emptyCell}>Takvim atamasi bulunamadi.</td></tr>
+                <tr><td colSpan={7} className={styles.emptyCell}>Takvim atamasi bulunamadi.</td></tr>
               ) : filteredAssignments.map((assignment) => {
                 const scopeName = assignment.branch?.name
                   ?? assignment.department?.name
@@ -76,6 +78,7 @@ export default async function CalendarAssignmentsPage(props: { searchParams?: Pr
                 return (
                   <tr key={assignment.id}>
                     <td>{assignment.calendarTemplate.name}<p className={styles.tableSubText}>{assignment.calendarTemplate.code}</p></td>
+                    <td>{assignment.company.name}</td>
                     <td>{scopeLabels[assignment.scopeType]}<p className={styles.tableSubText}>{scopeName}</p></td>
                     <td>{formatDateInput(assignment.validFrom)} / {formatDateInput(assignment.validTo) || "-"}</td>
                     <td>{assignment.priority}</td>

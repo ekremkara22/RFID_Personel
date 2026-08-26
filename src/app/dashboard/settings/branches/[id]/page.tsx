@@ -8,9 +8,16 @@ import styles from "../../../page.module.css";
 
 export default async function BranchDetailPage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
+  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) redirect("/dashboard");
+  const currentCompanyId = user.companyId ?? "";
   const { id } = await props.params;
-  const branch = await prisma.branch.findFirst({ where: { id, companyId: user.companyId } });
+  const branch = await prisma.branch.findFirst({
+    where: {
+      id,
+      ...(user.role === "COMPANY_ADMIN" ? { companyId: currentCompanyId } : {}),
+    },
+    include: { company: true },
+  });
   if (!branch) notFound();
   return (
     <div className={styles.page}>
@@ -22,6 +29,8 @@ export default async function BranchDetailPage(props: { params: Promise<{ id: st
         <form action={updateBranchAction} className={styles.formGrid}>
           <input type="hidden" name="returnTo" value="/dashboard/settings/branches" />
           <input type="hidden" name="branchId" value={branch.id} />
+          <input type="hidden" name="companyId" value={branch.companyId} />
+          <label className={styles.field}><span>Firma</span><input value={branch.company.name} readOnly /></label>
           <label className={styles.field}><span>Sube Adi</span><input name="name" defaultValue={branch.name} required /></label>
           <label className={styles.field}><span>Lokasyon</span><input name="location" defaultValue={branch.location ?? ""} /></label>
           <label className={styles.checkField}><input name="isActive" type="checkbox" defaultChecked={branch.isActive} /><span>Aktif</span></label>

@@ -78,7 +78,10 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   ];
   const definitionItems = [
     ...(user.role === "SUPERADMIN"
-      ? [{ href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags }]
+      ? [
+          { href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags },
+          { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },
+        ]
       : [
           { href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags },
           { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },
@@ -166,7 +169,35 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                 </div>
               ) : null}
             </div>
-          ) : null}
+          ) : (
+            <div className={styles.navGroup}>
+              <button
+                type="button"
+                className={`${styles.navItem} ${pathname.startsWith("/dashboard/calendar") ? styles.navItemActive : ""}`}
+                onClick={() => setCalendarOpen((value) => !value)}
+              >
+                <CalendarDays size={18} />
+                <span>Çalışma Takvimi</span>
+                <ChevronDown
+                  size={16}
+                  className={`${styles.navChevron} ${calendarOpen ? styles.navChevronOpen : ""}`}
+                />
+              </button>
+
+              {calendarOpen ? (
+                <div className={styles.subNav}>
+                  <Link
+                    href="/dashboard/calendar/assignments"
+                    className={`${styles.subNavItem} ${pathname === "/dashboard/calendar/assignments" ? styles.subNavItemActive : ""}`}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <CalendarDays size={16} />
+                    <span>Takvim Atamaları</span>
+                  </Link>
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {user.role !== "SUPERADMIN" ? (
             <div className={styles.navGroup}>

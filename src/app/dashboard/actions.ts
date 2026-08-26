@@ -74,6 +74,44 @@ function parseCalendarScope(formData: FormData) {
   };
 }
 
+async function assertCalendarScopeBelongsToCompany(
+  companyId: string,
+  scope: ReturnType<typeof parseCalendarScope>,
+) {
+  if (scope.branchId) {
+    const branch = await prisma.branch.findFirst({
+      where: { id: scope.branchId, companyId },
+      select: { id: true },
+    });
+
+    if (!branch) {
+      throw new Error("Secilen sube firmaya ait degil.");
+    }
+  }
+
+  if (scope.departmentId) {
+    const department = await prisma.department.findFirst({
+      where: { id: scope.departmentId, companyId },
+      select: { id: true },
+    });
+
+    if (!department) {
+      throw new Error("Secilen departman firmaya ait degil.");
+    }
+  }
+
+  if (scope.employeeId) {
+    const employee = await prisma.employee.findFirst({
+      where: { id: scope.employeeId, companyId },
+      select: { id: true },
+    });
+
+    if (!employee) {
+      throw new Error("Secilen personel firmaya ait degil.");
+    }
+  }
+}
+
 function buildWeekdayPayload(formData: FormData) {
   return Array.from({ length: 7 }, (_, index) => {
     const weekday = index + 1;
@@ -124,6 +162,31 @@ function getReturnTo(formData: FormData) {
 
 function redirectToReturnPath(formData: FormData, fallback?: string) {
   redirect(getReturnTo(formData) || fallback || "/dashboard");
+}
+
+async function getScopedCompanyId(formData: FormData, fallbackCompanyId?: string | null) {
+  const requestedCompanyId = getString(formData, "companyId");
+  const companyId = fallbackCompanyId || requestedCompanyId;
+
+  if (!companyId) {
+    throw new Error("Firma bilgisi secilmelidir.");
+  }
+
+  const company = await prisma.company.findFirst({
+    where: {
+      id: companyId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!company) {
+    throw new Error("Firma bulunamadi.");
+  }
+
+  return company.id;
 }
 
 async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
@@ -403,10 +466,11 @@ export async function updateDepartmentAction(formData: FormData) {
 export async function createBranchAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
   const name = getString(formData, "name");
   const location = getString(formData, "location");
 
@@ -418,7 +482,7 @@ export async function createBranchAction(formData: FormData) {
     data: {
       name,
       location: location || null,
-      companyId: user.companyId,
+      companyId,
     },
   });
 
@@ -430,11 +494,12 @@ export async function createBranchAction(formData: FormData) {
 export async function updateBranchAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
   const branchId = getString(formData, "branchId");
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
   const name = getString(formData, "name");
   const location = getString(formData, "location");
   const isActive = formData.get("isActive") === "on";
@@ -444,7 +509,7 @@ export async function updateBranchAction(formData: FormData) {
   }
 
   await prisma.branch.updateMany({
-    where: { id: branchId, companyId: user.companyId },
+    where: { id: branchId, companyId },
     data: { name, location: location || null, isActive },
   });
 
@@ -1350,11 +1415,11 @@ export async function deleteCalendarSpecialDayAction(formData: FormData) {
 export async function createCalendarAssignmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = user.companyId;
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
   const calendarTemplateId = getString(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
   const validFrom = getRequiredDate(formData, "validFrom");
@@ -1366,6 +1431,17 @@ export async function createCalendarAssignmentAction(formData: FormData) {
   if (!calendarTemplateId) {
     throw new Error("Takvim sablonu secilmelidir.");
   }
+
+  const template = await prisma.workCalendarTemplate.findFirst({
+    where: { id: calendarTemplateId, companyId },
+    select: { id: true },
+  });
+
+  if (!template) {
+    throw new Error("Secilen takvim sablonu firmaya ait degil.");
+  }
+
+  await assertCalendarScopeBelongsToCompany(companyId, scope);
 
   const conflict = await prisma.calendarAssignment.findFirst({
     where: {
@@ -1419,23 +1495,39 @@ export async function createCalendarAssignmentAction(formData: FormData) {
 export async function updateCalendarAssignmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = user.companyId;
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
   const assignmentId = getString(formData, "assignmentId");
   const calendarTemplateId = getString(formData, "calendarTemplateId");
+  const scope = parseCalendarScope(formData);
   const priority = getOptionalNumber(formData, "priority") ?? 100;
 
   if (!assignmentId || !calendarTemplateId) {
     throw new Error("Takvim atama bilgileri eksik.");
   }
 
+  const template = await prisma.workCalendarTemplate.findFirst({
+    where: { id: calendarTemplateId, companyId },
+    select: { id: true },
+  });
+
+  if (!template) {
+    throw new Error("Secilen takvim sablonu firmaya ait degil.");
+  }
+
+  await assertCalendarScopeBelongsToCompany(companyId, scope);
+
   await prisma.calendarAssignment.updateMany({
     where: { id: assignmentId, companyId },
     data: {
       calendarTemplateId,
+      scopeType: scope.scopeType,
+      branchId: scope.branchId,
+      departmentId: scope.departmentId,
+      employeeId: scope.employeeId,
       validFrom: getRequiredDate(formData, "validFrom"),
       validTo: getOptionalDate(formData, "validTo"),
       priority,
@@ -1451,7 +1543,7 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
       companyId,
       recordType: "ASSIGNMENT",
       recordId: assignmentId,
-      newValue: JSON.stringify({ calendarTemplateId, priority }),
+      newValue: JSON.stringify({ calendarTemplateId, scope, priority }),
       changeReason: getString(formData, "changeReason") || "Takvim atamasi guncellendi",
       changedById: user.id,
     },
@@ -1464,11 +1556,11 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
 export async function deleteCalendarAssignmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = user.companyId;
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
   const assignmentId = getString(formData, "assignmentId");
 
   if (!assignmentId) {
