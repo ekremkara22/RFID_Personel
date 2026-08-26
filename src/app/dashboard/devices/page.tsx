@@ -34,7 +34,7 @@ export default async function DevicesPage(props: {
 }) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
@@ -68,8 +68,26 @@ export default async function DevicesPage(props: {
     include: { company: true },
     orderBy: { createdAt: "desc" },
   });
+  const branchCompanyIds = Array.from(new Set(devices.map((device) => device.companyId)));
+  const branches =
+    branchCompanyIds.length > 0
+      ? await prisma.branch.findMany({
+          where: {
+            companyId: { in: branchCompanyIds },
+            isActive: true,
+          },
+          include: { company: true },
+          orderBy: [{ company: { name: "asc" } }, { name: "asc" }],
+        })
+      : [];
   const selectedDevice =
     devices.find((device) => device.id === selectedDeviceId) ?? null;
+  const selectedDeviceBranches = selectedDevice
+    ? branches.filter((branch) => branch.companyId === selectedDevice.companyId)
+    : [];
+  const hasSelectedBranchLocation = selectedDeviceBranches.some(
+    (branch) => branch.name === selectedDevice?.branchLocation,
+  );
 
   return (
     <div className={styles.page}>
@@ -155,11 +173,17 @@ export default async function DevicesPage(props: {
 
             <label className={styles.field}>
               <span>Sube/Lokasyon</span>
-              <input
-                name="branchLocation"
-                defaultValue={selectedDevice.branchLocation ?? ""}
-                placeholder="Merkez giris, depo kapi..."
-              />
+              <select name="branchLocation" defaultValue={selectedDevice.branchLocation ?? ""}>
+                <option value="">Seciniz</option>
+                {selectedDevice.branchLocation && !hasSelectedBranchLocation ? (
+                  <option value={selectedDevice.branchLocation}>{selectedDevice.branchLocation}</option>
+                ) : null}
+                {selectedDeviceBranches.map((branch) => (
+                  <option key={branch.id} value={branch.name}>
+                    {branch.company.name} / {branch.name}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className={styles.field}>

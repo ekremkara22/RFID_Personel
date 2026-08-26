@@ -7,6 +7,7 @@ import {
   updateCompanyAction,
 } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -57,11 +58,15 @@ export default async function CompanyDetailPage(props: {
 }) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN") {
+  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
   const { id } = await props.params;
+  const companyIds = await getAccessibleCompanyIds(user);
+  if (companyIds && !companyIds.includes(id)) {
+    redirect("/dashboard/companies");
+  }
   const searchParams = await props.searchParams;
   const activeTab = tabs.some((tab) => tab.key === searchParams.tab)
     ? (searchParams.tab as TabKey)
@@ -166,19 +171,23 @@ export default async function CompanyDetailPage(props: {
             </label>
 
             <label className={`${styles.checkField} ${styles.formActionAlign}`}>
-              <input name="isActive" type="checkbox" defaultChecked={company.isActive} />
+              <input name="isActive" type="checkbox" defaultChecked={company.isActive} disabled={user.role !== "SUPERADMIN"} />
               <span>Firma aktif</span>
             </label>
 
-            <label className={styles.field}>
-              <span>Admin Adi</span>
-              <input name="adminFirstName" defaultValue={companyAdmin?.firstName ?? ""} required />
-            </label>
+            {user.role === "SUPERADMIN" ? (
+              <>
+                <label className={styles.field}>
+                  <span>Admin Adi</span>
+                  <input name="adminFirstName" defaultValue={companyAdmin?.firstName ?? ""} required />
+                </label>
 
-            <label className={styles.field}>
-              <span>Admin Soyadi</span>
-              <input name="adminLastName" defaultValue={companyAdmin?.lastName ?? ""} required />
-            </label>
+                <label className={styles.field}>
+                  <span>Admin Soyadi</span>
+                  <input name="adminLastName" defaultValue={companyAdmin?.lastName ?? ""} required />
+                </label>
+              </>
+            ) : null}
 
             <label className={styles.field}>
               <span>Firma E posta</span>
@@ -190,15 +199,19 @@ export default async function CompanyDetailPage(props: {
               <input name="contactPhone" defaultValue={company.contactPhone ?? ""} />
             </label>
 
-            <label className={styles.field}>
-              <span>Admin Mail</span>
-              <input name="adminEmail" type="email" defaultValue={companyAdmin?.email ?? ""} required />
-            </label>
+            {user.role === "SUPERADMIN" ? (
+              <>
+                <label className={styles.field}>
+                  <span>Admin Mail</span>
+                  <input name="adminEmail" type="email" defaultValue={companyAdmin?.email ?? ""} required />
+                </label>
 
-            <label className={styles.field}>
-              <span>Admin Sifre</span>
-              <input name="adminPassword" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
-            </label>
+                <label className={styles.field}>
+                  <span>Admin Sifre</span>
+                  <input name="adminPassword" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
+                </label>
+              </>
+            ) : null}
 
             <label className={styles.field}>
               <span>Il</span>
@@ -255,6 +268,7 @@ export default async function CompanyDetailPage(props: {
             </div>
           </form>
 
+          {user.role === "SUPERADMIN" ? (
           <form action={deleteCompanyAction} className={styles.dangerForm}>
             <input type="hidden" name="companyId" value={company.id} />
             <SubmitButton
@@ -263,6 +277,7 @@ export default async function CompanyDetailPage(props: {
               className={styles.dangerButton}
             />
           </form>
+          ) : null}
         </section>
       ) : null}
 

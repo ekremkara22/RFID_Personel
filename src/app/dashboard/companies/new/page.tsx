@@ -9,7 +9,7 @@ import styles from "../../page.module.css";
 export default async function NewCompanyPage() {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN") {
+  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
@@ -25,7 +25,9 @@ export default async function NewCompanyPage() {
           <p className={styles.eyebrow}>Yeni Firma</p>
           <h1 className={styles.title}>Yeni Musteri Tanimi</h1>
           <p className={styles.subtitle}>
-            Firma kaydini ve o firmaya ait ilk admin kullanicisini bu ekrandan olusturabilirsin.
+            {user.role === "SUPERADMIN"
+              ? "Firma kaydini ve o firmaya ait ilk admin kullanicisini bu ekrandan olusturabilirsin."
+              : "Kendi yonetecegin firma kaydini bu ekrandan olusturabilirsin."}
           </p>
         </div>
         <BackLink href="/dashboard/companies" />
@@ -40,6 +42,7 @@ export default async function NewCompanyPage() {
         </div>
 
         <form action={createCompanyAction} className={styles.formGrid}>
+          <input type="hidden" name="returnTo" value="/dashboard/companies" />
           <label className={styles.field}>
             <span>Firma Adi</span>
             <input name="companyName" required placeholder="Ornek Teknoloji A.S." />
@@ -103,25 +106,29 @@ export default async function NewCompanyPage() {
             <textarea name="address" rows={4} placeholder="Firma adres bilgisi" />
           </label>
 
-          <label className={styles.field}>
-            <span>Admin Adi</span>
-            <input name="adminFirstName" required placeholder="Mehmet" />
-          </label>
+          {user.role === "SUPERADMIN" ? (
+            <>
+              <label className={styles.field}>
+                <span>Admin Adi</span>
+                <input name="adminFirstName" required placeholder="Mehmet" />
+              </label>
 
-          <label className={styles.field}>
-            <span>Admin Soyadi</span>
-            <input name="adminLastName" required placeholder="Yildiz" />
-          </label>
+              <label className={styles.field}>
+                <span>Admin Soyadi</span>
+                <input name="adminLastName" required placeholder="Yildiz" />
+              </label>
 
-          <label className={styles.field}>
-            <span>Admin E-postasi</span>
-            <input name="adminEmail" type="email" required placeholder="yonetici@firma.com" />
-          </label>
+              <label className={styles.field}>
+                <span>Admin E-postasi</span>
+                <input name="adminEmail" type="email" required placeholder="yonetici@firma.com" />
+              </label>
 
-          <label className={styles.field}>
-            <span>Admin Sifresi</span>
-            <input name="adminPassword" type="password" required placeholder="Guclu bir sifre" />
-          </label>
+              <label className={styles.field}>
+                <span>Admin Sifresi</span>
+                <input name="adminPassword" type="password" required placeholder="Guclu bir sifre" />
+              </label>
+            </>
+          ) : null}
 
           <div className={styles.fullWidth}>
             <SubmitButton

@@ -238,7 +238,7 @@ async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
 export async function createCompanyAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN") {
+  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -255,11 +255,12 @@ export async function createCompanyAction(formData: FormData) {
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
   const adminPassword = getString(formData, "adminPassword");
 
-  if (!companyName || !adminFirstName || !adminLastName || !adminEmail || !adminPassword) {
+  if (
+    !companyName ||
+    (user.role === "SUPERADMIN" && (!adminFirstName || !adminLastName || !adminEmail || !adminPassword))
+  ) {
     throw new Error("Sirket ve firma yoneticisi bilgileri eksik.");
   }
-
-  const passwordHash = await bcrypt.hash(adminPassword, 10);
 
   await prisma.$transaction(async (tx) => {
     const company = await tx.company.create({
@@ -275,34 +276,52 @@ export async function createCompanyAction(formData: FormData) {
       },
     });
 
-    const adminUser = await tx.user.create({
-      data: {
-        name: `${adminFirstName} ${adminLastName}`.trim(),
-        firstName: adminFirstName,
-        lastName: adminLastName,
-        email: adminEmail,
-        password: passwordHash,
-        role: "COMPANY_ADMIN",
-        companyId: company.id,
-      },
-    });
+    if (user.role === "SUPERADMIN") {
+      const passwordHash = await bcrypt.hash(adminPassword, 10);
+      const adminUser = await tx.user.create({
+        data: {
+          name: `${adminFirstName} ${adminLastName}`.trim(),
+          firstName: adminFirstName,
+          lastName: adminLastName,
+          email: adminEmail,
+          password: passwordHash,
+          role: "COMPANY_ADMIN",
+          companyId: company.id,
+        },
+      });
 
-    await tx.userCompanyAccess.create({
-      data: {
-        userId: adminUser.id,
-        companyId: company.id,
-      },
-    });
+      await tx.userCompanyAccess.create({
+        data: {
+          userId: adminUser.id,
+          companyId: company.id,
+        },
+      });
+    } else {
+      await tx.userCompanyAccess.create({
+        data: {
+          userId: user.id,
+          companyId: company.id,
+        },
+      });
+
+      if (!user.companyId) {
+        await tx.user.update({
+          where: { id: user.id },
+          data: { companyId: company.id },
+        });
+      }
+    }
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/companies");
+  if (getReturnTo(formData)) redirectToReturnPath(formData, "/dashboard/companies");
 }
 
 export async function updateCompanyAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN") {
+  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -320,10 +339,25 @@ export async function updateCompanyAction(formData: FormData) {
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
   const adminPassword = getString(formData, "adminPassword");
-  const isActive = formData.get("isActive") === "on";
+  const isActive = user.role === "SUPERADMIN" ? formData.get("isActive") === "on" : true;
 
-  if (!companyId || !companyName || !adminId || !adminFirstName || !adminLastName || !adminEmail) {
+  if (
+    !companyId ||
+    !companyName ||
+    (user.role === "SUPERADMIN" && (!adminId || !adminFirstName || !adminLastName || !adminEmail))
+  ) {
     throw new Error("Firma ve admin bilgileri eksik.");
+  }
+
+  if (user.role === "COMPANY_ADMIN") {
+    const access = await prisma.userCompanyAccess.findFirst({
+      where: { userId: user.id, companyId },
+      select: { id: true },
+    });
+
+    if (!access && user.companyId !== companyId) {
+      throw new Error("Bu firma icin yetkiniz yok.");
+    }
   }
 
   await prisma.$transaction(async (tx) => {
@@ -342,30 +376,32 @@ export async function updateCompanyAction(formData: FormData) {
       },
     });
 
-    await tx.user.update({
-      where: { id: adminId },
-      data: {
-        name: `${adminFirstName} ${adminLastName}`.trim(),
-        firstName: adminFirstName,
-        lastName: adminLastName,
-        email: adminEmail,
-        ...(adminPassword ? { password: await bcrypt.hash(adminPassword, 10) } : {}),
-      },
-    });
+    if (user.role === "SUPERADMIN") {
+      await tx.user.update({
+        where: { id: adminId },
+        data: {
+          name: `${adminFirstName} ${adminLastName}`.trim(),
+          firstName: adminFirstName,
+          lastName: adminLastName,
+          email: adminEmail,
+          ...(adminPassword ? { password: await bcrypt.hash(adminPassword, 10) } : {}),
+        },
+      });
 
-    await tx.userCompanyAccess.upsert({
-      where: {
-        userId_companyId: {
+      await tx.userCompanyAccess.upsert({
+        where: {
+          userId_companyId: {
+            userId: adminId,
+            companyId,
+          },
+        },
+        create: {
           userId: adminId,
           companyId,
         },
-      },
-      create: {
-        userId: adminId,
-        companyId,
-      },
-      update: {},
-    });
+        update: {},
+      });
+    }
   });
 
   revalidatePath("/dashboard");
@@ -457,16 +493,12 @@ export async function createDashboardUserAction(formData: FormData) {
   const lastName = getString(formData, "lastName");
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
-  const role = getString(formData, "role") as Role;
+  const role = Role.COMPANY_ADMIN;
   const companyIds = getStringList(formData, "companyIds");
   const deviceIds = getStringList(formData, "deviceIds");
 
-  if (!firstName || !lastName || !email || !password || !Object.values(Role).includes(role)) {
+  if (!firstName || !lastName || !email || !password) {
     throw new Error("Kullanici bilgileri eksik.");
-  }
-
-  if (role === Role.COMPANY_ADMIN && companyIds.length === 0) {
-    throw new Error("Firma admin icin en az bir firma secilmelidir.");
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -496,16 +528,15 @@ export async function updateDashboardUserAction(formData: FormData) {
   const lastName = getString(formData, "lastName");
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
-  const role = getString(formData, "role") as Role;
   const companyIds = getStringList(formData, "companyIds");
   const deviceIds = getStringList(formData, "deviceIds");
+  const targetUser = userId
+    ? await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+    : null;
+  const role = targetUser?.role === Role.SUPERADMIN ? Role.SUPERADMIN : Role.COMPANY_ADMIN;
 
-  if (!userId || !firstName || !lastName || !email || !Object.values(Role).includes(role)) {
+  if (!userId || !targetUser || !firstName || !lastName || !email) {
     throw new Error("Kullanici bilgileri eksik.");
-  }
-
-  if (role === Role.COMPANY_ADMIN && companyIds.length === 0) {
-    throw new Error("Firma admin icin en az bir firma secilmelidir.");
   }
 
   await prisma.user.update({
@@ -521,7 +552,9 @@ export async function updateDashboardUserAction(formData: FormData) {
     },
   });
 
-  await syncUserAccess(userId, role === Role.COMPANY_ADMIN ? companyIds : [], deviceIds);
+  if (role === Role.COMPANY_ADMIN) {
+    await syncUserAccess(userId, companyIds, deviceIds);
+  }
 
   revalidatePath("/dashboard/users");
   revalidatePath(`/dashboard/users/${userId}`);
@@ -603,7 +636,7 @@ async function assertCompanyDepartment(companyId: string, department: string) {
 export async function createDepartmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -658,7 +691,7 @@ export async function updateDepartmentAction(formData: FormData) {
 export async function createBranchAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -686,7 +719,7 @@ export async function createBranchAction(formData: FormData) {
 export async function updateBranchAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -1009,7 +1042,7 @@ export async function deleteCompanyDeviceAction(formData: FormData) {
 export async function updateDeviceAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -1618,7 +1651,7 @@ export async function deleteCalendarSpecialDayAction(formData: FormData) {
 export async function createCalendarAssignmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -1698,7 +1731,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
 export async function updateCalendarAssignmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -1759,7 +1792,7 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
 export async function deleteCalendarAssignmentAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 

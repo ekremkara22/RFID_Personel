@@ -34,7 +34,7 @@ export async function requireSessionUser() {
   const hasActiveCompany =
     !!user.company?.isActive || user.companyAccess.some((access) => access.company.isActive);
 
-  if (user.role === "COMPANY_ADMIN" && !hasActiveCompany) {
+  if (user.role === "COMPANY_ADMIN" && user.companyId && !hasActiveCompany) {
     redirect("/login");
   }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CirclePlus, Pencil, Search } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
@@ -20,16 +21,19 @@ export default async function CompaniesPage(props: {
 }) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN") {
+  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
+  const companyIds = await getAccessibleCompanyIds(user);
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
 
   const companies = await prisma.company.findMany({
-    where: query
-      ? {
+    where: {
+      ...(companyIds ? { id: { in: companyIds } } : {}),
+      ...(query
+        ? {
           OR: [
             { id: { contains: query } },
             { name: { contains: query } },
@@ -38,7 +42,8 @@ export default async function CompaniesPage(props: {
             { contactPhone: { contains: query } },
           ],
         }
-      : undefined,
+        : {}),
+    },
     include: {
       users: {
         where: { role: "COMPANY_ADMIN" },
@@ -60,7 +65,7 @@ export default async function CompaniesPage(props: {
       <section className={`glass-panel ${styles.heroCard}`}>
         <div>
           <p className={styles.eyebrow}>Firmalar</p>
-          <h1 className={styles.title}>Musteri Firma Yonetimi</h1>
+          <h1 className={styles.title}>{user.role === "SUPERADMIN" ? "Firma Izleme" : "Firma Yonetimi"}</h1>
           <p className={styles.subtitle}>
             Tanimli firmalari listeleyebilir, detaylarina gidip inceleyebilir ve duzenleyebilirsin.
           </p>
@@ -68,7 +73,7 @@ export default async function CompaniesPage(props: {
 
         <Link href="/dashboard/companies/new" className={styles.primaryLinkButton}>
           <CirclePlus size={18} />
-          <span>Yeni Firma Ekle</span>
+          <span>{user.role === "SUPERADMIN" ? "Yeni Firma Ekle" : "Firma Ekle"}</span>
         </Link>
       </section>
 

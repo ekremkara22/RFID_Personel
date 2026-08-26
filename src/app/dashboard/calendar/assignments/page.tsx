@@ -9,7 +9,7 @@ import { formatDateInput, scopeLabels } from "../calendar-labels";
 export default async function CalendarAssignmentsPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) {
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 

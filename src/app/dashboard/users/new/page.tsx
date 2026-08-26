@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createDashboardUserAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -36,13 +35,7 @@ export default async function NewUserPage() {
           <label className={styles.field}><span>Soyad</span><input name="lastName" required /></label>
           <label className={styles.field}><span>E-posta</span><input name="email" type="email" required /></label>
           <label className={styles.field}><span>Sifre</span><input name="password" type="password" required /></label>
-          <label className={styles.field}>
-            <span>Rol</span>
-            <select name="role" defaultValue={Role.COMPANY_ADMIN}>
-              <option value={Role.COMPANY_ADMIN}>Firma Admin</option>
-              <option value={Role.SUPERADMIN}>Super Admin</option>
-            </select>
-          </label>
+          <label className={styles.field}><span>Rol</span><input value="Firma Admin" readOnly /></label>
 
           <div className={`${styles.field} ${styles.fullWidth}`}>
             <span>Yetkili Oldugu Firmalar</span>

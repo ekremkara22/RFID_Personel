@@ -11,7 +11,7 @@ import { AssignmentForm } from "../assignment-form";
 
 export default async function AssignmentDetailPage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requireSessionUser();
-  if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) redirect("/dashboard");
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   const { id } = await props.params;
   const companyIds = await getAccessibleCompanyIds(user);
   const scopedCompanyWhere = scopedCompanyFilter(companyIds);

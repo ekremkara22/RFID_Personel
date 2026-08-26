@@ -153,50 +153,41 @@ export function AssignmentForm({
         </select>
       </label>
 
-      <label className={styles.field}>
-        <span>Sube</span>
-        <select
-          name="branchId"
-          defaultValue={values?.branchId ?? ""}
-          disabled={scopeType !== "BRANCH"}
-          key={`${companyId}-branch-${scopeType}`}
-        >
-          <option value="">Secilmedi</option>
-          {filteredBranches.map((branch) => (
-            <option key={branch.id} value={branch.id}>{branch.name}</option>
-          ))}
-        </select>
-      </label>
+      {scopeType === "BRANCH" ? (
+        <label className={styles.field}>
+          <span>Sube</span>
+          <select name="branchId" defaultValue={values?.branchId ?? ""} key={`${companyId}-branch`}>
+            <option value="">Sube sec</option>
+            {filteredBranches.map((branch) => (
+              <option key={branch.id} value={branch.id}>{branch.name}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
-      <label className={styles.field}>
-        <span>Departman</span>
-        <select
-          name="departmentId"
-          defaultValue={values?.departmentId ?? ""}
-          disabled={scopeType !== "DEPARTMENT"}
-          key={`${companyId}-department-${scopeType}`}
-        >
-          <option value="">Secilmedi</option>
-          {filteredDepartments.map((department) => (
-            <option key={department.id} value={department.id}>{department.name}</option>
-          ))}
-        </select>
-      </label>
+      {scopeType === "DEPARTMENT" ? (
+        <label className={styles.field}>
+          <span>Departman</span>
+          <select name="departmentId" defaultValue={values?.departmentId ?? ""} key={`${companyId}-department`}>
+            <option value="">Departman sec</option>
+            {filteredDepartments.map((department) => (
+              <option key={department.id} value={department.id}>{department.name}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
-      <label className={styles.field}>
-        <span>Personel</span>
-        <select
-          name="employeeId"
-          defaultValue={values?.employeeId ?? ""}
-          disabled={scopeType !== "EMPLOYEE"}
-          key={`${companyId}-employee-${scopeType}`}
-        >
-          <option value="">Secilmedi</option>
-          {filteredEmployees.map((employee) => (
-            <option key={employee.id} value={employee.id}>{employee.name}</option>
-          ))}
-        </select>
-      </label>
+      {scopeType === "EMPLOYEE" ? (
+        <label className={styles.field}>
+          <span>Personel</span>
+          <select name="employeeId" defaultValue={values?.employeeId ?? ""} key={`${companyId}-employee`}>
+            <option value="">Personel sec</option>
+            {filteredEmployees.map((employee) => (
+              <option key={employee.id} value={employee.id}>{employee.name}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       <label className={styles.field}>
         <span>Baslangic</span>

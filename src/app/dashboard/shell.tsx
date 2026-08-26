@@ -55,6 +55,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     ...(user.role === "SUPERADMIN"
       ? [{ href: "/dashboard/users", label: "Kullanıcılar", icon: Users }]
       : [
+          { href: "/dashboard/companies", label: "Firmalar", icon: Building2 },
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
           { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },
           { href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane },
@@ -169,35 +170,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                 </div>
               ) : null}
             </div>
-          ) : (
-            <div className={styles.navGroup}>
-              <button
-                type="button"
-                className={`${styles.navItem} ${pathname.startsWith("/dashboard/calendar") ? styles.navItemActive : ""}`}
-                onClick={() => setCalendarOpen((value) => !value)}
-              >
-                <CalendarDays size={18} />
-                <span>Çalışma Takvimi</span>
-                <ChevronDown
-                  size={16}
-                  className={`${styles.navChevron} ${calendarOpen ? styles.navChevronOpen : ""}`}
-                />
-              </button>
-
-              {calendarOpen ? (
-                <div className={styles.subNav}>
-                  <Link
-                    href="/dashboard/calendar/assignments"
-                    className={`${styles.subNavItem} ${pathname === "/dashboard/calendar/assignments" ? styles.subNavItemActive : ""}`}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <CalendarDays size={16} />
-                    <span>Takvim Atamaları</span>
-                  </Link>
-                </div>
-              ) : null}
-            </div>
-          )}
+          ) : null}
 
           {user.role !== "SUPERADMIN" ? (
             <div className={styles.navGroup}>
