@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { deleteEmployeeAction, updateEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -16,32 +17,41 @@ export default async function EmployeeDetailPage(props: {
   }
 
   const { id } = await props.params;
-  const [employee, departments, branches, managers] = await Promise.all([
+  const companyIds = await getAccessibleCompanyIds(user);
+  const scopedCompanyIds = companyIds ?? [user.companyId];
+  const [employee, companies, departments, branches, managers] = await Promise.all([
     prisma.employee.findFirst({
       where: {
         id,
-        companyId: user.companyId,
+        companyId: { in: scopedCompanyIds },
       },
+    }),
+    prisma.company.findMany({
+      where: { id: { in: scopedCompanyIds }, isActive: true },
+      orderBy: { name: "asc" },
     }),
     prisma.department.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: scopedCompanyIds },
         isActive: true,
       },
+      include: { company: true },
       orderBy: { name: "asc" },
     }),
     prisma.branch.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: scopedCompanyIds },
         isActive: true,
       },
+      include: { company: true },
       orderBy: { name: "asc" },
     }),
     prisma.manager.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: scopedCompanyIds },
         isActive: true,
       },
+      include: { company: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -50,9 +60,20 @@ export default async function EmployeeDetailPage(props: {
     notFound();
   }
 
-  const departmentOptions = departments.some((department) => department.name === employee.department)
-    ? departments
-    : [{ id: "current", name: employee.department, isActive: true, companyId: user.companyId, createdAt: new Date(), updatedAt: new Date() }, ...departments];
+  const currentCompanyName = companies.find((company) => company.id === employee.companyId)?.name ?? "Mevcut firma";
+  const departmentOptions = departments.map((department) => ({
+    id: department.id,
+    name: department.name,
+    companyName: department.company.name,
+  }));
+
+  if (!departmentOptions.some((department) => department.name === employee.department)) {
+    departmentOptions.unshift({
+      id: "current",
+      name: employee.department,
+      companyName: currentCompanyName,
+    });
+  }
 
   return (
     <div className={styles.page}>
@@ -121,11 +142,22 @@ export default async function EmployeeDetailPage(props: {
           </label>
 
           <label className={styles.field}>
+            <span>Firma</span>
+            <select name="companyId" defaultValue={employee.companyId} required>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
             <span>Departman</span>
             <select name="department" defaultValue={employee.department} required>
               {departmentOptions.map((department) => (
                 <option key={department.id} value={department.name}>
-                  {department.name}
+                  {department.companyName} / {department.name}
                 </option>
               ))}
             </select>
@@ -137,12 +169,12 @@ export default async function EmployeeDetailPage(props: {
           </label>
 
           <label className={styles.field}>
-            <span>Sirket/Sube</span>
+            <span>Sube</span>
             <select name="branch" defaultValue={employee.branch ?? ""}>
               <option value="">Merkez / belirtilmedi</option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.name}>
-                  {branch.name}
+                  {branch.company.name} / {branch.name}
                 </option>
               ))}
             </select>
@@ -175,7 +207,7 @@ export default async function EmployeeDetailPage(props: {
               ) : null}
               {managers.map((manager) => (
                 <option key={manager.id} value={manager.name}>
-                  {manager.name} {manager.email ? `- ${manager.email}` : ""}
+                  {manager.company.name} / {manager.name} {manager.email ? `- ${manager.email}` : ""}
                 </option>
               ))}
             </select>

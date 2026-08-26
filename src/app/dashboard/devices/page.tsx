@@ -99,8 +99,8 @@ export default async function DevicesPage(props: {
           <p className={styles.eyebrow}>RFID Cihazlar</p>
           <h1 className={styles.title}>Atanan Cihazlar</h1>
           <p className={styles.subtitle}>
-            Cihazlari super admin firmana atar. Bu ekranda cihaz bilgilerini gorebilir ve kendi
-            kullanacagin cihaz adini duzenleyebilirsin.
+            Super adminin kullanicina ekledigi cihazlari burada gorur, takma adini ve hangi firma/subede
+            kullanilacagini belirlersin.
           </p>
         </div>
       </section>
@@ -138,7 +138,7 @@ export default async function DevicesPage(props: {
                 devices.map((device) => (
                   <tr key={device.id}>
                     <td>{device.name}</td>
-                    <td>{device.company.name}</td>
+                    <td>{device.company?.name ?? "Firma atanmadi"}</td>
                     <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
                     <td>{device.branchLocation ?? "-"}</td>
                     <td className={styles.monoCell}>{device.secretKey}</td>
@@ -176,7 +176,8 @@ export default async function DevicesPage(props: {
 
             <label className={styles.field}>
               <span>Firma</span>
-              <select name="companyId" defaultValue={selectedDevice.companyId} required>
+              <select name="companyId" defaultValue={selectedDevice.companyId ?? ""} required>
+                <option value="" disabled>Firma sec</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
                     {company.name}

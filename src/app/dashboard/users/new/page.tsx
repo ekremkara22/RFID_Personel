@@ -20,11 +20,10 @@ export default async function NewUserPage() {
     redirect("/dashboard");
   }
 
-  const [companies, devices, roleDefinitions] = await Promise.all([
-    prisma.company.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.device.findMany({ include: { company: true }, orderBy: [{ company: { name: "asc" } }, { name: "asc" }] }),
-    prisma.roleDefinition.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-  ]);
+  const roleDefinitions = await prisma.roleDefinition.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+  });
   const roles = roleDefinitions.length > 0
     ? roleDefinitions.map((role) => ({ code: role.code, name: role.name }))
     : Object.values(Role).map((role) => ({ code: role, name: roleLabels[role] }));
@@ -35,7 +34,7 @@ export default async function NewUserPage() {
         <div>
           <p className={styles.eyebrow}>Yeni Kullanici</p>
           <h1 className={styles.title}>Kullanici Tanimla</h1>
-          <p className={styles.subtitle}>Kullanici bilgilerini gir, firmalari ve RFID cihaz yetkilerini ata.</p>
+          <p className={styles.subtitle}>Kullanici bilgilerini gir ve panelde kullanacagi rol tipini sec.</p>
         </div>
         <BackLink href="/dashboard/users" />
       </section>
@@ -56,30 +55,6 @@ export default async function NewUserPage() {
               ))}
             </select>
           </label>
-
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <span>Yetkili Oldugu Firmalar</span>
-            <div className={styles.checkListGrid}>
-              {companies.map((company) => (
-                <label key={company.id} className={styles.checkField}>
-                  <input name="companyIds" type="checkbox" value={company.id} />
-                  <span>{company.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <span>Yetkili Oldugu Cihazlar</span>
-            <div className={styles.checkListGrid}>
-              {devices.map((device) => (
-                <label key={device.id} className={styles.checkField}>
-                  <input name="deviceIds" type="checkbox" value={device.id} />
-                  <span>{device.company.name} / {device.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
 
           <div className={styles.fullWidthActionRow}>
             <SubmitButton idleLabel="Kullaniciyi Kaydet" pendingLabel="Kaydediliyor..." className={styles.primaryButton} />

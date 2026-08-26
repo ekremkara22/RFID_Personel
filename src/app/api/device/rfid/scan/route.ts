@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       include: { company: true },
     });
 
-    if (!device || !device.company.isActive) {
+    if (!device || !device.companyId || !device.company?.isActive) {
       return NextResponse.json({ error: "Cihaz bulunamadi." }, { status: 404 });
     }
 

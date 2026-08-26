@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CirclePlus, Search } from "lucide-react";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { EmployeesTable } from "./employees-table";
@@ -17,10 +18,12 @@ export default async function EmployeesPage(props: {
 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
+  const companyIds = await getAccessibleCompanyIds(user);
+  const scopedCompanyIds = companyIds ?? [user.companyId];
 
   const employees = await prisma.employee.findMany({
     where: {
-      companyId: user.companyId,
+      companyId: { in: scopedCompanyIds },
       ...(query
         ? {
             OR: [

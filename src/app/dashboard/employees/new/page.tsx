@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -14,26 +15,36 @@ export default async function NewEmployeePage() {
     redirect("/dashboard");
   }
 
-  const [departments, branches, managers] = await Promise.all([
+  const companyIds = await getAccessibleCompanyIds(user);
+  const scopedCompanyIds = companyIds ?? [user.companyId];
+
+  const [companies, departments, branches, managers] = await Promise.all([
+    prisma.company.findMany({
+      where: { id: { in: scopedCompanyIds }, isActive: true },
+      orderBy: { name: "asc" },
+    }),
     prisma.department.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: scopedCompanyIds },
         isActive: true,
       },
+      include: { company: true },
       orderBy: { name: "asc" },
     }),
     prisma.branch.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: scopedCompanyIds },
         isActive: true,
       },
+      include: { company: true },
       orderBy: { name: "asc" },
     }),
     prisma.manager.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: scopedCompanyIds },
         isActive: true,
       },
+      include: { company: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -100,6 +111,17 @@ export default async function NewEmployeePage() {
             </label>
 
             <label className={styles.field}>
+              <span>Firma</span>
+              <select name="companyId" required defaultValue={user.companyId}>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.field}>
               <span>Departman</span>
               <select name="department" required defaultValue="">
                 <option value="" disabled>
@@ -107,19 +129,19 @@ export default async function NewEmployeePage() {
                 </option>
                 {departments.map((department) => (
                   <option key={department.id} value={department.name}>
-                    {department.name}
+                    {department.company.name} / {department.name}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className={styles.field}>
-              <span>Sirket/Sube</span>
+              <span>Sube</span>
               <select name="branch" defaultValue="">
                 <option value="">Merkez / belirtilmedi</option>
                 {branches.map((branch) => (
                   <option key={branch.id} value={branch.name}>
-                    {branch.name}
+                    {branch.company.name} / {branch.name}
                   </option>
                 ))}
               </select>
@@ -141,7 +163,7 @@ export default async function NewEmployeePage() {
                 <option value="">Yonetici secilmedi</option>
                 {managers.map((manager) => (
                   <option key={manager.id} value={manager.name}>
-                    {manager.name} {manager.email ? `- ${manager.email}` : ""}
+                    {manager.company.name} / {manager.name} {manager.email ? `- ${manager.email}` : ""}
                   </option>
                 ))}
               </select>

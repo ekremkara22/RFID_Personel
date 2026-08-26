@@ -485,7 +485,14 @@ async function syncUserAccess(userId: string, companyIds: string[], deviceIds: s
     const deviceCount = await prisma.device.count({
       where: {
         id: { in: uniqueDeviceIds },
-        ...(uniqueCompanyIds.length > 0 ? { companyId: { in: uniqueCompanyIds } } : {}),
+        ...(uniqueCompanyIds.length > 0
+          ? {
+              OR: [
+                { companyId: { in: uniqueCompanyIds } },
+                { companyId: null },
+              ],
+            }
+          : {}),
       },
     });
 
@@ -517,6 +524,7 @@ export async function createDashboardUserAction(formData: FormData) {
 
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
+  const companyId = await getScopedCompanyId(formData, user.companyId, user.id);
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const role = await getAssignableRole(formData);
@@ -910,7 +918,7 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Personel bilgileri gecersiz.");
   }
 
-  await assertCompanyDepartment(user.companyId, department);
+  await assertCompanyDepartment(companyId, department);
 
   await prisma.employee.create({
     data: {
@@ -927,7 +935,7 @@ export async function createEmployeeAction(formData: FormData) {
       terminationDate,
       age,
       rfidCardId,
-      companyId: user.companyId,
+      companyId,
     },
   });
 
@@ -946,6 +954,7 @@ export async function updateEmployeeAction(formData: FormData) {
   const employeeId = getString(formData, "employeeId");
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
+  const companyId = await getScopedCompanyId(formData, user.companyId, user.id);
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const department = getString(formData, "department");
@@ -962,10 +971,20 @@ export async function updateEmployeeAction(formData: FormData) {
     throw new Error("Personel bilgileri gecersiz.");
   }
 
-  await assertCompanyDepartment(user.companyId, department);
+  await assertCompanyDepartment(companyId, department);
 
+  const accessRows = await prisma.userCompanyAccess.findMany({
+    where: { userId: user.id },
+    select: { companyId: true },
+  });
+  const accessibleCompanyIds = Array.from(
+    new Set([user.companyId, ...accessRows.map((access) => access.companyId)].filter((value): value is string => Boolean(value))),
+  );
   const currentEmployee = await prisma.employee.findFirst({
-    where: { id: employeeId, companyId: user.companyId },
+    where: {
+      id: employeeId,
+      companyId: { in: accessibleCompanyIds },
+    },
     select: { photoUrl: true },
   });
   const photoUrl = await saveEmployeePhoto(formData, currentEmployee?.photoUrl);
@@ -973,7 +992,7 @@ export async function updateEmployeeAction(formData: FormData) {
   await prisma.employee.updateMany({
     where: {
       id: employeeId,
-      companyId: user.companyId,
+      companyId: { in: accessibleCompanyIds },
     },
     data: {
       firstName,
@@ -988,6 +1007,7 @@ export async function updateEmployeeAction(formData: FormData) {
       terminationDate,
       age,
       rfidCardId,
+      companyId,
       isActive,
       ...(password ? { password: await bcrypt.hash(password, 10) } : {}),
     },
@@ -1129,7 +1149,6 @@ export async function createUserDeviceAction(formData: FormData) {
   await assertSuperadminUser();
 
   const userId = getString(formData, "userId");
-  const companyId = getString(formData, "companyId");
   const code = getString(formData, "code") || null;
   const name = getString(formData, "name");
   const macAddress = getString(formData, "macAddress");
@@ -1140,18 +1159,14 @@ export async function createUserDeviceAction(formData: FormData) {
   const clockOffsetMinutes = clockOffsetMinutesValue ? Number(clockOffsetMinutesValue) : null;
   const allowedPurposes = new Set<string>(Object.values(DevicePurpose));
 
-  if (!userId || !companyId || !name || !macAddress || !allowedPurposes.has(purpose)) {
+  if (!userId || !name || !macAddress || !allowedPurposes.has(purpose)) {
     throw new Error("Cihaz bilgileri eksik.");
   }
 
-  const companyAccess = await prisma.userCompanyAccess.findFirst({
-    where: { userId, companyId },
-    select: { id: true },
-  });
-  const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
+  const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
 
-  if (!targetUser || (!companyAccess && targetUser.companyId !== companyId)) {
-    throw new Error("Cihaz atanacak firma kullaniciya ait degil.");
+  if (!targetUser) {
+    throw new Error("Cihaz atanacak kullanici bulunamadi.");
   }
 
   const device = await prisma.device.create({
@@ -1163,7 +1178,6 @@ export async function createUserDeviceAction(formData: FormData) {
       branchLocation,
       purpose,
       clockOffsetMinutes: Number.isFinite(clockOffsetMinutes) ? clockOffsetMinutes : null,
-      companyId,
     },
   });
 

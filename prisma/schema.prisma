@@ -271,8 +271,8 @@ model Device {
   lastSeenAt      DateTime?
   lastDataTransferAt DateTime?
   clockOffsetMinutes Int?
-  companyId       String
-  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId       String?
+  company         Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
   userAccess      UserDeviceAccess[]
   logs            AttendanceLog[]
   createdAt       DateTime        @default(now())

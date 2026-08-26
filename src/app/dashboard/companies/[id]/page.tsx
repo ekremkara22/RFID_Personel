@@ -376,9 +376,11 @@ export default async function CompanyDetailPage(props: {
                 <p className={styles.sectionEyebrow}>Cihazlar</p>
                 <h2 className={styles.sectionTitle}>Firma RFID Cihaz Listesi</h2>
               </div>
-              <Link href={`/dashboard/companies/${company.id}/devices/new`} className={styles.primaryLinkButton}>
-                Cihaz Ekle
-              </Link>
+              {user.role === "SUPERADMIN" ? (
+                <Link href={`/dashboard/companies/${company.id}/devices/new`} className={styles.primaryLinkButton}>
+                  Cihaz Ekle
+                </Link>
+              ) : null}
             </div>
 
             <div className={styles.tableWrap}>
@@ -396,14 +398,14 @@ export default async function CompanyDetailPage(props: {
                     <th>Saat Farki</th>
                     <th>Son Veri</th>
                     <th>Secret</th>
-                    <th>Islem</th>
-                    <th>Sil</th>
+                    {user.role === "SUPERADMIN" ? <th>Islem</th> : null}
+                    {user.role === "SUPERADMIN" ? <th>Sil</th> : null}
                   </tr>
                 </thead>
                 <tbody>
                   {company.devices.length === 0 ? (
                     <tr>
-                      <td colSpan={13} className={styles.emptyCell}>
+                      <td colSpan={user.role === "SUPERADMIN" ? 13 : 11} className={styles.emptyCell}>
                         Bu firmaya tanimli cihaz yok.
                       </td>
                     </tr>
@@ -425,21 +427,25 @@ export default async function CompanyDetailPage(props: {
                         <td>{device.clockOffsetMinutes ?? 0} dk</td>
                         <td>{device.lastDataTransferAt ? device.lastDataTransferAt.toLocaleString("tr-TR") : "-"}</td>
                         <td className={styles.monoCell}>{device.secretKey}</td>
-                        <td>
-                          <Link
-                            href={`/dashboard/companies/${company.id}/devices/${device.id}`}
-                            className={styles.inlineAction}
-                          >
-                            Incele
-                          </Link>
-                        </td>
-                        <td>
-                          <form action={deleteCompanyDeviceAction}>
-                            <input type="hidden" name="companyId" value={company.id} />
-                            <input type="hidden" name="deviceId" value={device.id} />
-                            <SubmitButton idleLabel="Sil" pendingLabel="..." className={styles.dangerMiniButton} />
-                          </form>
-                        </td>
+                        {user.role === "SUPERADMIN" ? (
+                          <td>
+                            <Link
+                              href={`/dashboard/companies/${company.id}/devices/${device.id}`}
+                              className={styles.inlineAction}
+                            >
+                              Incele
+                            </Link>
+                          </td>
+                        ) : null}
+                        {user.role === "SUPERADMIN" ? (
+                          <td>
+                            <form action={deleteCompanyDeviceAction}>
+                              <input type="hidden" name="companyId" value={company.id} />
+                              <input type="hidden" name="deviceId" value={device.id} />
+                              <SubmitButton idleLabel="Sil" pendingLabel="..." className={styles.dangerMiniButton} />
+                            </form>
+                          </td>
+                        ) : null}
                       </tr>
                     ))
                   )}
