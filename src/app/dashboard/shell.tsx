@@ -53,7 +53,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   const items = [
     { href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard },
     ...(user.role === "SUPERADMIN"
-      ? [{ href: "/dashboard/companies", label: "Firmalar", icon: Building2 }]
+      ? [{ href: "/dashboard/users", label: "Kullanıcılar", icon: Users }]
       : [
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
           { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },

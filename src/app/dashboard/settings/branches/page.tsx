@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -7,13 +8,13 @@ import styles from "../../page.module.css";
 export default async function BranchesPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
   if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) redirect("/dashboard");
-  const currentCompanyId = user.companyId ?? "";
+  const companyIds = await getAccessibleCompanyIds(user);
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const branches = await prisma.branch.findMany({
     where: {
-      ...(user.role === "COMPANY_ADMIN" ? { companyId: currentCompanyId } : {}),
+      ...scopedCompanyFilter(companyIds),
       ...(query
         ? {
             OR: [

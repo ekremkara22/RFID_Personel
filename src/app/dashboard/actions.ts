@@ -15,6 +15,7 @@ import {
   LeaveApprovalStatus,
   LeaveDurationType,
   LeaveType,
+  Role,
   SpecialDayType,
   WorkDayType,
 } from "@/generated/prisma/client";
@@ -27,6 +28,14 @@ import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getStringList(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
 }
 
 function normalizeOptionalEmail(email: string) {
@@ -164,12 +173,28 @@ function redirectToReturnPath(formData: FormData, fallback?: string) {
   redirect(getReturnTo(formData) || fallback || "/dashboard");
 }
 
-async function getScopedCompanyId(formData: FormData, fallbackCompanyId?: string | null) {
+async function getScopedCompanyId(formData: FormData, fallbackCompanyId?: string | null, userId?: string) {
   const requestedCompanyId = getString(formData, "companyId");
-  const companyId = fallbackCompanyId || requestedCompanyId;
+  const companyId = requestedCompanyId || fallbackCompanyId;
 
   if (!companyId) {
     throw new Error("Firma bilgisi secilmelidir.");
+  }
+
+  if (fallbackCompanyId && companyId !== fallbackCompanyId && userId) {
+    const access = await prisma.userCompanyAccess.findFirst({
+      where: {
+        userId,
+        companyId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!access) {
+      throw new Error("Bu firma icin yetkiniz yok.");
+    }
   }
 
   const company = await prisma.company.findFirst({
@@ -250,7 +275,7 @@ export async function createCompanyAction(formData: FormData) {
       },
     });
 
-    await tx.user.create({
+    const adminUser = await tx.user.create({
       data: {
         name: `${adminFirstName} ${adminLastName}`.trim(),
         firstName: adminFirstName,
@@ -258,6 +283,13 @@ export async function createCompanyAction(formData: FormData) {
         email: adminEmail,
         password: passwordHash,
         role: "COMPANY_ADMIN",
+        companyId: company.id,
+      },
+    });
+
+    await tx.userCompanyAccess.create({
+      data: {
+        userId: adminUser.id,
         companyId: company.id,
       },
     });
@@ -320,6 +352,20 @@ export async function updateCompanyAction(formData: FormData) {
         ...(adminPassword ? { password: await bcrypt.hash(adminPassword, 10) } : {}),
       },
     });
+
+    await tx.userCompanyAccess.upsert({
+      where: {
+        userId_companyId: {
+          userId: adminId,
+          companyId,
+        },
+      },
+      create: {
+        userId: adminId,
+        companyId,
+      },
+      update: {},
+    });
   });
 
   revalidatePath("/dashboard");
@@ -347,6 +393,152 @@ export async function deleteCompanyAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/companies");
   redirect("/dashboard/companies");
+}
+
+async function assertSuperadminUser() {
+  const { user } = await requireSessionUser();
+
+  if (user.role !== "SUPERADMIN") {
+    throw new Error("Bu islem icin yetkiniz yok.");
+  }
+
+  return user;
+}
+
+async function syncUserAccess(userId: string, companyIds: string[], deviceIds: string[]) {
+  const uniqueCompanyIds = Array.from(new Set(companyIds));
+  const uniqueDeviceIds = Array.from(new Set(deviceIds));
+
+  if (uniqueCompanyIds.length > 0) {
+    const companyCount = await prisma.company.count({
+      where: { id: { in: uniqueCompanyIds }, isActive: true },
+    });
+
+    if (companyCount !== uniqueCompanyIds.length) {
+      throw new Error("Secilen firmalardan biri bulunamadi.");
+    }
+  }
+
+  if (uniqueDeviceIds.length > 0) {
+    const deviceCount = await prisma.device.count({
+      where: {
+        id: { in: uniqueDeviceIds },
+        ...(uniqueCompanyIds.length > 0 ? { companyId: { in: uniqueCompanyIds } } : {}),
+      },
+    });
+
+    if (deviceCount !== uniqueDeviceIds.length) {
+      throw new Error("Secilen cihazlardan biri kullanicinin firmalarina ait degil.");
+    }
+  }
+
+  await prisma.userCompanyAccess.deleteMany({ where: { userId } });
+  await prisma.userDeviceAccess.deleteMany({ where: { userId } });
+
+  if (uniqueCompanyIds.length > 0) {
+    await prisma.userCompanyAccess.createMany({
+      data: uniqueCompanyIds.map((companyId) => ({ userId, companyId })),
+      skipDuplicates: true,
+    });
+  }
+
+  if (uniqueDeviceIds.length > 0) {
+    await prisma.userDeviceAccess.createMany({
+      data: uniqueDeviceIds.map((deviceId) => ({ userId, deviceId })),
+      skipDuplicates: true,
+    });
+  }
+}
+
+export async function createDashboardUserAction(formData: FormData) {
+  await assertSuperadminUser();
+
+  const firstName = getString(formData, "firstName");
+  const lastName = getString(formData, "lastName");
+  const email = normalizeOptionalEmail(getString(formData, "email"));
+  const password = getString(formData, "password");
+  const role = getString(formData, "role") as Role;
+  const companyIds = getStringList(formData, "companyIds");
+  const deviceIds = getStringList(formData, "deviceIds");
+
+  if (!firstName || !lastName || !email || !password || !Object.values(Role).includes(role)) {
+    throw new Error("Kullanici bilgileri eksik.");
+  }
+
+  if (role === Role.COMPANY_ADMIN && companyIds.length === 0) {
+    throw new Error("Firma admin icin en az bir firma secilmelidir.");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const newUser = await prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      name: `${firstName} ${lastName}`.trim(),
+      email,
+      password: passwordHash,
+      role,
+      companyId: role === Role.COMPANY_ADMIN ? companyIds[0] ?? null : null,
+    },
+  });
+
+  await syncUserAccess(newUser.id, role === Role.COMPANY_ADMIN ? companyIds : [], deviceIds);
+
+  revalidatePath("/dashboard/users");
+  redirect("/dashboard/users");
+}
+
+export async function updateDashboardUserAction(formData: FormData) {
+  await assertSuperadminUser();
+
+  const userId = getString(formData, "userId");
+  const firstName = getString(formData, "firstName");
+  const lastName = getString(formData, "lastName");
+  const email = normalizeOptionalEmail(getString(formData, "email"));
+  const password = getString(formData, "password");
+  const role = getString(formData, "role") as Role;
+  const companyIds = getStringList(formData, "companyIds");
+  const deviceIds = getStringList(formData, "deviceIds");
+
+  if (!userId || !firstName || !lastName || !email || !Object.values(Role).includes(role)) {
+    throw new Error("Kullanici bilgileri eksik.");
+  }
+
+  if (role === Role.COMPANY_ADMIN && companyIds.length === 0) {
+    throw new Error("Firma admin icin en az bir firma secilmelidir.");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      firstName,
+      lastName,
+      name: `${firstName} ${lastName}`.trim(),
+      email,
+      role,
+      companyId: role === Role.COMPANY_ADMIN ? companyIds[0] ?? null : null,
+      ...(password ? { password: await bcrypt.hash(password, 10) } : {}),
+    },
+  });
+
+  await syncUserAccess(userId, role === Role.COMPANY_ADMIN ? companyIds : [], deviceIds);
+
+  revalidatePath("/dashboard/users");
+  revalidatePath(`/dashboard/users/${userId}`);
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
+}
+
+export async function deleteDashboardUserAction(formData: FormData) {
+  const currentUser = await assertSuperadminUser();
+  const userId = getString(formData, "userId");
+
+  if (!userId || userId === currentUser.id) {
+    throw new Error("Kullanici silinemez.");
+  }
+
+  await prisma.user.deleteMany({ where: { id: userId } });
+  revalidatePath("/dashboard/users");
+  redirect("/dashboard/users");
 }
 
 export async function createCompanyCategoryAction(formData: FormData) {
@@ -470,7 +662,7 @@ export async function createBranchAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
   const name = getString(formData, "name");
   const location = getString(formData, "location");
 
@@ -499,7 +691,7 @@ export async function updateBranchAction(formData: FormData) {
   }
 
   const branchId = getString(formData, "branchId");
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
   const name = getString(formData, "name");
   const location = getString(formData, "location");
   const isActive = formData.get("isActive") === "on";
@@ -829,10 +1021,21 @@ export async function updateDeviceAction(formData: FormData) {
     throw new Error("Cihaz adi zorunludur.");
   }
 
+  const accessibleCompanyIds = await prisma.userCompanyAccess.findMany({
+    where: { userId: user.id },
+    select: { companyId: true },
+  });
+  const companyIds = new Set(accessibleCompanyIds.map((access) => access.companyId));
+  if (user.companyId) companyIds.add(user.companyId);
+  const assignedDevice = await prisma.userDeviceAccess.findFirst({
+    where: { userId: user.id, deviceId },
+    select: { id: true },
+  });
+
   await prisma.device.updateMany({
     where: {
       id: deviceId,
-      companyId: user.companyId,
+      ...(assignedDevice ? {} : { companyId: { in: Array.from(companyIds) } }),
     },
     data: { name, branchLocation },
   });
@@ -1419,7 +1622,7 @@ export async function createCalendarAssignmentAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
   const calendarTemplateId = getString(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
   const validFrom = getRequiredDate(formData, "validFrom");
@@ -1499,7 +1702,7 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
   const assignmentId = getString(formData, "assignmentId");
   const calendarTemplateId = getString(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
@@ -1560,7 +1763,7 @@ export async function deleteCalendarAssignmentAction(formData: FormData) {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null);
+  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
   const assignmentId = getString(formData, "assignmentId");
 
   if (!assignmentId) {

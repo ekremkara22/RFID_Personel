@@ -1071,6 +1071,16 @@
   font-weight: 800;
 }
 
+.checkListGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
 .checkField input {
   width: 1rem;
   height: 1rem;

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createCalendarAssignmentAction } from "@/app/dashboard/actions";
+import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
@@ -13,9 +14,10 @@ export default async function NewCalendarAssignmentPage() {
     redirect("/dashboard");
   }
 
-  const currentCompanyId = user.companyId ?? "";
-  const companyWhere = user.role === "COMPANY_ADMIN" ? { id: currentCompanyId, isActive: true } : { isActive: true };
-  const scopedCompanyWhere = user.role === "COMPANY_ADMIN" ? { companyId: currentCompanyId } : {};
+  const companyIds = await getAccessibleCompanyIds(user);
+  const currentCompanyId = user.companyId ?? companyIds?.[0] ?? "";
+  const companyWhere = { ...(companyIds ? { id: { in: companyIds } } : {}), isActive: true };
+  const scopedCompanyWhere = scopedCompanyFilter(companyIds);
 
   const [companies, templates, branches, departments, employees] = await Promise.all([
     prisma.company.findMany({ where: companyWhere, orderBy: { name: "asc" } }),

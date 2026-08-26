@@ -127,6 +127,7 @@ model Company {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   users         User[]
+  userAccess    UserCompanyAccess[]
   employees     Employee[]
   devices       Device[]
   departments   Department[]
@@ -157,8 +158,21 @@ model User {
   role      Role     @default(COMPANY_ADMIN)
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyAccess UserCompanyAccess[]
+  deviceAccess  UserDeviceAccess[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model UserCompanyAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, companyId])
 }
 
 model Employee {
@@ -249,11 +263,23 @@ model Device {
   clockOffsetMinutes Int?
   companyId       String
   company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userAccess      UserDeviceAccess[]
   logs            AttendanceLog[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   @@unique([companyId, code])
+}
+
+model UserDeviceAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, deviceId])
 }
 
 model AttendanceLog {

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Eye, Search } from "lucide-react";
 import { updateDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
@@ -37,13 +38,23 @@ export default async function DevicesPage(props: {
     redirect("/dashboard");
   }
 
+  const companyIds = await getAccessibleCompanyIds(user);
+  const assignedDeviceIds = await prisma.userDeviceAccess.findMany({
+    where: { userId: user.id },
+    select: { deviceId: true },
+  });
+  const deviceIds = assignedDeviceIds.map((access) => access.deviceId);
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const selectedDeviceId = typeof searchParams.deviceId === "string" ? searchParams.deviceId : "";
 
   const devices = await prisma.device.findMany({
     where: {
-      companyId: user.companyId,
+      ...(deviceIds.length > 0
+        ? { id: { in: deviceIds } }
+        : companyIds
+          ? { companyId: { in: companyIds } }
+          : {}),
       ...(query
         ? {
             OR: [
@@ -54,6 +65,7 @@ export default async function DevicesPage(props: {
           }
         : {}),
     },
+    include: { company: true },
     orderBy: { createdAt: "desc" },
   });
   const selectedDevice =
@@ -86,6 +98,7 @@ export default async function DevicesPage(props: {
             <thead>
               <tr>
                 <th>Cihaz Adi</th>
+                <th>Firma</th>
                 <th>MAC Adresi</th>
                 <th>Sube/Lokasyon</th>
                 <th>Secret Key</th>
@@ -96,7 +109,7 @@ export default async function DevicesPage(props: {
             <tbody>
               {devices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className={styles.emptyCell}>
+                  <td colSpan={7} className={styles.emptyCell}>
                     Firmana atanmis cihaz bulunamadi.
                   </td>
                 </tr>
@@ -104,6 +117,7 @@ export default async function DevicesPage(props: {
                 devices.map((device) => (
                   <tr key={device.id}>
                     <td>{device.name}</td>
+                    <td>{device.company.name}</td>
                     <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
                     <td>{device.branchLocation ?? "-"}</td>
                     <td className={styles.monoCell}>{device.secretKey}</td>

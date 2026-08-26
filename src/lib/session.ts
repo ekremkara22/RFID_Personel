@@ -21,6 +21,9 @@ export async function requireSessionUser() {
     where: { id: session.id },
     include: {
       company: true,
+      companyAccess: {
+        include: { company: true },
+      },
     },
   });
 
@@ -28,7 +31,10 @@ export async function requireSessionUser() {
     redirect("/login");
   }
 
-  if (user.role === "COMPANY_ADMIN" && (!user.company || !user.company.isActive)) {
+  const hasActiveCompany =
+    !!user.company?.isActive || user.companyAccess.some((access) => access.company.isActive);
+
+  if (user.role === "COMPANY_ADMIN" && !hasActiveCompany) {
     redirect("/login");
   }
 

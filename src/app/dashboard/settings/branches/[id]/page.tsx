@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { updateBranchAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
@@ -9,12 +10,12 @@ import styles from "../../../page.module.css";
 export default async function BranchDetailPage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requireSessionUser();
   if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) redirect("/dashboard");
-  const currentCompanyId = user.companyId ?? "";
+  const companyIds = await getAccessibleCompanyIds(user);
   const { id } = await props.params;
   const branch = await prisma.branch.findFirst({
     where: {
       id,
-      ...(user.role === "COMPANY_ADMIN" ? { companyId: currentCompanyId } : {}),
+      ...(companyIds ? { companyId: { in: companyIds } } : {}),
     },
     include: { company: true },
   });

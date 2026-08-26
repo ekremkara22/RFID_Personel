@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -12,11 +13,11 @@ export default async function CalendarAssignmentsPage(props: { searchParams?: Pr
     redirect("/dashboard");
   }
 
-  const currentCompanyId = user.companyId ?? "";
+  const companyIds = await getAccessibleCompanyIds(user);
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim().toLocaleLowerCase("tr-TR") : "";
   const assignments = await prisma.calendarAssignment.findMany({
-    where: user.role === "COMPANY_ADMIN" ? { companyId: currentCompanyId } : {},
+    where: scopedCompanyFilter(companyIds),
     include: { company: true, calendarTemplate: true, branch: true, department: true, employee: true },
     orderBy: [{ isActive: "desc" }, { validFrom: "desc" }],
     take: 300,
