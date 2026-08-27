@@ -100,12 +100,20 @@ async function main() {
     dailyCalendars.map((calendar) => [`${calendar.employeeId}-${getDayKey(calendar.workDate)}`, calendar]),
   );
 
-  const deleted = await prisma.attendanceLog.deleteMany({
+  const existingLogs = await prisma.attendanceLog.findMany({
     where: {
       employeeId: { in: employees.map((employee) => employee.id) },
       scannedAt: { gte: rangeStart, lte: rangeEnd },
     },
+    select: {
+      employeeId: true,
+      scannedAt: true,
+      type: true,
+    },
   });
+  const existingLogKeys = new Set(
+    existingLogs.map((log) => `${log.employeeId}-${log.type}-${log.scannedAt.getTime()}`),
+  );
 
   const logData = [];
   const absentPattern = new Map<string, number[]>([
@@ -169,8 +177,10 @@ async function main() {
     }
   }
 
-  if (logData.length > 0) {
-    await prisma.attendanceLog.createMany({ data: logData });
+  const logsToCreate = logData.filter((log) => !existingLogKeys.has(`${log.employeeId}-${log.type}-${log.scannedAt.getTime()}`));
+
+  if (logsToCreate.length > 0) {
+    await prisma.attendanceLog.createMany({ data: logsToCreate });
   }
 
   const lateEntryCount = logData.filter((log) => {
@@ -194,8 +204,10 @@ async function main() {
 
   console.log(`Termosa firma: ${company.name}`);
   console.log(`Aralik: 10.08.2026 - 23.08.2026`);
-  console.log(`Temizlenen hareket: ${deleted.count}`);
-  console.log(`Eklenen hareket: ${logData.length}`);
+  console.log(`Mevcut hareket: ${existingLogs.length}`);
+  console.log(`Planlanan hareket: ${logData.length}`);
+  console.log(`Eklenen hareket: ${logsToCreate.length}`);
+  console.log(`Atlanan hareket: ${logData.length - logsToCreate.length}`);
   console.log(`Gec giris adedi: ${lateEntryCount}`);
   console.log(`Erken cikis adedi: ${earlyExitCount}`);
 }
