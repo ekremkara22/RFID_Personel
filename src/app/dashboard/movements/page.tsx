@@ -8,6 +8,7 @@ import {
 } from "@/app/dashboard/actions";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
@@ -58,6 +59,8 @@ function getDateValue(value?: string) {
 export default async function MovementsPage(props: {
   searchParams: Promise<{
     q?: string;
+    companyId?: string;
+    branch?: string;
     department?: string;
     type?: string;
     from?: string;
@@ -66,12 +69,24 @@ export default async function MovementsPage(props: {
 }) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
+  const accessibleCompanyIds = await getAccessibleCompanyIds(user);
+
+  if (!accessibleCompanyIds || accessibleCompanyIds.length === 0) {
+    redirect("/dashboard");
+  }
+
+  const selectedCompanyId = Number(searchParams.companyId);
+  const companyIdFilter =
+    Number.isInteger(selectedCompanyId) && accessibleCompanyIds.includes(selectedCompanyId)
+      ? [selectedCompanyId]
+      : accessibleCompanyIds;
+  const branch = typeof searchParams.branch === "string" ? searchParams.branch.trim() : "";
   const department =
     typeof searchParams.department === "string" ? searchParams.department.trim() : "";
   const type =
@@ -82,13 +97,22 @@ export default async function MovementsPage(props: {
   const fromDate = getDateValue(searchParams.from);
   const toDate = getDateValue(searchParams.to);
 
-  const [departments, logs] = await Promise.all([
+  const [companies, branches, departments, logs] = await Promise.all([
+    prisma.company.findMany({
+      where: { id: { in: accessibleCompanyIds } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.branch.findMany({
+      where: { companyId: { in: companyIdFilter }, isActive: true },
+      include: { company: true },
+      orderBy: [{ companyId: "asc" }, { name: "asc" }],
+    }),
     prisma.department.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: companyIdFilter },
         isActive: true,
       },
-      orderBy: { name: "asc" },
+      orderBy: [{ companyId: "asc" }, { name: "asc" }],
     }),
     prisma.attendanceLog.findMany({
       where: {
@@ -102,7 +126,8 @@ export default async function MovementsPage(props: {
             }
           : {}),
         employee: {
-          companyId: user.companyId,
+          companyId: { in: companyIdFilter },
+          ...(branch ? { branch } : {}),
           ...(department ? { department } : {}),
           ...(query
             ? {
@@ -117,7 +142,7 @@ export default async function MovementsPage(props: {
         },
       },
       include: {
-        employee: true,
+        employee: { include: { company: true } },
         device: true,
       },
       orderBy: { scannedAt: "desc" },
@@ -159,6 +184,8 @@ export default async function MovementsPage(props: {
 
   const exportRows = logs.map((log) => ({
     employee: `${log.employee.firstName} ${log.employee.lastName}`.trim(),
+    company: log.employee.company.name,
+    branch: log.employee.branch ?? "-",
     department: log.employee.department,
     type: attendanceLabels[log.type],
     status: getAttendanceStatus(log),
@@ -187,6 +214,8 @@ export default async function MovementsPage(props: {
             rows={exportRows}
             columns={[
               { key: "employee", label: "Personel" },
+              { key: "company", label: "Firma" },
+              { key: "branch", label: "Şube" },
               { key: "department", label: "Departman" },
               { key: "type", label: "Hareket Tipi" },
               { key: "status", label: "Durum" },
@@ -208,12 +237,36 @@ export default async function MovementsPage(props: {
           </label>
 
           <label className={styles.field}>
+            <span>Firma</span>
+            <select name="companyId" defaultValue={Number.isInteger(selectedCompanyId) ? selectedCompanyId : ""}>
+              <option value="">Tum Firmalar</option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            <span>Şube</span>
+            <select name="branch" defaultValue={branch}>
+              <option value="">Tum Şubeler</option>
+              {branches.map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.company.name} / {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
             <span>Departman</span>
             <select name="department" defaultValue={department}>
               <option value="">Tum Departmanlar</option>
               {departments.map((item) => (
                 <option key={item.id} value={item.name}>
-                  {item.name}
+                  {companies.length > 1 ? `${companies.find((company) => company.id === item.companyId)?.name ?? ""} / ` : ""}{item.name}
                 </option>
               ))}
             </select>
@@ -262,6 +315,8 @@ export default async function MovementsPage(props: {
             <thead>
               <tr>
                 <th>Personel</th>
+                <th>Firma</th>
+                <th>Şube</th>
                 <th>Departman</th>
                 <th>Hareket / Zaman</th>
                 <th>Durum</th>
@@ -273,7 +328,7 @@ export default async function MovementsPage(props: {
             <tbody>
               {logs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className={styles.emptyCell}>
+                  <td colSpan={9} className={styles.emptyCell}>
                     Filtreye uygun hareket bulunamadi.
                   </td>
                 </tr>
@@ -286,6 +341,8 @@ export default async function MovementsPage(props: {
                       </strong>
                       <p className={styles.tableSubText}>{log.employee.email ?? "-"}</p>
                     </td>
+                    <td>{log.employee.company.name}</td>
+                    <td>{log.employee.branch ?? "-"}</td>
                     <td>{log.employee.department}</td>
                     <td>
                       <form action={updateAttendanceLogAction} className={styles.inlineEditForm}>
