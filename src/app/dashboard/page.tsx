@@ -92,6 +92,13 @@ function getLogMinutes(date: Date) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+function formatMinutes(minutes: number) {
+  if (minutes < 60) return `${minutes} dk`;
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  return remaining > 0 ? `${hours} sa ${remaining} dk` : `${hours} sa`;
+}
+
 function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   const plannedStartMinutes = timeToMinutes(plannedStart);
   return plannedStartMinutes !== null && getLogMinutes(scannedAt) > plannedStartMinutes;
@@ -384,6 +391,21 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     .sort((first, second) => first.employeeName.localeCompare(second.employeeName, "tr"));
   const weeklyTopLateEmployees = summarizeLateRecords(monthlyLateRecords.filter((record) => record.workDate >= weekStart));
   const monthlyTopLateEmployees = summarizeLateRecords(monthlyLateRecords.filter((record) => record.workDate >= monthStart));
+  const monthlyLateTotalMinutes = monthlyLateRecords.reduce((sum, record) => sum + record.lateMinutes, 0);
+  const monthlyLateAverageMinutes = monthlyLateRecords.length > 0 ? Math.round(monthlyLateTotalMinutes / monthlyLateRecords.length) : 0;
+  const monthlyLateDepartmentRows = Array.from(
+    monthlyLateRecords.reduce((map, record) => {
+      const current = map.get(record.department) ?? { department: record.department, count: 0, totalMinutes: 0 };
+      current.count += 1;
+      current.totalMinutes += record.lateMinutes;
+      map.set(record.department, current);
+      return map;
+    }, new Map<string, { department: string; count: number; totalMinutes: number }>()),
+  )
+    .map(([, row]) => row)
+    .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
+    .slice(0, 6);
+  const maxDepartmentLateCount = Math.max(...monthlyLateDepartmentRows.map((row) => row.count), 1);
   const onTimeTodayCount = todayDailyCalendarsForDashboard.filter((day) => {
     if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
 
@@ -681,6 +703,49 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              <div className={styles.visualAnalysisPanel}>
+                <div className={styles.sectionHeader}>
+                  <div>
+                    <p className={styles.sectionEyebrow}>Analiz</p>
+                    <h3 className={styles.sectionTitle}>Aylık Geç Kalma Görünümü</h3>
+                  </div>
+                  <span className={styles.countPill}>{monthlyLateRecords.length} hareket</span>
+                </div>
+
+                <div className={styles.analysisStatGrid}>
+                  <div className={styles.analysisStatCard}>
+                    <span>Toplam Geç Kalma</span>
+                    <strong>{monthlyLateRecords.length}</strong>
+                  </div>
+                  <div className={styles.analysisStatCard}>
+                    <span>Toplam Süre</span>
+                    <strong>{formatMinutes(monthlyLateTotalMinutes)}</strong>
+                  </div>
+                  <div className={styles.analysisStatCard}>
+                    <span>Ortalama</span>
+                    <strong>{formatMinutes(monthlyLateAverageMinutes)}</strong>
+                  </div>
+                </div>
+
+                <div className={styles.analysisBars}>
+                  {monthlyLateDepartmentRows.length === 0 ? (
+                    <p className={styles.emptyState}>Bu ay departman bazlı geç kalma verisi yok.</p>
+                  ) : (
+                    monthlyLateDepartmentRows.map((row) => (
+                      <div key={row.department} className={styles.analysisBarRow}>
+                        <div>
+                          <strong>{row.department}</strong>
+                          <span>{row.count} kez, {formatMinutes(row.totalMinutes)}</span>
+                        </div>
+                        <div className={styles.analysisBarTrack}>
+                          <span style={{ width: `${Math.max((row.count / maxDepartmentLateCount) * 100, 8)}%` }} />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </section>
           )}

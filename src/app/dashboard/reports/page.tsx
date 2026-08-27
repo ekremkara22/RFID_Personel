@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileBarChart, Users } from "lucide-react";
+import { FileBarChart, Timer, Users } from "lucide-react";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 
@@ -40,6 +40,16 @@ export default async function ReportsPage() {
             <div>
               <p className={styles.infoCardTitle}>Departman Puantaj Raporu</p>
               <p className={styles.infoCardMeta}>Departman bazlı giriş, izin, hareket yok ve geç kalma oranları.</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/dashboard/reports/late-arrivals" className={`glass-panel ${styles.companyCardLink}`}>
+          <div className={styles.companyCardHeader}>
+            <Timer size={22} />
+            <div>
+              <p className={styles.infoCardTitle}>Geç Kalma Raporu</p>
+              <p className={styles.infoCardMeta}>Tarih, firma ve şubeye göre geç kalma adedi ve toplam dakika.</p>
             </div>
           </div>
         </Link>
