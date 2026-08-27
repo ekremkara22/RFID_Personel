@@ -1,14 +1,100 @@
 import { NextResponse } from "next/server";
 import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { timeToMinutes } from "@/lib/work-calendar-rules";
 
 const entryExitTypes = new Set<AttendanceType>([
   AttendanceType.ENTRY,
   AttendanceType.EXIT,
 ]);
+const MOVEMENT_TOLERANCE_MINUTES = 30;
 
 function normalizeCardId(cardId: string) {
   return cardId.trim().toUpperCase();
+}
+
+function getDayStart(date: Date) {
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  return day;
+}
+
+function getNextDay(date: Date) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  return next;
+}
+
+function getLogMinutes(date: Date) {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function isNearTime(nowMinutes: number, plannedTime?: string | null) {
+  const plannedMinutes = timeToMinutes(plannedTime);
+  return plannedMinutes !== null && Math.abs(nowMinutes - plannedMinutes) <= MOVEMENT_TOLERANCE_MINUTES;
+}
+
+function hasTodayType(logs: { type: AttendanceType }[], type: AttendanceType) {
+  return logs.some((log) => log.type === type);
+}
+
+async function inferAttendanceType(params: {
+  employeeId: number;
+  devicePurpose: DevicePurpose;
+  scannedAt: Date;
+}) {
+  const dayStart = getDayStart(params.scannedAt);
+  const dayEnd = getNextDay(dayStart);
+  const todayLogs = await prisma.attendanceLog.findMany({
+    where: {
+      employeeId: params.employeeId,
+      scannedAt: { gte: dayStart, lt: dayEnd },
+    },
+    orderBy: { scannedAt: "asc" },
+  });
+
+  if (todayLogs.length === 0) {
+    return AttendanceType.ENTRY;
+  }
+
+  if (params.devicePurpose === DevicePurpose.ENTRY) return AttendanceType.ENTRY;
+  if (params.devicePurpose === DevicePurpose.EXIT) return AttendanceType.EXIT;
+  if (params.devicePurpose === DevicePurpose.BREAK_START) return AttendanceType.BREAK_START;
+  if (params.devicePurpose === DevicePurpose.BREAK_END) return AttendanceType.BREAK_END;
+
+  const dailyCalendar = await prisma.employeeDailyCalendar.findUnique({
+    where: {
+      employeeId_workDate: {
+        employeeId: params.employeeId,
+        workDate: dayStart,
+      },
+    },
+  });
+  const nowMinutes = getLogMinutes(params.scannedAt);
+  const lastLog = todayLogs.at(-1);
+
+  if (dailyCalendar) {
+    const hasBreakStart = hasTodayType(todayLogs, AttendanceType.BREAK_START);
+    const hasBreakEnd = hasTodayType(todayLogs, AttendanceType.BREAK_END);
+
+    if (isNearTime(nowMinutes, dailyCalendar.plannedBreakStart) && !hasBreakStart) {
+      return AttendanceType.BREAK_START;
+    }
+
+    if (isNearTime(nowMinutes, dailyCalendar.plannedBreakEnd) && (!hasBreakEnd || lastLog?.type === AttendanceType.BREAK_START)) {
+      return AttendanceType.BREAK_END;
+    }
+
+    if (isNearTime(nowMinutes, dailyCalendar.plannedEnd)) {
+      return AttendanceType.EXIT;
+    }
+  }
+
+  if (lastLog?.type === AttendanceType.BREAK_START) return AttendanceType.BREAK_END;
+  if (lastLog?.type === AttendanceType.ENTRY || lastLog?.type === AttendanceType.BREAK_END) return AttendanceType.EXIT;
+  if (lastLog && entryExitTypes.has(lastLog.type) && lastLog.type === AttendanceType.EXIT) return AttendanceType.ENTRY;
+
+  return AttendanceType.ENTRY;
 }
 
 export async function POST(request: Request) {
@@ -17,6 +103,9 @@ export async function POST(request: Request) {
     const secretKey = typeof body?.secretKey === "string" ? body.secretKey.trim() : "";
     const rfidCardId =
       typeof body?.rfidCardId === "string" ? normalizeCardId(body.rfidCardId) : "";
+    const macAddress = typeof body?.macAddress === "string" ? body.macAddress.trim().toUpperCase() : "";
+    const ipAddress = typeof body?.ipAddress === "string" ? body.ipAddress.trim() : "";
+    const scannedAt = new Date();
 
     if (!secretKey || !rfidCardId) {
       return NextResponse.json(
@@ -54,25 +143,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const latestLog = await prisma.attendanceLog.findFirst({
-      where: {
-        employeeId: employee.id,
-        type: { in: [AttendanceType.ENTRY, AttendanceType.EXIT] },
-      },
-      orderBy: { scannedAt: "desc" },
+    const nextType = await inferAttendanceType({
+      employeeId: employee.id,
+      devicePurpose: device.purpose,
+      scannedAt,
     });
-    const nextType =
-      device.purpose === DevicePurpose.ENTRY
-        ? AttendanceType.ENTRY
-        : device.purpose === DevicePurpose.EXIT
-          ? AttendanceType.EXIT
-          : device.purpose === DevicePurpose.BREAK_START
-            ? AttendanceType.BREAK_START
-            : device.purpose === DevicePurpose.BREAK_END
-              ? AttendanceType.BREAK_END
-              : latestLog && entryExitTypes.has(latestLog.type) && latestLog.type === AttendanceType.ENTRY
-                ? AttendanceType.EXIT
-                : AttendanceType.ENTRY;
 
     const [log] = await prisma.$transaction([
       prisma.attendanceLog.create({
@@ -81,11 +156,17 @@ export async function POST(request: Request) {
           deviceId: device.id,
           type: nextType,
           rfidCardId,
+          scannedAt,
         },
       }),
       prisma.device.update({
         where: { id: device.id },
-        data: { lastSeenAt: new Date(), lastDataTransferAt: new Date() },
+        data: {
+          lastSeenAt: new Date(),
+          lastDataTransferAt: new Date(),
+          ...(macAddress ? { macAddress } : {}),
+          ...(ipAddress ? { ipAddress } : {}),
+        },
       }),
     ]);
 
