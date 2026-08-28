@@ -7,22 +7,27 @@
 #include <ArduinoJson.h>
 #include <SPI.h>
 #include <MFRC522.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal.h>
 
 // ESP32 pinleri. Kendi baglantina gore burayi degistirebilirsin.
 #define RFID_SS_PIN 5
 #define RFID_RST_PIN 27
 #define GREEN_LED_PIN 26
 #define RED_LED_PIN 33
-#define BUZZER_PIN 25
 
-#define LCD_ADDRESS 0x27
+// Donusturucusuz 2x16 paralel LCD (4-bit mod)
+#define LCD_RS_PIN 32
+#define LCD_ENABLE_PIN 25
+#define LCD_D4_PIN 22
+#define LCD_D5_PIN 21
+#define LCD_D6_PIN 16
+#define LCD_D7_PIN 17
+
 #define LCD_COLUMNS 16
 #define LCD_ROWS 2
 
 const char* DEFAULT_API_BASE_URL = "http://13.143.223.183:3002";
-const char* DEFAULT_DEVICE_SECRET_KEY = "";
+const char* DEFAULT_DEVICE_SECRET_KEY = "be628a54-e5de-466d-8921-a3220ccb913b";
 
 const unsigned long WIFI_RETRY_MS = 5000;
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
@@ -31,7 +36,14 @@ const unsigned long RFID_DEBOUNCE_MS = 2500;
 const byte DNS_PORT = 53;
 
 MFRC522 rfid(RFID_SS_PIN, RFID_RST_PIN);
-LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
+LiquidCrystal lcd(
+  LCD_RS_PIN,
+  LCD_ENABLE_PIN,
+  LCD_D4_PIN,
+  LCD_D5_PIN,
+  LCD_D6_PIN,
+  LCD_D7_PIN
+);
 Preferences preferences;
 WebServer configServer(80);
 DNSServer dnsServer;
@@ -77,26 +89,14 @@ void setStatusLed(bool green, bool red) {
   digitalWrite(RED_LED_PIN, red ? HIGH : LOW);
 }
 
-void beep(unsigned int durationMs = 110) {
-  digitalWrite(BUZZER_PIN, HIGH);
-  delay(durationMs);
-  digitalWrite(BUZZER_PIN, LOW);
-}
-
 void successSignal() {
   setStatusLed(true, false);
-  beep(90);
-  delay(80);
-  beep(90);
   delay(500);
   setStatusLed(false, false);
 }
 
 void errorSignal() {
   setStatusLed(false, true);
-  beep(220);
-  delay(120);
-  beep(220);
   delay(700);
   setStatusLed(false, false);
 }
@@ -461,13 +461,9 @@ void setup() {
 
   pinMode(GREEN_LED_PIN, OUTPUT);
   pinMode(RED_LED_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
   setStatusLed(false, false);
-  digitalWrite(BUZZER_PIN, LOW);
 
-  Wire.begin();
-  lcd.init();
-  lcd.backlight();
+  lcd.begin(LCD_COLUMNS, LCD_ROWS);
   showLcd("RFID Personel", "Baslatiliyor");
 
   SPI.begin();
