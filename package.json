@@ -8,7 +8,7 @@
     "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/work-calendar-rules.test.ts",
+    "test": "tsx --test src/lib/work-calendar-rules.test.ts src/lib/attendance-sequence.test.ts",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",

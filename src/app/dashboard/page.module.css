@@ -656,6 +656,130 @@
   align-items: end;
 }
 
+.dailyReportFilters {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.8fr) minmax(220px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.dailyAttendanceTable th,
+.dailyAttendanceTable td {
+  vertical-align: middle;
+}
+
+.reportPerson {
+  min-width: 190px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.reportPerson > span {
+  width: 2.45rem;
+  height: 2.45rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #e0f2fe, #dbeafe);
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.reportPerson strong,
+.reportPerson small,
+.cellHint,
+.liveBreak {
+  display: block;
+}
+
+.reportPerson small,
+.cellHint {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.reportBadgeSuccess,
+.reportBadgeWarning,
+.reportBadgeDanger,
+.reportState {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.reportBadgeSuccess {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.reportBadgeWarning {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.reportBadgeDanger {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.reportState {
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.reportStateBreak {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.movementTimeline {
+  min-width: 150px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.movementTimeline span {
+  padding: 0.25rem 0.42rem;
+  border-radius: 5px;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.movementTimeline span + span::before {
+  content: "›";
+  margin-right: 0.3rem;
+  color: #94a3b8;
+}
+
+.liveBreak {
+  margin-top: 0.25rem;
+  color: #d97706;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.reportEmpty {
+  padding: 1rem;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
 .inlineEditForm {
   display: grid;
   grid-template-columns: minmax(130px, 0.8fr) minmax(170px, 1fr) auto;
@@ -1228,7 +1352,8 @@
   .cardGridWide,
   .dashboardVisualGrid,
   .analysisBarRow,
-  .filterGrid {
+  .filterGrid,
+  .dailyReportFilters {
     grid-template-columns: 1fr;
   }
 }

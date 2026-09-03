@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
-
-const entryExitTypes = new Set<AttendanceType>([
-  AttendanceType.ENTRY,
-  AttendanceType.EXIT,
-]);
-const MOVEMENT_TOLERANCE_MINUTES = 30;
+import { EXIT_TOLERANCE_MINUTES, inferBidirectionalMovement } from "@/lib/attendance-sequence";
 
 function normalizeCardId(cardId: string) {
   return cardId.trim().toUpperCase();
@@ -31,11 +26,7 @@ function getLogMinutes(date: Date) {
 
 function isNearTime(nowMinutes: number, plannedTime?: string | null) {
   const plannedMinutes = timeToMinutes(plannedTime);
-  return plannedMinutes !== null && Math.abs(nowMinutes - plannedMinutes) <= MOVEMENT_TOLERANCE_MINUTES;
-}
-
-function hasTodayType(logs: { type: AttendanceType }[], type: AttendanceType) {
-  return logs.some((log) => log.type === type);
+  return plannedMinutes !== null && Math.abs(nowMinutes - plannedMinutes) <= EXIT_TOLERANCE_MINUTES;
 }
 
 async function inferAttendanceType(params: {
@@ -70,31 +61,10 @@ async function inferAttendanceType(params: {
       },
     },
   });
-  const nowMinutes = getLogMinutes(params.scannedAt);
-  const lastLog = todayLogs.at(-1);
-
-  if (dailyCalendar) {
-    const hasBreakStart = hasTodayType(todayLogs, AttendanceType.BREAK_START);
-    const hasBreakEnd = hasTodayType(todayLogs, AttendanceType.BREAK_END);
-
-    if (isNearTime(nowMinutes, dailyCalendar.plannedBreakStart) && !hasBreakStart) {
-      return AttendanceType.BREAK_START;
-    }
-
-    if (isNearTime(nowMinutes, dailyCalendar.plannedBreakEnd) && (!hasBreakEnd || lastLog?.type === AttendanceType.BREAK_START)) {
-      return AttendanceType.BREAK_END;
-    }
-
-    if (isNearTime(nowMinutes, dailyCalendar.plannedEnd)) {
-      return AttendanceType.EXIT;
-    }
-  }
-
-  if (lastLog?.type === AttendanceType.BREAK_START) return AttendanceType.BREAK_END;
-  if (lastLog?.type === AttendanceType.ENTRY || lastLog?.type === AttendanceType.BREAK_END) return AttendanceType.EXIT;
-  if (lastLog && entryExitTypes.has(lastLog.type) && lastLog.type === AttendanceType.EXIT) return AttendanceType.ENTRY;
-
-  return AttendanceType.ENTRY;
+  return inferBidirectionalMovement({
+    logs: todayLogs,
+    isNearPlannedEnd: isNearTime(getLogMinutes(params.scannedAt), dailyCalendar?.plannedEnd),
+  });
 }
 
 export async function POST(request: Request) {

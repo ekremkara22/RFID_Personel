@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  Clock3,
   ChevronDown,
   FileBarChart,
   Timer,
@@ -67,6 +68,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     { href: "/dashboard/reports/personnel", label: "Personel PDKS", icon: Users },
     { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: FileBarChart },
     { href: "/dashboard/reports/late-arrivals", label: "Geç Kalma Raporu", icon: Timer },
+    { href: "/dashboard/reports/daily-attendance", label: "Günlük Mola ve Mesai", icon: Clock3 },
   ];
   const calendarItems = [
     { href: "/dashboard/calendar", label: "Takvim Görünümü", icon: CalendarDays },
