@@ -8,21 +8,11 @@ import {
   Users,
 } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
-import { TopLateEmployees, type TopLateEmployeeRow } from "@/app/dashboard/top-late-employees";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "./page.module.css";
-
-type LateRecord = {
-  employeeId: number;
-  employeeName: string;
-  department: string;
-  workDate: Date;
-  scannedAt: Date;
-  lateMinutes: number;
-};
 
 const attendanceLabels = {
   ENTRY: "Giriş",
@@ -31,16 +21,6 @@ const attendanceLabels = {
   BREAK_END: "Mola Çıkış",
   MEAL_START: "Yemek Giriş",
   MEAL_END: "Yemek Çıkış",
-} as const;
-
-const leaveTypeLabels = {
-  ANNUAL: "Yillik izin",
-  EXCUSE: "Mazeret izni",
-  UNPAID: "Ucretsiz izin",
-  MEDICAL: "Saglik raporu",
-  ADMINISTRATIVE: "Idari izin",
-  HOURLY: "Saatlik izin",
-  HALF_DAY: "Yarim gun izin",
 } as const;
 
 function getRoleLabel(role: string) {
@@ -67,15 +47,6 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-function getWeekStart(date: Date) {
-  const weekStart = new Date(date);
-  const day = weekStart.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  weekStart.setDate(weekStart.getDate() + diff);
-  weekStart.setHours(0, 0, 0, 0);
-  return weekStart;
-}
-
 function getDayKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -99,30 +70,51 @@ function formatMinutes(minutes: number) {
   return remaining > 0 ? `${hours} sa ${remaining} dk` : `${hours} sa`;
 }
 
+function getEmployeeBreakSummary(
+  logs: Array<{ type: keyof typeof attendanceLabels; scannedAt: Date }>,
+  rangeEnd: Date | null,
+) {
+  let breakStartedAt: Date | null = null;
+  let mealStartedAt: Date | null = null;
+  let totalMinutes = 0;
+
+  const closePeriod = (startedAt: Date | null, endedAt: Date) => {
+    if (!startedAt || endedAt <= startedAt) return 0;
+    return Math.max(0, Math.floor((endedAt.getTime() - startedAt.getTime()) / 60_000));
+  };
+
+  logs
+    .filter((log) => ["BREAK_START", "BREAK_END", "MEAL_START", "MEAL_END"].includes(log.type))
+    .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())
+    .forEach((log) => {
+      if (log.type === "BREAK_START") breakStartedAt = log.scannedAt;
+      if (log.type === "MEAL_START") mealStartedAt = log.scannedAt;
+      if (log.type === "BREAK_END") {
+        totalMinutes += closePeriod(breakStartedAt, log.scannedAt);
+        breakStartedAt = null;
+      }
+      if (log.type === "MEAL_END") {
+        totalMinutes += closePeriod(mealStartedAt, log.scannedAt);
+        mealStartedAt = null;
+      }
+    });
+
+  const activeStartedAt = breakStartedAt ?? mealStartedAt;
+  if (rangeEnd) {
+    totalMinutes += closePeriod(breakStartedAt, rangeEnd);
+    totalMinutes += closePeriod(mealStartedAt, rangeEnd);
+  }
+
+  return {
+    totalMinutes,
+    isActive: activeStartedAt !== null,
+    activeMinutes: rangeEnd ? closePeriod(activeStartedAt, rangeEnd) : 0,
+  };
+}
+
 function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   const plannedStartMinutes = timeToMinutes(plannedStart);
   return plannedStartMinutes !== null && getLogMinutes(scannedAt) > plannedStartMinutes;
-}
-
-function summarizeLateRecords(records: LateRecord[]): TopLateEmployeeRow[] {
-  return Array.from(
-    records.reduce((summary, record) => {
-      const current = summary.get(record.employeeId) ?? {
-        employeeId: record.employeeId,
-        employeeName: record.employeeName,
-        department: record.department,
-        count: 0,
-        totalMinutes: 0,
-      };
-      current.count += 1;
-      current.totalMinutes += record.lateMinutes;
-      summary.set(record.employeeId, current);
-      return summary;
-    }, new Map<number, TopLateEmployeeRow>()),
-  )
-    .map(([, value]) => value)
-    .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
-    .slice(0, 8);
 }
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string }> }) {
@@ -137,7 +129,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   selectedDateEnd.setDate(selectedDateEnd.getDate() + 1);
   const todayEnd = new Date(today);
   todayEnd.setDate(todayEnd.getDate() + 1);
-  const weekStart = getWeekStart(new Date());
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -378,19 +369,71 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       lateMinutes,
     }];
   }).sort((first, second) => second.lateMinutes - first.lateMinutes);
+  const isSelectedToday = getDayKey(selectedDate) === getDayKey(today);
+  const selectedBreakRangeEnd = isSelectedToday ? new Date() : null;
+  const selectedLateByEmployee = new Map(selectedLateEmployees.map((record) => [record.employeeId, record]));
+  const selectedCalendarByEmployee = new Map(
+    selectedDailyCalendarsForCritical.map((calendar) => [calendar.employeeId, calendar]),
+  );
+  const selectedLogsByEmployee = selectedLogsForCritical.reduce((map, log) => {
+    const employeeLogs = map.get(log.employeeId) ?? [];
+    employeeLogs.push(log);
+    map.set(log.employeeId, employeeLogs);
+    return map;
+  }, new Map<number, typeof selectedLogsForCritical>());
+  const selectedOperationalRows = Array.from(
+    new Set([...selectedCalendarByEmployee.keys(), ...selectedLogsByEmployee.keys()]),
+  )
+    .map((employeeId) => {
+      const calendar = selectedCalendarByEmployee.get(employeeId);
+      const employeeLogs = selectedLogsByEmployee.get(employeeId) ?? [];
+      const employee = calendar?.employee ?? employeeLogs[0]?.employee;
+      const lateRecord = selectedLateByEmployee.get(employeeId);
+      const breakSummary = getEmployeeBreakSummary(employeeLogs, selectedBreakRangeEnd);
+      const plannedBreakMinutes = calendar?.plannedBreakMinutes ?? 0;
+
+      if (!employee) return null;
+
+      return {
+        employeeId,
+        employeeName: `${employee.firstName} ${employee.lastName}`.trim(),
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        photoUrl: employee.photoUrl,
+        department: employee.department || "Departmansız",
+        lateMinutes: lateRecord?.lateMinutes ?? 0,
+        breakMinutes: breakSummary.totalMinutes,
+        breakOverMinutes: Math.max(0, breakSummary.totalMinutes - plannedBreakMinutes),
+        isOnBreak: isSelectedToday && breakSummary.isActive,
+        activeBreakMinutes: isSelectedToday ? breakSummary.activeMinutes : 0,
+        plannedStart: calendar?.plannedStart ?? null,
+        firstEntry: employeeLogs
+          .filter((log) => log.type === "ENTRY")
+          .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0]?.scannedAt ?? null,
+        plannedBreakMinutes,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .filter((row) => row.lateMinutes > 0 || row.breakMinutes > 0 || row.isOnBreak)
+    .sort(
+      (first, second) =>
+        Number(second.isOnBreak) - Number(first.isOnBreak) ||
+        second.lateMinutes + second.breakOverMinutes - (first.lateMinutes + first.breakOverMinutes),
+    );
+  const selectedLateTotalMinutes = selectedLateEmployees.reduce((sum, row) => sum + row.lateMinutes, 0);
+  const selectedLateAverageMinutes = selectedLateEmployees.length
+    ? Math.round(selectedLateTotalMinutes / selectedLateEmployees.length)
+    : 0;
+  const selectedBreakOverRows = selectedOperationalRows.filter((row) => row.breakOverMinutes > 0);
+  const selectedBreakOverTotalMinutes = selectedBreakOverRows.reduce((sum, row) => sum + row.breakOverMinutes, 0);
+  const selectedOnBreakRows = selectedOperationalRows.filter((row) => row.isOnBreak);
+  const longestActiveBreakMinutes = Math.max(...selectedOnBreakRows.map((row) => row.activeBreakMinutes), 0);
+  const selectedChartRows = selectedOperationalRows.slice(0, 8);
+  const selectedChartMaxMinutes = Math.max(
+    ...selectedChartRows.flatMap((row) => [row.lateMinutes, row.breakMinutes]),
+    1,
+  );
   const selectedLeaveEmployeeIds = new Set(selectedApprovedLeaves.map((leave) => leave.employeeId));
-  const selectedLeaveSummaries = selectedApprovedLeaves
-    .map((leave) => ({
-      employeeName: `${leave.employee.firstName} ${leave.employee.lastName}`.trim(),
-      department: leave.employee.department || "Departmansiz",
-      firstName: leave.employee.firstName,
-      lastName: leave.employee.lastName,
-      photoUrl: leave.employee.photoUrl,
-      type: leave.type,
-    }))
-    .sort((first, second) => first.employeeName.localeCompare(second.employeeName, "tr"));
-  const weeklyTopLateEmployees = summarizeLateRecords(monthlyLateRecords.filter((record) => record.workDate >= weekStart));
-  const monthlyTopLateEmployees = summarizeLateRecords(monthlyLateRecords.filter((record) => record.workDate >= monthStart));
   const monthlyLateTotalMinutes = monthlyLateRecords.reduce((sum, record) => sum + record.lateMinutes, 0);
   const monthlyLateAverageMinutes = monthlyLateRecords.length > 0 ? Math.round(monthlyLateTotalMinutes / monthlyLateRecords.length) : 0;
   const monthlyLateDepartmentRows = Array.from(
@@ -412,7 +455,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     const firstEntry = firstTodayEntryByEmployee.get(day.employeeId);
     return firstEntry ? !isLateEntry(firstEntry.scannedAt, day.plannedStart) : false;
   }).length;
-  const statusTotal = Math.max(employeeCount, 1);
   const statusCards = [
     { label: "Su An Iceride", value: currentlyInside, color: "blue" },
     { label: "Zamaninda", value: onTimeTodayCount, color: "green" },
@@ -507,7 +549,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         </section>
       ) : null}
 
-      <section className={styles.metricsGrid}>
+      {isSuperadmin ? <section className={styles.metricsGrid}>
         {summaryCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -520,108 +562,94 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
             </article>
           );
         })}
-      </section>
+      </section> : null}
 
       {!isSuperadmin ? (
-        <section className={`glass-panel ${styles.operationInsightPanel}`}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.sectionEyebrow}>Operasyon ozeti</p>
-              <h2 className={styles.sectionTitle}>Kritik Personel Durumu</h2>
-            </div>
-            <form className={styles.dateFilterForm}>
-              <label>
-                <span>Tarih</span>
-                <input name="date" type="date" defaultValue={getDayKey(selectedDate)} />
-              </label>
-              <button type="submit">Goster</button>
-            </form>
-          </div>
+        <>
+          <section className={styles.operationKpiGrid}>
+            <article className={`${styles.operationKpiCard} ${styles.operationKpiLate}`}>
+              <span>Geç kalan personel</span>
+              <strong>{selectedLateEmployees.length}</strong>
+              <small>Toplam {formatMinutes(selectedLateTotalMinutes)}</small>
+            </article>
+            <article className={styles.operationKpiCard}>
+              <span>Ortalama gecikme</span>
+              <strong>{formatMinutes(selectedLateAverageMinutes)}</strong>
+              <small>Seçili gündeki gecikmeler</small>
+            </article>
+            <article className={`${styles.operationKpiCard} ${styles.operationKpiBreak}`}>
+              <span>Mola limitini aşan</span>
+              <strong>{selectedBreakOverRows.length}</strong>
+              <small>Toplam +{formatMinutes(selectedBreakOverTotalMinutes)}</small>
+            </article>
+            <article className={styles.operationKpiCard}>
+              <span>Şu an molada</span>
+              <strong>{isSelectedToday ? selectedOnBreakRows.length : "—"}</strong>
+              <small>{isSelectedToday ? `En uzun aktif mola: ${formatMinutes(longestActiveBreakMinutes)}` : "Yalnızca bugünde canlıdır"}</small>
+            </article>
+          </section>
 
-          <div className={styles.operationInsightGrid}>
-            <div className={styles.attendanceBrief}>
-              <div className={styles.attendanceBriefPanel}>
-                <h3 className={styles.miniTitle}>Gec Kalanlar</h3>
-                <div className={styles.personBriefList}>
-                  {selectedLateEmployees.length === 0 ? (
-                    <p className={styles.emptyState}>Secili tarihte gec kalan personel yok.</p>
-                  ) : selectedLateEmployees.slice(0, 8).map((record) => (
-                    <article key={record.employeeId} className={styles.personBriefItem}>
-                      <div className={styles.personBriefProfile}>
-                        <span
-                          className={styles.personBriefAvatar}
-                          style={record.photoUrl ? { backgroundImage: `url(${record.photoUrl})` } : undefined}
-                        >
-                          {record.photoUrl ? "" : getInitials(record.firstName, record.lastName)}
-                        </span>
-                        <div>
-                          <strong>{record.employeeName}</strong>
-                          <span>{record.department}</span>
-                        </div>
-                      </div>
-                      <b>{record.lateMinutes} dk</b>
-                    </article>
-                  ))}
+          <section className={styles.operationReportGrid}>
+            <article className={styles.operationReportPanel}>
+              <div className={styles.operationReportHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Operasyon özeti</p>
+                  <h2 className={styles.sectionTitle}>Bugün Dikkat Gerektiren Personeller</h2>
                 </div>
+                <form className={styles.dateFilterForm}>
+                  <label><span>Tarih</span><input name="date" type="date" defaultValue={getDayKey(selectedDate)} /></label>
+                  <button type="submit">Göster</button>
+                </form>
               </div>
-
-              <div className={styles.attendanceBriefPanel}>
-                <h3 className={styles.miniTitle}>Izinli Personel</h3>
-                <div className={styles.personBriefList}>
-                  {selectedLeaveSummaries.length === 0 ? (
-                    <p className={styles.emptyState}>Secili tarihte izinli personel yok.</p>
-                  ) : selectedLeaveSummaries.slice(0, 8).map((leave) => (
-                    <article key={`${leave.employeeName}-${leave.type}`} className={styles.personBriefItem}>
-                      <div className={styles.personBriefProfile}>
-                        <span
-                          className={styles.personBriefAvatar}
-                          style={leave.photoUrl ? { backgroundImage: `url(${leave.photoUrl})` } : undefined}
-                        >
-                          {leave.photoUrl ? "" : getInitials(leave.firstName, leave.lastName)}
-                        </span>
-                        <div>
-                          <strong>{leave.employeeName}</strong>
-                          <span>{leave.department}</span>
-                        </div>
-                      </div>
-                      <b>{leaveTypeLabels[leave.type]}</b>
-                    </article>
-                  ))}
-                </div>
+              <div className={styles.operationLegend}>
+                <span><i className={styles.operationLegendLate} />Geç kalma</span>
+                <span><i className={styles.operationLegendBreak} />Mola</span>
               </div>
-            </div>
-          </div>
-
-          <TopLateEmployees weeklyRows={weeklyTopLateEmployees} monthlyRows={monthlyTopLateEmployees} />
-        </section>
-      ) : null}
-
-      {!isSuperadmin ? (
-        <section className={styles.statusOverviewGrid}>
-          <article className={`glass-panel ${styles.statusPanel}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Bugunku durum</p>
-                <h2 className={styles.sectionTitle}>Personel Ozeti</h2>
-              </div>
-            </div>
-            <div className={styles.donutSummary}>
-              <div className={styles.donutCircle}>
-                <strong>{employeeCount}</strong>
-                <span>Toplam</span>
-              </div>
-              <div className={styles.statusList}>
-                {statusCards.map((item) => (
-                  <p key={item.label}>
-                    <span className={`${styles.statusDot} ${styles[`statusDot${item.color}`]}`} />
-                    {item.label}
-                    <strong>{item.value} (%{Math.round((item.value / statusTotal) * 100)})</strong>
-                  </p>
+              <div className={styles.operationPersonList}>
+                {selectedChartRows.length === 0 ? (
+                  <p className={styles.emptyState}>Seçili tarihte gecikme veya mola hareketi yok.</p>
+                ) : selectedChartRows.map((row) => (
+                  <article key={row.employeeId} className={styles.operationPersonRow}>
+                    <div className={styles.operationPersonIdentity}>
+                      <span
+                        className={styles.personBriefAvatar}
+                        style={row.photoUrl ? { backgroundImage: `url(${row.photoUrl})` } : undefined}
+                      >{row.photoUrl ? "" : getInitials(row.firstName, row.lastName)}</span>
+                      <div><strong>{row.employeeName}</strong><small>{row.department}</small></div>
+                    </div>
+                    <div className={styles.operationComparisonTrack}>
+                      <span className={styles.operationLateBar} style={{ width: `${(row.lateMinutes / selectedChartMaxMinutes) * 50}%` }} />
+                      <span className={styles.operationBreakBar} style={{ width: `${(row.breakMinutes / selectedChartMaxMinutes) * 50}%` }} />
+                    </div>
+                    <b className={styles.operationLateValue}>{row.lateMinutes} dk</b>
+                    <b className={styles.operationBreakValue}>{row.breakMinutes} dk</b>
+                  </article>
                 ))}
               </div>
-            </div>
-          </article>
-        </section>
+              <p className={styles.operationChartNote}>Çubuklar personel bazında geç kalma ve toplam mola süresini birlikte karşılaştırır.</p>
+            </article>
+
+            <article className={styles.operationReportPanel}>
+              <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Günlük dağılım</p><h2 className={styles.sectionTitle}>Personel Durumu</h2></div></div>
+              <div className={styles.donutSummary}>
+                <div className={styles.donutCircle}><strong>{employeeCount}</strong><span>Toplam</span></div>
+                <div className={styles.statusList}>
+                  {statusCards.map((item) => (
+                    <p key={item.label}><span className={`${styles.statusDot} ${styles[`statusDot${item.color}`]}`} />{item.label}<strong>{item.value}</strong></p>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.operationAlerts}>
+                {selectedChartRows.slice(0, 3).map((row) => (
+                  <div key={row.employeeId} className={styles.operationAlertRow}>
+                    <div><strong>{row.employeeName}</strong><span>{row.lateMinutes > 0 && row.plannedStart && row.firstEntry ? `Planlanan ${row.plannedStart} · Giriş ${row.firstEntry.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}` : `Mola limiti ${row.plannedBreakMinutes} dk · Kullanım ${row.breakMinutes} dk`}</span></div>
+                    <b>{row.lateMinutes > 0 ? `+${row.lateMinutes} dk` : `+${row.breakOverMinutes} dk`}</b>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </section>
+        </>
       ) : null}
 
       <section className={styles.singleColumnGrid}>

@@ -808,6 +808,163 @@
   gap: 1rem;
 }
 
+.operationKpiGrid {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.operationKpiCard,
+.operationReportPanel {
+  min-width: 0;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.operationKpiCard span,
+.operationKpiCard small {
+  display: block;
+  color: #64748b;
+}
+
+.operationKpiCard span {
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.operationKpiCard strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #0f172a;
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+.operationKpiCard small {
+  margin-top: 0.25rem;
+  font-size: 0.74rem;
+}
+
+.operationKpiLate strong { color: #dc2626; }
+.operationKpiBreak strong { color: #d97706; }
+
+.operationReportGrid {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.8fr);
+  gap: 1rem;
+}
+
+.operationReportHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.operationLegend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.operationLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.operationLegend i {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 3px;
+}
+
+.operationLegendLate,
+.operationLateBar { background: #ef4444; }
+
+.operationLegendBreak,
+.operationBreakBar { background: #f59e0b; }
+
+.operationPersonList { display: grid; gap: 0.7rem; }
+
+.operationPersonRow {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.8fr) minmax(120px, 1fr) 48px 48px;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.operationPersonIdentity {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.operationPersonIdentity strong,
+.operationPersonIdentity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operationPersonIdentity strong { color: #0f172a; font-size: 0.86rem; }
+.operationPersonIdentity small { margin-top: 0.15rem; color: #64748b; font-size: 0.72rem; }
+
+.operationComparisonTrack {
+  height: 1.3rem;
+  display: flex;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #edf2f7;
+}
+
+.operationComparisonTrack span { display: block; height: 100%; min-width: 0; }
+
+.operationLateValue,
+.operationBreakValue {
+  text-align: right;
+  white-space: nowrap;
+  font-size: 0.74rem;
+}
+
+.operationLateValue { color: #b91c1c; }
+.operationBreakValue { color: #b45309; }
+
+.operationChartNote {
+  margin-top: 0.8rem;
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.operationAlerts { margin-top: 1rem; }
+
+.operationAlertRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.operationAlertRow strong,
+.operationAlertRow span { display: block; }
+.operationAlertRow strong { color: #0f172a; font-size: 0.82rem; }
+.operationAlertRow span { margin-top: 0.18rem; color: #64748b; font-size: 0.7rem; }
+.operationAlertRow b { color: #b91c1c; white-space: nowrap; font-size: 0.78rem; }
+
 .dashboardTitle {
   font-size: clamp(1.65rem, 3vw, 2.35rem);
   line-height: 1.12;
@@ -1356,6 +1513,9 @@
   .dailyReportFilters {
     grid-template-columns: 1fr;
   }
+
+  .operationKpiGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .operationReportGrid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -1391,6 +1551,9 @@
     justify-items: stretch;
   }
 
+  .operationReportHeader { align-items: stretch; flex-direction: column; }
+  .operationPersonRow { grid-template-columns: minmax(120px, 0.8fr) minmax(90px, 1fr) 43px 43px; gap: 0.45rem; }
+
   .quickActions {
     justify-content: stretch;
   }
@@ -1424,4 +1587,11 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+@media (max-width: 480px) {
+  .operationKpiGrid { grid-template-columns: 1fr; }
+  .operationPersonRow { grid-template-columns: minmax(105px, 0.8fr) minmax(70px, 1fr) 38px 38px; }
+  .operationPersonIdentity .personBriefAvatar { display: none; }
+  .operationPersonIdentity { grid-template-columns: minmax(0, 1fr); }
 }
