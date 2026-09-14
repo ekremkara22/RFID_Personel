@@ -14,6 +14,7 @@
     "db:push": "prisma db push",
     "calendar:backfill": "node --env-file=.env --import tsx scripts/backfill-attendance-calendars.ts",
     "calendar:install-finalizer": "node --env-file=.env --import tsx scripts/install-daily-attendance-finalizer.ts",
+    "seed:september-movements": "node --env-file=.env --import tsx scripts/seed-september-movements.ts",
     "seed": "tsx prisma/seed.ts"
   },
   "engines": {

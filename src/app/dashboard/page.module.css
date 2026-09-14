@@ -905,10 +905,7 @@
 
 .operationPersonIdentity {
   min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.6rem;
+  display: block;
 }
 
 .operationPersonIdentity strong,
@@ -971,6 +968,8 @@
   gap: 0.75rem;
 }
 
+.staffStatusPanel { margin-bottom: 1rem; }
+
 .staffStatusColumn {
   min-width: 0;
   min-height: 180px;
@@ -1009,13 +1008,12 @@
 .alertNameList strong { min-width: 0; overflow: hidden; color: #1e293b; font-size: 0.8rem; text-overflow: ellipsis; white-space: nowrap; }
 .alertNameList span { flex: 0 0 auto; color: #dc2626; font-size: 0.75rem; font-weight: 850; }
 
-.compactBars { display: grid; gap: 0.7rem; }
-.compactBarRow { display: grid; grid-template-columns: minmax(120px, 0.7fr) minmax(120px, 1fr); align-items: center; gap: 0.8rem; }
-.compactBarRow > div:first-child { display: grid; gap: 0.15rem; min-width: 0; }
-.compactBarRow strong { overflow: hidden; color: #334155; font-size: 0.77rem; text-overflow: ellipsis; white-space: nowrap; }
-.compactBarRow span { color: #64748b; font-size: 0.68rem; }
-.compactBarTrack { height: 0.62rem; overflow: hidden; border-radius: 999px; background: #edf2f7; }
-.compactBarTrack i { display: block; height: 100%; border-radius: inherit; }
+.verticalBars { min-height: 230px; display: flex; align-items: stretch; gap: 0.8rem; overflow-x: auto; padding: 0.25rem 0.15rem 0; }
+.verticalBarColumn { min-width: 58px; flex: 1 0 58px; display: grid; grid-template-rows: 20px 170px 32px; align-items: end; justify-items: center; gap: 0.35rem; }
+.verticalBarColumn > span { color: #64748b; font-size: 0.66rem; font-weight: 750; white-space: nowrap; }
+.verticalBarColumn > strong { width: 100%; overflow: hidden; color: #334155; font-size: 0.68rem; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.verticalBarTrack { width: min(42px, 72%); height: 170px; display: flex; align-items: flex-end; overflow: hidden; border-radius: 7px 7px 3px 3px; background: repeating-linear-gradient(to top, #f8fafc 0, #f8fafc 33px, #e2e8f0 34px); }
+.verticalBarTrack i { display: block; width: 100%; min-height: 4px; border-radius: 6px 6px 2px 2px; }
 .lateDepartmentBar { background: linear-gradient(90deg, #f87171, #dc2626); }
 .breakDepartmentBar { background: linear-gradient(90deg, #fbbf24, #d97706); }
 

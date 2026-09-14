@@ -211,7 +211,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         employee: true,
       },
       orderBy: { scannedAt: "desc" },
-      take: 1000,
+      take: 10000,
     }),
     prisma.employeeDailyCalendar.findMany({
       where: {
@@ -417,6 +417,13 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     ? Math.round(selectedLateTotalMinutes / selectedLateEmployees.length)
     : 0;
   const selectedBreakOverRows = selectedOperationalRows.filter((row) => row.breakOverMinutes > 0);
+  const selectedPersonChartRows = selectedOperationalRows
+    .filter((row) => row.lateMinutes > 0 || row.breakMinutes > 0 || row.isOnBreak)
+    .slice(0, 8);
+  const selectedPersonChartMaxMinutes = Math.max(
+    ...selectedPersonChartRows.flatMap((row) => [row.lateMinutes, row.breakMinutes]),
+    1,
+  );
   const selectedLeaveEmployeeIds = new Set(selectedApprovedLeaves.map((leave) => leave.employeeId));
   const monthlyLateDepartmentRows = Array.from(
     monthlyLateRecords.reduce((map, record) => {
@@ -592,27 +599,28 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               <div className={styles.operationReportHeader}>
                 <div>
                   <p className={styles.sectionEyebrow}>Operasyon özeti</p>
-                  <h2 className={styles.sectionTitle}>Özet</h2>
+                  <h2 className={styles.sectionTitle}>Personel Geç Kalma ve Mola Süreleri</h2>
                 </div>
                 <form className={styles.dateFilterForm}>
                   <label><span>Tarih</span><input name="date" type="date" defaultValue={getDateOnlyKey(selectedDate)} /></label>
                   <button type="submit">Göster</button>
                 </form>
               </div>
-              <div className={styles.staffStatusGrid}>
-                {[
-                  { title: "Çalışıyor", employees: selectedWorkingEmployees, tone: "working" },
-                  { title: "Molada", employees: selectedOnBreakEmployees, tone: "break" },
-                  { title: "İzinli", employees: selectedLeaveEmployees, tone: "leave" },
-                ].map((group) => (
-                  <section key={group.title} className={`${styles.staffStatusColumn} ${styles[`staffStatus${group.tone}`]}`}>
-                    <div className={styles.staffStatusHeading}><h3>{group.title}</h3><span>{group.employees.length}</span></div>
-                    <div className={styles.staffNameList}>
-                      {group.employees.length === 0 ? <p>Personel yok</p> : group.employees.map((employee) => (
-                        <strong key={employee.id}>{employee.firstName} {employee.lastName}</strong>
-                      ))}
+              <div className={styles.operationLegend}>
+                <span><i className={styles.operationLegendLate} />Geç kalma</span>
+                <span><i className={styles.operationLegendBreak} />Mola</span>
+              </div>
+              <div className={styles.operationPersonList}>
+                {selectedPersonChartRows.length === 0 ? <p className={styles.emptyState}>Seçili tarihte gecikme veya mola hareketi yok.</p> : selectedPersonChartRows.map((row) => (
+                  <article key={row.employeeId} className={styles.operationPersonRow}>
+                    <div className={styles.operationPersonIdentity}><div><strong>{row.employeeName}</strong><small>{row.department}</small></div></div>
+                    <div className={styles.operationComparisonTrack}>
+                      <span className={styles.operationLateBar} style={{ width: `${(row.lateMinutes / selectedPersonChartMaxMinutes) * 50}%` }} />
+                      <span className={styles.operationBreakBar} style={{ width: `${(row.breakMinutes / selectedPersonChartMaxMinutes) * 50}%` }} />
                     </div>
-                  </section>
+                    <b className={styles.operationLateValue}>{row.lateMinutes} dk</b>
+                    <b className={styles.operationBreakValue}>{row.breakMinutes} dk</b>
+                  </article>
                 ))}
               </div>
             </article>
@@ -628,6 +636,26 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                 </div>
               </div>
             </article>
+          </section>
+
+          <section className={`${styles.operationReportPanel} ${styles.staffStatusPanel}`}>
+            <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Anlık durum</p><h2 className={styles.sectionTitle}>Personel Durum Özeti</h2></div></div>
+            <div className={styles.staffStatusGrid}>
+              {[
+                { title: "Çalışıyor", employees: selectedWorkingEmployees, tone: "working" },
+                { title: "Molada", employees: selectedOnBreakEmployees, tone: "break" },
+                { title: "İzinli", employees: selectedLeaveEmployees, tone: "leave" },
+              ].map((group) => (
+                <section key={group.title} className={`${styles.staffStatusColumn} ${styles[`staffStatus${group.tone}`]}`}>
+                  <div className={styles.staffStatusHeading}><h3>{group.title}</h3><span>{group.employees.length}</span></div>
+                  <div className={styles.staffNameList}>
+                    {group.employees.length === 0 ? <p>Personel yok</p> : group.employees.map((employee) => (
+                      <strong key={employee.id}>{employee.firstName} {employee.lastName}</strong>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           </section>
         </>
       ) : null}
@@ -694,17 +722,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               <section className={styles.departmentChartGrid}>
                 <article className={styles.compactChartPanel}>
                   <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Bu ay</p><h3 className={styles.sectionTitle}>Departman Bazlı Geç Kalma Süresi</h3></div></div>
-                  <div className={styles.compactBars}>
+                  <div className={styles.verticalBars}>
                     {monthlyLateDepartmentRows.length === 0 ? <p className={styles.emptyState}>Geç kalma verisi yok.</p> : monthlyLateDepartmentRows.map((row) => (
-                      <div key={row.department} className={styles.compactBarRow}><div><strong>{row.department}</strong><span>{formatMinutes(row.totalMinutes)}</span></div><div className={styles.compactBarTrack}><i className={styles.lateDepartmentBar} style={{ width: `${Math.max((row.totalMinutes / maxDepartmentLateMinutes) * 100, 6)}%` }} /></div></div>
+                      <div key={row.department} className={styles.verticalBarColumn}><span>{formatMinutes(row.totalMinutes)}</span><div className={styles.verticalBarTrack}><i className={styles.lateDepartmentBar} style={{ height: `${Math.max((row.totalMinutes / maxDepartmentLateMinutes) * 100, 6)}%` }} /></div><strong>{row.department}</strong></div>
                     ))}
                   </div>
                 </article>
                 <article className={styles.compactChartPanel}>
                   <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Bu ay</p><h3 className={styles.sectionTitle}>Departman Bazlı Mola Süresi</h3></div></div>
-                  <div className={styles.compactBars}>
+                  <div className={styles.verticalBars}>
                     {monthlyBreakRows.length === 0 ? <p className={styles.emptyState}>Mola verisi yok.</p> : monthlyBreakRows.map((row) => (
-                      <div key={row.department} className={styles.compactBarRow}><div><strong>{row.department}</strong><span>{formatMinutes(row.totalMinutes)}</span></div><div className={styles.compactBarTrack}><i className={styles.breakDepartmentBar} style={{ width: `${Math.max((row.totalMinutes / maxDepartmentBreakMinutes) * 100, 6)}%` }} /></div></div>
+                      <div key={row.department} className={styles.verticalBarColumn}><span>{formatMinutes(row.totalMinutes)}</span><div className={styles.verticalBarTrack}><i className={styles.breakDepartmentBar} style={{ height: `${Math.max((row.totalMinutes / maxDepartmentBreakMinutes) * 100, 6)}%` }} /></div><strong>{row.department}</strong></div>
                     ))}
                   </div>
                 </article>
