@@ -35,7 +35,7 @@ export function getAppDayKey(date: Date) {
 }
 
 export function getDateOnlyKey(date: Date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+  return getAppDayKey(date);
 }
 
 export function getAppMinutes(date: Date) {
@@ -44,15 +44,15 @@ export function getAppMinutes(date: Date) {
 }
 
 export function dateOnlyFromKey(dayKey: string) {
-  return new Date(`${dayKey}T00:00:00.000Z`);
+  const [year, month, date] = dayKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, date, -3, 0, 0, 0));
 }
 
 export function getAppDayRange(day: Date | string) {
   const dayKey = typeof day === "string" ? day : getAppDayKey(day);
   const [year, month, date] = dayKey.split("-").map(Number);
   // Türkiye 2016'dan beri yıl boyunca UTC+3 kullanıyor.
-  const start = new Date(Date.UTC(year, month - 1, date, -3, 0, 0, 0));
+  const start = dateOnlyFromKey(dayKey);
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return { dayKey, start, end, dateOnly: dateOnlyFromKey(dayKey) };
+  return { dayKey, start, end, dateOnly: start };
 }
-

@@ -12,6 +12,5 @@ test("İstanbul iş günü sorgu aralığını UTC olarak üretir", () => {
   const range = getAppDayRange("2026-09-14");
   assert.equal(range.start.toISOString(), "2026-09-13T21:00:00.000Z");
   assert.equal(range.end.toISOString(), "2026-09-14T21:00:00.000Z");
-  assert.equal(range.dateOnly.toISOString(), "2026-09-14T00:00:00.000Z");
+  assert.equal(range.dateOnly.toISOString(), "2026-09-13T21:00:00.000Z");
 });
-
