@@ -9,6 +9,7 @@ import {
 import { ExportButton } from "@/app/dashboard/export-button";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
+import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
@@ -27,26 +28,13 @@ function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: APP_TIME_ZONE,
   }).format(date);
 }
 
 function formatInputDate(date: Date) {
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return offsetDate.toISOString().slice(0, 16);
-}
-
-function getDayKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function getDayStart(date: Date) {
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  return dayStart;
-}
-
-function getLogMinutes(date: Date) {
-  return date.getHours() * 60 + date.getMinutes();
 }
 
 function getDateValue(value?: string) {
@@ -152,8 +140,9 @@ export default async function MovementsPage(props: {
 
   const calendarKeys = new Map<string, { employeeId: number; workDate: Date }>();
   logs.forEach((log) => {
-    const workDate = getDayStart(log.scannedAt);
-    calendarKeys.set(`${log.employeeId}-${getDayKey(workDate)}`, { employeeId: log.employeeId, workDate });
+    const dayKey = getAppDayKey(log.scannedAt);
+    const workDate = dateOnlyFromKey(dayKey);
+    calendarKeys.set(`${log.employeeId}-${dayKey}`, { employeeId: log.employeeId, workDate });
   });
   const dailyCalendars = calendarKeys.size
     ? await prisma.employeeDailyCalendar.findMany({
@@ -166,20 +155,20 @@ export default async function MovementsPage(props: {
       })
     : [];
   const calendarByLogDay = new Map(
-    dailyCalendars.map((calendar) => [`${calendar.employeeId}-${getDayKey(calendar.workDate)}`, calendar]),
+    dailyCalendars.map((calendar) => [`${calendar.employeeId}-${getDateOnlyKey(calendar.workDate)}`, calendar]),
   );
 
   function getAttendanceStatus(log: (typeof logs)[number]) {
     if (log.type !== AttendanceType.ENTRY) return "-";
 
-    const calendar = calendarByLogDay.get(`${log.employeeId}-${getDayKey(getDayStart(log.scannedAt))}`);
+    const calendar = calendarByLogDay.get(`${log.employeeId}-${getAppDayKey(log.scannedAt)}`);
     const plannedStartMinutes = timeToMinutes(calendar?.plannedStart ?? null);
 
     if (!calendar?.checkLateArrival || plannedStartMinutes === null || calendar.plannedNetMinutes <= 0) {
       return "-";
     }
 
-    return getLogMinutes(log.scannedAt) > plannedStartMinutes ? "Gec kalmis" : "Zamaninda";
+    return getAppMinutes(log.scannedAt) > plannedStartMinutes ? "Gec kalmis" : "Zamaninda";
   }
 
   const exportRows = logs.map((log) => ({

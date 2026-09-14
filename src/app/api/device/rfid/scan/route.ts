@@ -1,27 +1,13 @@
 import { NextResponse } from "next/server";
 import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getAppDayRange, getAppMinutes } from "@/lib/app-time";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
+import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
 import { EXIT_TOLERANCE_MINUTES, inferBidirectionalMovement } from "@/lib/attendance-sequence";
 
 function normalizeCardId(cardId: string) {
   return cardId.trim().toUpperCase();
-}
-
-function getDayStart(date: Date) {
-  const day = new Date(date);
-  day.setHours(0, 0, 0, 0);
-  return day;
-}
-
-function getNextDay(date: Date) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + 1);
-  return next;
-}
-
-function getLogMinutes(date: Date) {
-  return date.getHours() * 60 + date.getMinutes();
 }
 
 function isNearTime(nowMinutes: number, plannedTime?: string | null) {
@@ -34,15 +20,17 @@ async function inferAttendanceType(params: {
   devicePurpose: DevicePurpose;
   scannedAt: Date;
 }) {
-  const dayStart = getDayStart(params.scannedAt);
-  const dayEnd = getNextDay(dayStart);
-  const todayLogs = await prisma.attendanceLog.findMany({
-    where: {
-      employeeId: params.employeeId,
-      scannedAt: { gte: dayStart, lt: dayEnd },
-    },
-    orderBy: { scannedAt: "asc" },
-  });
+  const day = getAppDayRange(params.scannedAt);
+  const [todayLogs, dailyCalendar] = await Promise.all([
+    prisma.attendanceLog.findMany({
+      where: {
+        employeeId: params.employeeId,
+        scannedAt: { gte: day.start, lt: day.end },
+      },
+      orderBy: { scannedAt: "asc" },
+    }),
+    saveResolvedEmployeeWorkCalendar(params.employeeId, day.dateOnly),
+  ]);
 
   if (todayLogs.length === 0) {
     return AttendanceType.ENTRY;
@@ -53,17 +41,9 @@ async function inferAttendanceType(params: {
   if (params.devicePurpose === DevicePurpose.BREAK_START) return AttendanceType.BREAK_START;
   if (params.devicePurpose === DevicePurpose.BREAK_END) return AttendanceType.BREAK_END;
 
-  const dailyCalendar = await prisma.employeeDailyCalendar.findUnique({
-    where: {
-      employeeId_workDate: {
-        employeeId: params.employeeId,
-        workDate: dayStart,
-      },
-    },
-  });
   return inferBidirectionalMovement({
     logs: todayLogs,
-    isNearPlannedEnd: isNearTime(getLogMinutes(params.scannedAt), dailyCalendar?.plannedEnd),
+    isNearPlannedEnd: isNearTime(getAppMinutes(params.scannedAt), dailyCalendar.plannedEnd),
   });
 }
 
@@ -108,7 +88,11 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json(
-        { error: "Bu RFID kart aktif bir personele tanimli degil." },
+        {
+          code: "UNKNOWN_CARD",
+          rfidCardId,
+          error: "Bu RFID kart aktif bir personele tanimli degil.",
+        },
         { status: 404 },
       );
     }

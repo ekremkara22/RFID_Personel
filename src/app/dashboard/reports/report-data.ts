@@ -1,5 +1,6 @@
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 
 function getMonthStart() {
@@ -7,14 +8,6 @@ function getMonthStart() {
   date.setDate(1);
   date.setHours(0, 0, 0, 0);
   return date;
-}
-
-function getDayKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function getLogMinutes(date: Date) {
-  return date.getHours() * 60 + date.getMinutes();
 }
 
 function formatPercent(value: number, total: number) {
@@ -69,13 +62,13 @@ export async function getPdksReportData(companyId: number) {
       if (plannedStartMinutes === null) return false;
 
       const firstEntry = employeeLogs
-        .filter((log) => log.type === "ENTRY" && getDayKey(log.scannedAt) === getDayKey(day.workDate))
+        .filter((log) => log.type === "ENTRY" && getAppDayKey(log.scannedAt) === getDateOnlyKey(day.workDate))
         .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
 
-      return firstEntry ? getLogMinutes(firstEntry.scannedAt) > plannedStartMinutes : false;
+      return firstEntry ? getAppMinutes(firstEntry.scannedAt) > plannedStartMinutes : false;
     }).length;
     const noMovementCount = lateEligibleDays.filter((day) => {
-      return !employeeLogs.some((log) => log.type === "ENTRY" && getDayKey(log.scannedAt) === getDayKey(day.workDate));
+      return !employeeLogs.some((log) => log.type === "ENTRY" && getAppDayKey(log.scannedAt) === getDateOnlyKey(day.workDate));
     }).length;
 
     return {

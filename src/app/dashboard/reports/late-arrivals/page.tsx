@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { getAccessibleCompanyIds } from "@/lib/access";
+import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
@@ -14,39 +15,29 @@ type SearchParams = {
   branch?: string;
 };
 
-function getDayKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 function parseDateParam(value?: string) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  const parsed = new Date(year, month - 1, day);
-  parsed.setHours(0, 0, 0, 0);
+  const parsed = dateOnlyFromKey(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function getDefaultFromDate(today: Date) {
   const date = new Date(today);
-  date.setDate(date.getDate() - 6);
-  date.setHours(0, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() - 6);
   return date;
 }
 
 function getEndExclusive(date: Date) {
   const end = new Date(date);
-  end.setDate(end.getDate() + 1);
+  end.setUTCDate(end.getUTCDate() + 1);
   return end;
-}
-
-function getLogMinutes(date: Date) {
-  return date.getHours() * 60 + date.getMinutes();
 }
 
 function formatTime(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIME_ZONE,
   }).format(date);
 }
 
@@ -85,12 +76,13 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
   }
 
   const searchParams = (await props.searchParams) ?? {};
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getAppDayRange(new Date()).dateOnly;
   const fromDate = parseDateParam(searchParams.from) ?? getDefaultFromDate(today);
   const toDate = parseDateParam(searchParams.to) ?? today;
   const safeToDate = toDate < fromDate ? fromDate : toDate;
   const endExclusive = getEndExclusive(safeToDate);
+  const attendanceStart = getAppDayRange(getDateOnlyKey(fromDate)).start;
+  const attendanceEnd = getAppDayRange(getDateOnlyKey(safeToDate)).end;
   const selectedCompanyId = parseId(searchParams.companyId);
   const companyIdFilter =
     selectedCompanyId && accessibleCompanyIds.includes(selectedCompanyId)
@@ -131,7 +123,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
     prisma.attendanceLog.findMany({
       where: {
         type: "ENTRY",
-        scannedAt: { gte: fromDate, lt: endExclusive },
+        scannedAt: { gte: attendanceStart, lt: attendanceEnd },
         employee: {
           companyId: { in: companyIdFilter },
           ...(selectedBranch ? { branch: selectedBranch } : {}),
@@ -158,7 +150,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
   const firstEntryByEmployeeDay = new Map<number, Map<string, (typeof logs)[number]>>();
 
   logs.forEach((log) => {
-    const dayKey = getDayKey(log.scannedAt);
+    const dayKey = getAppDayKey(log.scannedAt);
     const employeeMap = firstEntryByEmployeeDay.get(log.employeeId) ?? new Map<string, (typeof logs)[number]>();
     if (!employeeMap.has(dayKey)) {
       employeeMap.set(dayKey, log);
@@ -174,23 +166,23 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
     leaveEnd.setHours(0, 0, 0, 0);
 
     while (cursor <= leaveEnd) {
-      leaveKeys.add(`${leave.employeeId}-${getDayKey(cursor)}`);
-      cursor.setDate(cursor.getDate() + 1);
+      leaveKeys.add(`${leave.employeeId}-${getDateOnlyKey(cursor)}`);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
   });
 
   const lateDetails = dailyCalendars.flatMap((day) => {
     if (!employeeIds.has(day.employeeId)) return [];
     if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return [];
-    if (leaveKeys.has(`${day.employeeId}-${getDayKey(day.workDate)}`)) return [];
+    if (leaveKeys.has(`${day.employeeId}-${getDateOnlyKey(day.workDate)}`)) return [];
 
     const plannedStartMinutes = timeToMinutes(day.plannedStart);
     if (plannedStartMinutes === null) return [];
 
-    const firstEntry = firstEntryByEmployeeDay.get(day.employeeId)?.get(getDayKey(day.workDate));
+    const firstEntry = firstEntryByEmployeeDay.get(day.employeeId)?.get(getDateOnlyKey(day.workDate));
     if (!firstEntry) return [];
 
-    const lateMinutes = getLogMinutes(firstEntry.scannedAt) - plannedStartMinutes;
+    const lateMinutes = getAppMinutes(firstEntry.scannedAt) - plannedStartMinutes;
     if (lateMinutes <= 0) return [];
 
     return [
@@ -297,11 +289,11 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
         <form className={styles.filterGrid}>
           <label className={styles.field}>
             <span>Başlangıç</span>
-            <input type="date" name="from" defaultValue={getDayKey(fromDate)} />
+            <input type="date" name="from" defaultValue={getDateOnlyKey(fromDate)} />
           </label>
           <label className={styles.field}>
             <span>Bitiş</span>
-            <input type="date" name="to" defaultValue={getDayKey(safeToDate)} />
+            <input type="date" name="to" defaultValue={getDateOnlyKey(safeToDate)} />
           </label>
           <label className={styles.field}>
             <span>Firma</span>
@@ -430,7 +422,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
                 </tr>
               ) : (
                 lateDetails.map((detail) => (
-                  <tr key={`${detail.employeeId}-${getDayKey(detail.workDate)}`}>
+                  <tr key={`${detail.employeeId}-${getDateOnlyKey(detail.workDate)}`}>
                     <td>{formatDate(detail.workDate)}</td>
                     <td>{detail.employee}</td>
                     <td>{detail.plannedStart}</td>

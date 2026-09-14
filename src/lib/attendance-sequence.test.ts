@@ -25,3 +25,16 @@ test("tamamlanan ve devam eden mola dakikalarını hesaplar", () => {
     isOnBreak: true,
   });
 });
+
+test("mola çıkışı unutulmuşsa kesin çıkış açık molayı kapatır", () => {
+  const logs = [
+    { type: "ENTRY" as const, scannedAt: new Date("2026-09-03T08:30:00") },
+    { type: "BREAK_START" as const, scannedAt: new Date("2026-09-03T12:00:00") },
+    { type: "EXIT" as const, scannedAt: new Date("2026-09-03T12:30:00") },
+  ];
+
+  assert.deepEqual(calculateBreakMinutes(logs, new Date("2026-09-03T15:10:00")), {
+    totalMinutes: 30,
+    isOnBreak: false,
+  });
+});

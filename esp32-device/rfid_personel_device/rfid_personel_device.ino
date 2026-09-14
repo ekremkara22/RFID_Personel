@@ -8,6 +8,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <LiquidCrystal.h>
+#include <time.h>
 
 // ESP32 pinleri. Kendi baglantina gore burayi degistirebilirsin.
 #define RFID_SS_PIN 5
@@ -60,6 +61,8 @@ bool isConfigPortalActive = false;
 unsigned long lastWifiAttemptAt = 0;
 unsigned long lastHeartbeatAt = 0;
 unsigned long lastCardReadAt = 0;
+int lastDisplayedSecond = -1;
+bool idleClockActive = false;
 
 String htmlEscape(const String& value) {
   String escaped = value;
@@ -78,11 +81,40 @@ String fitLcdText(const String& text) {
 }
 
 void showLcd(const String& line1, const String& line2 = "") {
+  idleClockActive = false;
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(fitLcdText(line1));
   lcd.setCursor(0, 1);
   lcd.print(fitLcdText(line2));
+}
+
+void showIdleClock(bool forceRefresh = false) {
+  struct tm timeInfo;
+  if (!getLocalTime(&timeInfo, 20)) {
+    if (forceRefresh || !idleClockActive) {
+      showLcd("Kart bekleniyor", "Saat bekleniyor");
+      idleClockActive = true;
+    }
+    return;
+  }
+
+  if (!forceRefresh && idleClockActive && timeInfo.tm_sec == lastDisplayedSecond) {
+    return;
+  }
+
+  char timeText[9];
+  strftime(timeText, sizeof(timeText), "%H:%M:%S", &timeInfo);
+  if (forceRefresh || !idleClockActive) {
+    showLcd("Kart bekleniyor", String(timeText));
+  } else {
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
+    lcd.setCursor(0, 1);
+    lcd.print(timeText);
+  }
+  idleClockActive = true;
+  lastDisplayedSecond = timeInfo.tm_sec;
 }
 
 void setStatusLed(bool green, bool red) {
@@ -98,19 +130,29 @@ void beep(unsigned int durationMs = 110) {
 
 void successSignal() {
   setStatusLed(true, false);
-  beep(90);
-  delay(80);
-  beep(90);
-  delay(500);
+  beep(65);
+  delay(65);
+  beep(65);
   setStatusLed(false, false);
 }
 
 void errorSignal() {
   setStatusLed(false, true);
-  beep(220);
-  delay(120);
-  beep(220);
-  delay(700);
+  beep(260);
+  delay(180);
+  beep(260);
+  setStatusLed(false, false);
+}
+
+void unknownCardSignal() {
+  setStatusLed(false, true);
+  beep(650);
+  delay(180);
+  beep(100);
+  delay(90);
+  beep(100);
+  delay(90);
+  beep(100);
   setStatusLed(false, false);
 }
 
@@ -290,6 +332,7 @@ bool tryConnectWifi(const String& ssid, const String& password) {
     setStatusLed(true, false);
     delay(700);
     setStatusLed(false, false);
+    configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
     return true;
   }
 
@@ -378,16 +421,6 @@ String uidToString(MFRC522::Uid* uid) {
   return cardId;
 }
 
-String movementLabel(const String& type) {
-  if (type == "ENTRY") return "Giris";
-  if (type == "EXIT") return "Cikis";
-  if (type == "BREAK_START") return "Mola giris";
-  if (type == "BREAK_END") return "Mola cikis";
-  if (type == "MEAL_START") return "Yemek giris";
-  if (type == "MEAL_END") return "Yemek cikis";
-  return type;
-}
-
 void handleCardScan(const String& cardId) {
   showLcd("Kart okunuyor", cardId);
 
@@ -407,7 +440,7 @@ void handleCardScan(const String& cardId) {
   if (!requestOk) {
     showLcd("API baglanti", "hatasi");
     errorSignal();
-    showLcd("Kart bekleniyor", WiFi.localIP().toString());
+    showIdleClock(true);
     return;
   }
 
@@ -416,27 +449,35 @@ void handleCardScan(const String& cardId) {
   if (error) {
     showLcd("JSON hatasi", String(statusCode));
     errorSignal();
-    showLcd("Kart bekleniyor", WiFi.localIP().toString());
+    showIdleClock(true);
     return;
   }
 
   if (statusCode != 200 || !responseJson["success"]) {
+    const char* errorCode = responseJson["code"] | "";
+    if (statusCode == 404 && String(errorCode) == "UNKNOWN_CARD") {
+      showLcd("T.siz kart =", cardId);
+      unknownCardSignal();
+      delay(5780);
+      showIdleClock(true);
+      return;
+    }
+
     const char* apiError = responseJson["error"] | "Kart reddedildi";
     showLcd("Islem basarisiz", String(apiError));
     errorSignal();
-    showLcd("Kart bekleniyor", WiFi.localIP().toString());
+    showIdleClock(true);
     return;
   }
 
   const char* firstName = responseJson["employee"]["firstName"] | "";
   const char* lastName = responseJson["employee"]["lastName"] | "";
-  const char* type = responseJson["type"] | "";
-  String employeeName = String(firstName) + " " + String(lastName);
-  employeeName.trim();
-
-  showLcd(employeeName.length() > 0 ? employeeName : "Personel OK", movementLabel(String(type)));
+  String firstNameText = String(firstName);
+  String lastNameText = String(lastName);
+  showLcd(firstNameText.length() > 0 ? firstNameText : "Personel", lastNameText);
   successSignal();
-  showLcd("Kart bekleniyor", WiFi.localIP().toString());
+  delay(1805);
+  showIdleClock(true);
 }
 
 void readRfidIfAvailable() {
@@ -493,7 +534,7 @@ void setup() {
   }
 
   sendHeartbeat();
-  showLcd("Kart bekleniyor", WiFi.localIP().toString());
+  showIdleClock(true);
 }
 
 void loop() {
@@ -514,6 +555,7 @@ void loop() {
     }
 
     readRfidIfAvailable();
+    showIdleClock();
   }
 
   delay(30);

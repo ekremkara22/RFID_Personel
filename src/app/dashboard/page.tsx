@@ -10,6 +10,14 @@ import {
 import { ExportButton } from "@/app/dashboard/export-button";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  APP_TIME_ZONE,
+  dateOnlyFromKey,
+  getAppDayKey,
+  getAppDayRange,
+  getAppMinutes,
+  getDateOnlyKey,
+} from "@/lib/app-time";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "./page.module.css";
@@ -44,23 +52,14 @@ function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: APP_TIME_ZONE,
   }).format(date);
-}
-
-function getDayKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function parseDateParam(value?: string) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  const parsed = new Date(year, month - 1, day);
-  parsed.setHours(0, 0, 0, 0);
+  const parsed = dateOnlyFromKey(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function getLogMinutes(date: Date) {
-  return date.getHours() * 60 + date.getMinutes();
 }
 
 function formatMinutes(minutes: number) {
@@ -114,7 +113,7 @@ function getEmployeeBreakSummary(
 
 function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   const plannedStartMinutes = timeToMinutes(plannedStart);
-  return plannedStartMinutes !== null && getLogMinutes(scannedAt) > plannedStartMinutes;
+  return plannedStartMinutes !== null && getAppMinutes(scannedAt) > plannedStartMinutes;
 }
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string }> }) {
@@ -122,16 +121,15 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   const isSuperadmin = user.role === "SUPERADMIN";
   const searchParams = (await props.searchParams) ?? {};
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayRange = getAppDayRange(new Date());
+  const today = todayRange.dateOnly;
   const selectedDate = parseDateParam(searchParams.date) ?? today;
+  const selectedRange = getAppDayRange(getDateOnlyKey(selectedDate));
   const selectedDateEnd = new Date(selectedDate);
-  selectedDateEnd.setDate(selectedDateEnd.getDate() + 1);
-  const todayEnd = new Date(today);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+  selectedDateEnd.setUTCDate(selectedDateEnd.getUTCDate() + 1);
+  const monthStartKey = `${todayRange.dayKey.slice(0, 8)}01`;
+  const monthStart = dateOnlyFromKey(monthStartKey);
+  const monthAttendanceStart = getAppDayRange(monthStartKey).start;
 
   const attendanceWhere = isSuperadmin
     ? undefined
@@ -204,14 +202,14 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
     prisma.attendanceLog.count({
       where: {
-        scannedAt: { gte: today },
+        scannedAt: { gte: todayRange.start, lt: todayRange.end },
         type: "ENTRY",
         ...attendanceWhere,
       },
     }),
     prisma.attendanceLog.findMany({
       where: {
-        scannedAt: { gte: monthStart },
+        scannedAt: { gte: monthAttendanceStart },
         ...attendanceWhere,
       },
       include: {
@@ -232,7 +230,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
     prisma.attendanceLog.findMany({
       where: {
-        scannedAt: { gte: today },
+        scannedAt: { gte: todayRange.start, lt: todayRange.end },
         ...attendanceWhere,
       },
       include: {
@@ -263,7 +261,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
     prisma.attendanceLog.findMany({
       where: {
-        scannedAt: { gte: selectedDate, lt: selectedDateEnd },
+        scannedAt: { gte: selectedRange.start, lt: selectedRange.end },
         ...attendanceWhere,
       },
       include: {
@@ -324,7 +322,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return [];
 
     const firstEntry = monthlyLogsForReport
-      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY" && getDayKey(log.scannedAt) === getDayKey(day.workDate))
+      .filter((log) => log.employeeId === day.employeeId && log.type === "ENTRY" && getAppDayKey(log.scannedAt) === getDateOnlyKey(day.workDate))
       .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0];
 
     if (!firstEntry) return [];
@@ -332,7 +330,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     const plannedStartMinutes = timeToMinutes(day.plannedStart);
     if (plannedStartMinutes === null) return [];
 
-    const lateMinutes = getLogMinutes(firstEntry.scannedAt) - plannedStartMinutes;
+    const lateMinutes = getAppMinutes(firstEntry.scannedAt) - plannedStartMinutes;
     if (lateMinutes <= 0) return [];
 
     return [{
@@ -356,7 +354,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     const plannedStartMinutes = timeToMinutes(day.plannedStart);
     if (plannedStartMinutes === null) return [];
 
-    const lateMinutes = getLogMinutes(firstEntry.scannedAt) - plannedStartMinutes;
+    const lateMinutes = getAppMinutes(firstEntry.scannedAt) - plannedStartMinutes;
     if (lateMinutes <= 0) return [];
 
     return [{
@@ -369,7 +367,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       lateMinutes,
     }];
   }).sort((first, second) => second.lateMinutes - first.lateMinutes);
-  const isSelectedToday = getDayKey(selectedDate) === getDayKey(today);
+  const isSelectedToday = getDateOnlyKey(selectedDate) === getDateOnlyKey(today);
   const selectedBreakRangeEnd = isSelectedToday ? new Date() : null;
   const selectedLateByEmployee = new Map(selectedLateEmployees.map((record) => [record.employeeId, record]));
   const selectedCalendarByEmployee = new Map(
@@ -597,7 +595,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                   <h2 className={styles.sectionTitle}>Bugün Dikkat Gerektiren Personeller</h2>
                 </div>
                 <form className={styles.dateFilterForm}>
-                  <label><span>Tarih</span><input name="date" type="date" defaultValue={getDayKey(selectedDate)} /></label>
+                  <label><span>Tarih</span><input name="date" type="date" defaultValue={getDateOnlyKey(selectedDate)} /></label>
                   <button type="submit">Göster</button>
                 </form>
               </div>
@@ -642,7 +640,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               <div className={styles.operationAlerts}>
                 {selectedChartRows.slice(0, 3).map((row) => (
                   <div key={row.employeeId} className={styles.operationAlertRow}>
-                    <div><strong>{row.employeeName}</strong><span>{row.lateMinutes > 0 && row.plannedStart && row.firstEntry ? `Planlanan ${row.plannedStart} · Giriş ${row.firstEntry.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}` : `Mola limiti ${row.plannedBreakMinutes} dk · Kullanım ${row.breakMinutes} dk`}</span></div>
+                    <div><strong>{row.employeeName}</strong><span>{row.lateMinutes > 0 && row.plannedStart && row.firstEntry ? `Planlanan ${row.plannedStart} · Giriş ${row.firstEntry.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE })}` : `Mola limiti ${row.plannedBreakMinutes} dk · Kullanım ${row.breakMinutes} dk`}</span></div>
                     <b>{row.lateMinutes > 0 ? `+${row.lateMinutes} dk` : `+${row.breakOverMinutes} dk`}</b>
                   </div>
                 ))}

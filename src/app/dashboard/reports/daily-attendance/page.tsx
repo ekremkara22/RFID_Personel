@@ -2,6 +2,7 @@ import { AlertTriangle, Clock3, Coffee, LogIn } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { calculateBreakMinutes } from "@/lib/attendance-sequence";
+import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
@@ -9,15 +10,9 @@ import styles from "../../page.module.css";
 
 type SearchParams = { date?: string; branch?: string };
 
-function dayKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 function parseDate(value?: string) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setHours(0, 0, 0, 0);
+  const date = dateOnlyFromKey(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -27,13 +22,9 @@ function nextDay(date: Date) {
   return result;
 }
 
-function minutesOf(date: Date) {
-  return date.getHours() * 60 + date.getMinutes();
-}
-
 function formatTime(date?: Date | null) {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE }).format(date);
 }
 
 function durationText(minutes: number) {
@@ -52,9 +43,11 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
 
   const searchParams = (await props.searchParams) ?? {};
-  const today = new Date();
-  const selectedDate = parseDate(searchParams.date) ?? new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const now = new Date();
+  const today = getAppDayRange(now).dateOnly;
+  const selectedDate = parseDate(searchParams.date) ?? today;
   const endExclusive = nextDay(selectedDate);
+  const attendanceRange = getAppDayRange(getDateOnlyKey(selectedDate));
   const selectedBranch = searchParams.branch?.trim() ?? "";
 
   const [employees, branches, calendars, logs] = await Promise.all([
@@ -71,7 +64,7 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
     }),
     prisma.attendanceLog.findMany({
       where: {
-        scannedAt: { gte: selectedDate, lt: endExclusive },
+        scannedAt: { gte: attendanceRange.start, lt: attendanceRange.end },
         employee: { companyId: user.companyId, ...(selectedBranch ? { branch: selectedBranch } : {}) },
       },
       orderBy: { scannedAt: "asc" },
@@ -86,21 +79,21 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
     logsByEmployee.set(log.employeeId, list);
   }
 
-  const isToday = dayKey(selectedDate) === dayKey(today);
+  const isToday = getDateOnlyKey(selectedDate) === getDateOnlyKey(today);
   const rows = employees.map((employee) => {
     const employeeLogs = logsByEmployee.get(employee.id) ?? [];
     const calendar = calendarByEmployee.get(employee.id);
     const entry = employeeLogs.find((log) => log.type === "ENTRY")?.scannedAt ?? null;
     const exit = [...employeeLogs].reverse().find((log) => log.type === "EXIT")?.scannedAt ?? null;
-    const breakReference = isToday ? today : employeeLogs.at(-1)?.scannedAt ?? selectedDate;
+    const breakReference = isToday ? now : employeeLogs.at(-1)?.scannedAt ?? attendanceRange.start;
     const breakResult = calculateBreakMinutes(employeeLogs, breakReference);
     const plannedStart = timeToMinutes(calendar?.plannedStart);
     const plannedEnd = timeToMinutes(calendar?.plannedEnd);
     const lateMinutes = entry && plannedStart !== null && calendar?.checkLateArrival
-      ? Math.max(0, minutesOf(entry) - plannedStart)
+      ? Math.max(0, getAppMinutes(entry) - plannedStart)
       : 0;
     const earlyMinutes = exit && plannedEnd !== null && calendar?.checkEarlyDeparture
-      ? Math.max(0, plannedEnd - minutesOf(exit))
+      ? Math.max(0, plannedEnd - getAppMinutes(exit))
       : 0;
     const movementStatus = breakResult.isOnBreak
       ? "Molada"
@@ -167,14 +160,14 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
             { key: "cikis", label: "Son Çıkış" }, { key: "erkenCikisDakika", label: "Erken Çıkış Dakika" },
             { key: "durum", label: "Anlık Durum" },
           ]}
-          filename={`gunluk-mola-mesai-${dayKey(selectedDate)}`}
+          filename={`gunluk-mola-mesai-${getDateOnlyKey(selectedDate)}`}
           className={styles.primaryLinkButton}
         />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form className={styles.dailyReportFilters}>
-          <label className={styles.field}><span>Rapor tarihi</span><input type="date" name="date" defaultValue={dayKey(selectedDate)} /></label>
+          <label className={styles.field}><span>Rapor tarihi</span><input type="date" name="date" defaultValue={getDateOnlyKey(selectedDate)} /></label>
           <label className={styles.field}>
             <span>Şube</span>
             <select name="branch" defaultValue={selectedBranch}>
@@ -195,7 +188,7 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
 
       <section className={`glass-panel ${styles.sectionCard}`}>
         <div className={styles.sectionHeader}>
-          <div><p className={styles.sectionEyebrow}>{dayKey(selectedDate)}</p><h2 className={styles.sectionTitle}>Personel Durumları</h2></div>
+          <div><p className={styles.sectionEyebrow}>{getDateOnlyKey(selectedDate)}</p><h2 className={styles.sectionTitle}>Personel Durumları</h2></div>
           <p className={styles.helperText}>Çıkış, planlanan mesai bitimine ±30 dakikadaki son basımdır.</p>
         </div>
         <div className={styles.tableWrap}>

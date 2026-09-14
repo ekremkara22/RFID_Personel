@@ -37,6 +37,10 @@ export function calculateBreakMinutes(
       totalMinutes += Math.max(0, Math.round((log.scannedAt.getTime() - openBreak.getTime()) / 60_000));
       openBreak = null;
       isOnBreak = false;
+    } else if (log.type === "EXIT" && openBreak) {
+      totalMinutes += Math.max(0, Math.round((log.scannedAt.getTime() - openBreak.getTime()) / 60_000));
+      openBreak = null;
+      isOnBreak = false;
     }
   }
 
