@@ -1,213 +1,268 @@
-# ESP32 RFID Personel Takip Bağlantı Dokümanı
+# ESP32 RFID Personel Cihazı — Montaj ve Bağlantı Belgesi
 
-Bu doküman `rfid_personel_device.ino` dosyasındaki varsayılan pinlere göre hazırlanmıştır.
+Bu belge çalışan `rfid_personel_device.ino` firmware'indeki pinlere göre, kalıcı
+lehimli montaj sırasında çıktı alınıp kullanılmak üzere hazırlanmıştır.
 
-## Kart üzerindeki D pinleri ve GPIO karşılıkları
+## 1. Önemli güvenlik kuralları
 
-Bazı ESP32 geliştirme kartlarında pinlerin yanında yalnızca `D5`, `D18`, `D21` gibi
-ifadeler yazar. Bu kartlarda `D` harfinden sonraki sayı doğrudan GPIO numarasıdır:
+- Bütün bağlantıları adaptör prizden çekiliyken yap.
+- Adaptör çıkışı regüle `5V DC / 1A` olmalıdır. 9V veya 12V bağlama.
+- Adaptör `+5V` hattını yalnızca ESP32 `VIN`, LCD ve buzzer beslemesinde kullan.
+- ESP32 `3V3` pinine kesinlikle 5V bağlama.
+- RC522'ye kesinlikle 5V verme; yalnızca ESP32 `3V3` pininden besle.
+- Elektrolitik kondansatörü ters bağlama.
+- Adaptör VIN'e bağlıyken ESP32'ye bilgisayar USB'sinden ayrıca güç verme.
+- İlk enerjiyi vermeden önce multimetreyle kısa devre ve gerilim kontrolü yap.
 
-```text
-D5  = GPIO 5
-D18 = GPIO 18
-D19 = GPIO 19
-D21 = GPIO 21
-D22 = GPIO 22
-D23 = GPIO 23
-D25 = GPIO 25
-D26 = GPIO 26
-D27 = GPIO 27
-D32 = GPIO 32
-D33 = GPIO 33
-```
+## 2. Kullanılacak parçalar
 
-Örneğin dokümanda `GPIO 21` yazıyorsa kart üzerindeki `D21` pinini kullan.
-Bu eşleştirme ESP32 içindir; internette bulunan ESP8266 `D` pin tablolarını kullanma.
-
-Kart üzerinde görülen diğer özel pinler:
-
-| Kart etiketi | GPIO karşılığı | Açıklama |
-| --- | --- | --- |
-| RX0 | GPIO 3 | USB/seri haberleşme alıcısı; bu projede bağlantı için kullanma |
-| TX0 | GPIO 1 | USB/seri haberleşme vericisi; bu projede bağlantı için kullanma |
-| RX2 | GPIO 16 | Bu projede LCD D6 veri hattı olarak kullanılıyor |
-| TX2 | GPIO 17 | Bu projede LCD D7 veri hattı olarak kullanılıyor |
-| VN | GPIO 39 | Yalnızca giriş özelliği vardır; LCD, LED veya buzzer için kullanma |
-| GND | GND | Tüm modüllerin ortak eksi/şase bağlantısı |
-
-> Kart modeline göre baskı biçimi değişebilir. `D21` veya `21` etiketi GPIO 21'i,
-> `D22` veya `22` etiketi GPIO 22'yi ifade eder. Kartında gereken pinlerden biri
-> fiziksel olarak yoksa bağlantı yapmadan önce kartın tam modelini kontrol et.
-
-## Kullanılan parçalar
-
-- ESP32 geliştirme kartı
-- RC522 RFID/NFC modülü
-- 2x16 standart paralel LCD ekran (I2C dönüştürücüsüz)
+- ESP32 geliştirme kartı (`VIN`, `3V3` ve `GND` pinli)
+- RC522 RFID okuyucu
+- 2x16 paralel LCD (I2C dönüştürücüsüz)
 - Yeşil LED
 - Kırmızı LED
-- 2 adet 220 ohm direnç
-- Jumper kablo
+- 2 adet `220 ohm` LED direnci
+- 5V aktif buzzer
+- 1 adet `BC337` NPN transistör
+- 1 adet `1K ohm` buzzer base direnci
+- 1 adet `470 uF / 16V` elektrolitik kondansatör
+- 1 adet `100 nF` seramik kondansatör
+- Regüle `5V DC / 1A` adaptör
+- Jak soketi, klemens, kablo ve pertinaks
 
-## ESP32 pin tablosu
+`2N2222` bu montajda kullanılmayacak; BC337 için yedek olarak saklanacaktır.
+Transistörlerin bacak sıraları aynı olmayabileceği için birbirlerinin yerine
+kontrol etmeden takılmamalıdır.
 
-| Parça | Modül pini | ESP32 pini |
+Manyetik/bobinli buzzer kullanılıyorsa ayrıca `1N4148` veya `1N4007` koruma
+diyodu gerekir. Bu belge iki bacaklı 5V aktif buzzerı esas alır.
+
+## 3. ESP32 pin özeti
+
+| Görev | ESP32 kart etiketi | GPIO |
 | --- | --- | --- |
-| RC522 | SDA / SS | GPIO 5 / D5 |
-| RC522 | SCK | GPIO 18 / D18 |
-| RC522 | MOSI | GPIO 23 / D23 |
-| RC522 | MISO | GPIO 19 / D19 |
-| RC522 | RST | GPIO 27 / D27 |
-| RC522 | 3.3V | 3V3 |
-| RC522 | GND | GND |
-| Paralel LCD | RS | GPIO 32 / D32 |
-| Paralel LCD | E | GPIO 25 / D25 |
-| Paralel LCD | D4 | GPIO 22 / D22 |
-| Paralel LCD | D5 | GPIO 21 / D21 |
-| Paralel LCD | D6 | GPIO 16 / RX2 |
-| Paralel LCD | D7 | GPIO 17 / TX2 |
-| Paralel LCD | RW | GND |
-| Paralel LCD | VSS | GND |
-| Paralel LCD | VDD | 5V / VIN veya kullanılan harici regüle 5V |
-| Yeşil LED | Anot + | GPIO 26 / D26 |
-| Yeşil LED | Katot - | GND, 220 ohm direnç üzerinden |
-| Kırmızı LED | Anot + | GPIO 33 / D33 |
-| Kırmızı LED | Katot - | GND, 220 ohm direnç üzerinden |
+| RC522 SDA/SS | D5 | GPIO 5 |
+| RC522 SCK | D18 | GPIO 18 |
+| RC522 MOSI | D23 | GPIO 23 |
+| RC522 MISO | D19 | GPIO 19 |
+| RC522 RST | D27 | GPIO 27 |
+| LCD RS | D32 | GPIO 32 |
+| LCD E | D25 | GPIO 25 |
+| LCD D4 | D22 | GPIO 22 |
+| LCD D5 | D21 | GPIO 21 |
+| LCD D6 | RX2 | GPIO 16 |
+| LCD D7 | TX2 | GPIO 17 |
+| Yeşil LED | D26 | GPIO 26 |
+| Kırmızı LED | D33 | GPIO 33 |
+| Buzzer kontrolü | D14 | GPIO 14 |
 
-## RC522 bağlantısı
+`VN`, VIN değildir. `VN/GPIO39` bu montajda kullanılmayacaktır.
 
-RC522 modülü mutlaka `3.3V` ile beslenmelidir. `5V` verirsen modül zarar görebilir.
+## 4. Jak soketi ve ana güç girişi
 
-```text
-RC522 SDA  -> ESP32 GPIO 5  / kart üzerindeki D5
-RC522 SCK  -> ESP32 GPIO 18 / kart üzerindeki D18
-RC522 MOSI -> ESP32 GPIO 23 / kart üzerindeki D23
-RC522 MISO -> ESP32 GPIO 19 / kart üzerindeki D19
-RC522 RST  -> ESP32 GPIO 27 / kart üzerindeki D27
-RC522 3.3V -> ESP32 3V3
-RC522 GND  -> ESP32 GND
-```
-
-## 2x16 paralel LCD bağlantısı
-
-LCD ekran I2C dönüştürücüsü olmadan 4-bit modda bağlanır.
+Üç bacaklı jak soketinde genellikle `+5V`, `GND` ve anahtarlı yardımcı bacak
+bulunur. Fiziksel bacak yerleri soket modeline göre değişebileceği için görünüşe
+bakarak tahmin etme. Multimetreyle belirlenmiş `+5V` ve `GND` bacaklarını kullan;
+üçüncü anahtarlı bacağı boş ve izole bırak.
 
 ```text
-LCD VSS -> GND
-LCD VDD -> 5V / VIN veya harici regüle 5V
-LCD V0  -> 10K potansiyometrenin orta bacağı (geçici olarak GND)
-LCD RS  -> ESP32 D32 / GPIO 32
-LCD RW  -> GND
-LCD E   -> ESP32 D25 / GPIO 25
-LCD D0, D1, D2, D3 -> Bağlanmayacak
-LCD D4  -> ESP32 D22 / GPIO 22
-LCD D5  -> ESP32 D21 / GPIO 21
-LCD D6  -> ESP32 RX2 / GPIO 16
-LCD D7  -> ESP32 TX2 / GPIO 17
-LCD A   -> 5V (gerekiyorsa 220 ohm direnç üzerinden)
-LCD K   -> GND
+Jak +5V  -> Devre +5V dağıtım hattı
+Jak GND  -> Devre ORTAK GND hattı
+3. bacak -> BAĞLANMAYACAK
 ```
 
-Potansiyometre ESP32 pini kullanmaz. Bağlantısı:
+ESP32 güç bağlantısı:
 
 ```text
-Potansiyometre dış bacak 1 -> 5V
-Potansiyometre dış bacak 2 -> GND
-Potansiyometre orta bacak  -> LCD V0
+Jak +5V -> ESP32 VIN
+Jak GND -> ESP32 GND
 ```
 
-Potansiyometre yoksa ilk deneme için `V0 -> GND` bağlanabilir. Yazılar aşırı
-koyuysa veya yalnızca kutular görünüyorsa 10K potansiyometre eklenmelidir.
+ESP32 üzerindeki iki GND pini içeride ortaktır. Birisi adaptör GND için, diğeri
+ortak GND dağıtımı için kullanılabilir.
 
-## LED bağlantısı
+## 5. 5V ve ortak GND dağıtımı
 
-Her LED için 220 ohm direnç kullan.
+### +5V hattına bağlanacaklar
+
+```text
+Jak +5V
+  |-- ESP32 VIN
+  |-- LCD VDD (pin 2)
+  |-- LCD A (pin 15, mevcut çalışan dirençli bağlantı üzerinden)
+  |-- Buzzer +
+  |-- 470 uF kondansatör +
+  `-- 100 nF kondansatörün bir bacağı
+```
+
+### Ortak GND hattına bağlanacaklar
+
+```text
+Jak GND
+  |-- ESP32 GND
+  |-- RC522 GND
+  |-- LCD VSS (pin 1)
+  |-- LCD V0 (pin 3, potansiyometre yoksa)
+  |-- LCD RW (pin 5)
+  |-- LCD K (pin 16)
+  |-- Yeşil LED'in 220 ohm direnç sonrası ucu
+  |-- Kırmızı LED'in 220 ohm direnç sonrası ucu
+  |-- BC337 EMITTER
+  |-- 470 uF kondansatör -
+  `-- 100 nF kondansatörün diğer bacağı
+```
+
+## 6. Kondansatör bağlantıları
+
+Kondansatörler güç hattına **paralel** bağlanır; besleme kablosuna seri bağlanmaz.
+Jak girişine ve ESP32'ye yakın yerleştirilmelidir.
+
+### 470 uF / 16V elektrolitik kondansatör
+
+```text
+Kondansatör + -> +5V hattı
+Kondansatör - -> ORTAK GND
+```
+
+Gövde üzerindeki şerit genellikle eksi bacağı gösterir. Ters bağlantı
+kondansatörün ısınmasına, şişmesine veya patlamasına neden olabilir.
+
+### 100 nF seramik kondansatör
+
+```text
+Bir bacak   -> +5V hattı
+Diğer bacak -> ORTAK GND
+```
+
+100 nF seramik kondansatör kutupsuzdur; iki bacağın yönü önemli değildir.
+
+## 7. RC522 bağlantıları
+
+| RC522 pini | Bağlanacağı yer |
+| --- | --- |
+| SDA / SS | ESP32 D5 / GPIO5 |
+| SCK | ESP32 D18 / GPIO18 |
+| MOSI | ESP32 D23 / GPIO23 |
+| MISO | ESP32 D19 / GPIO19 |
+| RST | ESP32 D27 / GPIO27 |
+| 3.3V | ESP32 3V3 |
+| GND | ORTAK GND |
+
+RC522 üzerindeki `SDA` pini bu bağlantıda SPI `SS` görevi görür; LCD bağlantısıyla
+ilgili değildir.
+
+## 8. 2x16 paralel LCD bağlantıları
+
+LCD, I2C dönüştürücü olmadan 4-bit modda kullanılır.
+
+| LCD no | LCD pini | Bağlanacağı yer |
+| ---: | --- | --- |
+| 1 | VSS | ORTAK GND |
+| 2 | VDD | +5V |
+| 3 | V0 | Potansiyometre yoksa GND |
+| 4 | RS | ESP32 D32 / GPIO32 |
+| 5 | RW | GND |
+| 6 | E | ESP32 D25 / GPIO25 |
+| 7 | D0 | Bağlanmayacak |
+| 8 | D1 | Bağlanmayacak |
+| 9 | D2 | Bağlanmayacak |
+| 10 | D3 | Bağlanmayacak |
+| 11 | D4 | ESP32 D22 / GPIO22 |
+| 12 | D5 | ESP32 D21 / GPIO21 |
+| 13 | D6 | ESP32 RX2 / GPIO16 |
+| 14 | D7 | ESP32 TX2 / GPIO17 |
+| 15 | A | +5V, mevcut çalışan dirençli bağlantı üzerinden |
+| 16 | K | GND |
+
+LCD `D0`, `D1`, `D2` ve `D3` pinleri boş bırakılmalıdır. LCD arka aydınlatması
+daha önce mevcut bağlantıyla çalıştıysa `A` ve `K` bağlantısı aynen korunmalıdır.
+
+## 9. Yeşil ve kırmızı LED bağlantıları
+
+Her LED için ayrı bir `220 ohm` direnç kullanılmalıdır.
 
 Yeşil LED:
 
 ```text
-ESP32 GPIO 26 -> LED uzun bacak / anot
-LED kısa bacak / katot -> 220 ohm direnç -> GND
+ESP32 D26 / GPIO26 -> Yeşil LED uzun bacak / anot (+)
+Yeşil LED kısa bacak / katot (-) -> 220 ohm -> ORTAK GND
 ```
 
 Kırmızı LED:
 
 ```text
-ESP32 GPIO 33 -> LED uzun bacak / anot
-LED kısa bacak / katot -> 220 ohm direnç -> GND
+ESP32 D33 / GPIO33 -> Kırmızı LED uzun bacak / anot (+)
+Kırmızı LED kısa bacak / katot (-) -> 220 ohm -> ORTAK GND
 ```
 
-## Arduino IDE kütüphaneleri
+Direnç LED'in anot veya katot tarafında olabilir; önemli olan LED ile seri olmasıdır.
 
-Arduino IDE içinde şu kütüphaneleri kur:
+## 10. BC337 transistörlü buzzer bağlantısı
 
-- `MFRC522`
-- `LiquidCrystal` (Arduino IDE ile birlikte gelir)
-- `ArduinoJson`
-
-ESP32 kart desteği de yüklü olmalıdır.
-
-## Arduino IDE yükleme adımları
-
-1. Arduino IDE'yi aç.
-2. Kart olarak ESP32 modelini seç.
-3. `esp32-device/rfid_personel_device/rfid_personel_device.ino` dosyasını aç.
-4. Gerekirse pinleri dosyanın üst kısmından değiştir.
-5. Kodu ESP32'ye yükle.
-6. Cihaz açıldığında kayıtlı Wi-Fi yoksa `RFIDPersonel-XXXXXX` isimli ağ açar.
-7. Telefonda bu ağa bağlan.
-8. Tarayıcıdan `192.168.4.1` adresine gir.
-9. Wi-Fi adı, Wi-Fi şifresi, API adresi ve cihaz secret key bilgisini yaz.
-
-Varsayılan API adresi:
+Bu montajda ESP32 buzzerı doğrudan beslemez. GPIO14 yalnızca BC337'yi kontrol
+eder; buzzer enerjisini adaptörün 5V hattından alır.
 
 ```text
-http://13.143.223.183:3002
+ESP32 D14 / GPIO14 -> 1K ohm direnç -> BC337 BASE
+BC337 EMITTER       -> ORTAK GND
+BC337 COLLECTOR     -> Buzzer -
+Buzzer +            -> +5V hattı
 ```
 
-## Cihaz secret key nereden alınır?
+`1K ohm` direnç olmadan GPIO14'ü BC337 BASE bacağına bağlama.
 
-Firma admin panelinde veya süper admin cihaz detayında ilgili RFID cihazın `Secret Key` alanı bulunur. Bu değeri ESP32 kurulum ekranındaki `Cihaz Secret Key` alanına yazmalısın.
+BC337 üzerinde şu üç uç bulunur:
 
-## Çalışma kontrolü
+- `B`: Base — 1K direnç üzerinden GPIO14'e gider.
+- `C`: Collector — buzzer eksi ucuna gider.
+- `E`: Emitter — ortak GND'ye gider.
 
-Bağlantı doğruysa:
+BC337'nin fiziksel bacak sırası üreticiye göre doğrulanmalıdır. Düz yüzüne bakıp
+tahmin etme; parçanın veri sayfasını veya multimetrenin transistör testini kullan.
 
-- LCD ekranda önce Wi-Fi bağlantı bilgisi görünür.
-- Wi-Fi bağlandıktan sonra `Kart bekleniyor` yazar.
-- RFID kart okutunca personel adı görünür.
-- Başarılı kayıtta yeşil LED yanar.
-- Tanımsız kartta kırmızı LED yanar.
+Manyetik/bobinli buzzer kullanılıyorsa buzzer uçlarına ters koruma diyodu ekle:
 
-## Sık karşılaşılan sorunlar
+```text
+Diyot çizgili uç -> Buzzer + / +5V
+Diyot diğer uç   -> Buzzer - / BC337 COLLECTOR
+```
 
-### RC522 kart okumuyor
+Aktif piezo buzzerda bu diyot genellikle gerekmez. Buzzer tipi bilinmiyorsa enerji
+vermeden önce üzerindeki model/gerilim bilgisini kontrol et.
 
-- RC522 `3.3V` bağlı mı kontrol et.
-- SDA, SCK, MOSI, MISO, RST pinlerini tekrar kontrol et.
-- Kartı okuyucuya çok uzak tutma.
-- RC522 ile ESP32 arasında ortak GND olduğundan emin ol.
+## 11. Enerji vermeden önce son kontrol
 
-### LCD ışığı yanıyor ama yazı görünmüyor
+1. Adaptörü prizden çıkar.
+2. Jak soketinin üçüncü anahtarlı bacağının boş olduğunu kontrol et.
+3. Multimetreyle `+5V` ve `GND` arasında doğrudan kısa devre olmadığını kontrol et.
+4. 470 uF kondansatörün `+` ucunun 5V'a, `-` ucunun GND'ye gittiğini kontrol et.
+5. RC522 beslemesinin ESP32 `3V3` pinine gittiğini kontrol et.
+6. LCD `RW`, `VSS`, `V0` ve `K` bağlantılarını kontrol et.
+7. Her LED'de ayrı 220 ohm direnç olduğunu kontrol et.
+8. GPIO14 ile BC337 BASE arasında 1K direnç olduğunu kontrol et.
+9. BC337 EMITTER ucunun GND'ye, COLLECTOR ucunun buzzer eksiye gittiğini kontrol et.
+10. Buzzer artı ucunun 5V'a gittiğini kontrol et.
 
-- `V0` kontrast bağlantısını kontrol et.
-- Potansiyometre yoksa `V0` pinini geçici olarak GND'ye bağla.
-- `RS`, `E` ve `D4-D7` bağlantılarını tekrar kontrol et.
+## 12. İlk çalıştırma sırası
 
-### Cihaz Wi-Fi ağına bağlanmıyor
+1. ESP32, RC522, LCD ve buzzerı mümkünse soketlerinden çıkar.
+2. Yalnızca jak, klemens ve kondansatörleri bağla.
+3. Adaptörü tak ve dağıtım hattında yaklaşık `5V DC` ölç.
+4. Gücü kes; ESP32'yi tak ve yeniden enerji ver.
+5. Gücü tekrar kes; LCD'yi tak ve çalışmasını kontrol et.
+6. Gücü tekrar kes; RC522'yi tak ve kart okut.
+7. LED'leri kontrol et.
+8. En son BC337 ve buzzer devresini bağla.
 
-- Wi-Fi şifresini tekrar gir.
-- 2.4 GHz Wi-Fi kullan. ESP32 çoğu modelde 5 GHz ağa bağlanmaz.
-- Modemi ESP32'ye yakınlaştırıp tekrar dene.
+ESP32 rastgele yeniden başlar, LCD ışığı titreşir, buzzer çalınca cihaz kapanır
+veya Seri Monitör'de `Brownout detector` görülürse 5V/1A adaptör yetersiz ya da
+kablo bağlantısı zayıf olabilir. Bu durumda kaliteli regüle 5V/2A adaptör kullan.
 
-### Kart okutuluyor ama sistem kayıt atmıyor
+## 13. Çalışma doğrulaması
 
-- API adresi doğru mu kontrol et.
-- Cihaz secret key doğru mu kontrol et.
-- Web panelinde cihaz ilgili kullanıcıya tanımlı mı kontrol et.
-- Arduino IDE Seri Monitör hızını `115200` yap ve kartı okut.
-- Personelin RFID kart numarasına Seri Monitör'deki `RFID kart:` satırında görünen
-  değeri, başındaki sıfırlar dahil olmak üzere aynen kaydet.
-- Kartın üzerinde yazan numara veya başka bir okuyucunun gösterdiği değer farklı
-  formatta olabileceği için bu sistemde doğrudan kullanılmamalıdır.
-- Personelin aktif ve RFID cihazıyla aynı firmaya bağlı olduğunu kontrol et.
+- Açılışta LCD'de başlatma ve Wi-Fi mesajları görünür.
+- Bağlantıdan sonra LCD'de `Kart bekleniyor` görünür.
+- Başarılı kartta yeşil LED yanar ve buzzer iki kısa ses verir.
+- Hatalı veya tanımsız kartta kırmızı LED yanar ve buzzer iki uzun ses verir.
+- RFID kart ID değeri için Arduino IDE Seri Monitör `115200` baud hızında açılır;
+  `RFID kart:` satırındaki değer başındaki sıfırlar dahil aynen personele kaydedilir.

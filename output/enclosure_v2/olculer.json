@@ -1,0 +1,11 @@
+{
+  "case": {"width":150,"depth":110,"body_height":52,"wall":2.5,"floor":3,"lid":3},
+  "lcd": {"center":[75,84],"pcb":[80,36],"holes":[75,31],"window":[71.6,24.6],"standoff":7.5,"pilot":2.2},
+  "rc522": {"center":[75,32],"pcb":[61.25,40],"holes":[37.39,34],"hole_offsets":[[-14.375,-17],[-14.375,17],[23.015,-12.455],[23.015,12.455]],"standoff":3.0,"pilot":2.2,"tap_wall":1.4},
+  "esp32": {"center":[30,82],"pcb":[51.8,28.2],"holes":[43.9,23.8],"standoff":7,"pilot":2.2},
+  "perfboard": {"center":[115,80],"pcb":[50,50],"holes":[43.18,43.18],"standoff":7,"pilot":2.7},
+  "led": {"x_positions":[24,39],"z":27,"bore":4.9,"exit":5.2},
+  "buzzer": {"x":66,"z":27,"diameter":11,"height":9,"bore":10.85},
+  "jack": {"body_length":14.4,"body_width":9,"body_height":11,"clearance":0.35,"terminal_clearance":6},
+  "notes":"Kaynak secimleri: Joy-IT SBC-RFID-RC522; Winstar WH1602B; DOIT 30 pin fiziksel olcum; KLS DC-005A-2.5; 18x18 2.54mm plaket. Plaketin 4 kose grid deligi M3 icin 3.2mm genisletilecek. ESP USB X=0 duvarina bakar. Detaylar BASKI_VE_MONTAJ.md dosyasinda."
+}

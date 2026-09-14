@@ -1,0 +1,48 @@
+{
+  "govde": {
+    "watertight": true,
+    "consistent_winding": true,
+    "connected_bodies": 1,
+    "bounds_mm": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        150.0,
+        110.0,
+        52.0
+      ]
+    ],
+    "volume_cm3": 130.66,
+    "triangles": 9438
+  },
+  "kapak": {
+    "watertight": true,
+    "consistent_winding": true,
+    "connected_bodies": 1,
+    "bounds_mm": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        150.0,
+        110.0,
+        7.0
+      ]
+    ],
+    "volume_cm3": 41.92,
+    "triangles": 4120
+  },
+  "assembled": {
+    "external_dimensions_mm": [
+      150,
+      110,
+      55
+    ],
+    "body_lid_intersection_mm3": -0.0
+  }
+}

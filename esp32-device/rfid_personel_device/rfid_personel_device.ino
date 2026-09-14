@@ -14,6 +14,7 @@
 #define RFID_RST_PIN 27
 #define GREEN_LED_PIN 26
 #define RED_LED_PIN 33
+#define BUZZER_PIN 14
 
 // Donusturucusuz 2x16 paralel LCD (4-bit mod)
 #define LCD_RS_PIN 32
@@ -89,14 +90,26 @@ void setStatusLed(bool green, bool red) {
   digitalWrite(RED_LED_PIN, red ? HIGH : LOW);
 }
 
+void beep(unsigned int durationMs = 110) {
+  digitalWrite(BUZZER_PIN, HIGH);
+  delay(durationMs);
+  digitalWrite(BUZZER_PIN, LOW);
+}
+
 void successSignal() {
   setStatusLed(true, false);
+  beep(90);
+  delay(80);
+  beep(90);
   delay(500);
   setStatusLed(false, false);
 }
 
 void errorSignal() {
   setStatusLed(false, true);
+  beep(220);
+  delay(120);
+  beep(220);
   delay(700);
   setStatusLed(false, false);
 }
@@ -461,7 +474,9 @@ void setup() {
 
   pinMode(GREEN_LED_PIN, OUTPUT);
   pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
   setStatusLed(false, false);
+  digitalWrite(BUZZER_PIN, LOW);
 
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
   showLcd("RFID Personel", "Baslatiliyor");

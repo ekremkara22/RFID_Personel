@@ -1,0 +1,51 @@
+{
+  "govde_v2": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 11042,
+    "dimensions_mm": [
+      150.0,
+      110.0,
+      52.0
+    ],
+    "volume_cm3": 131.85
+  },
+  "kapak_v2": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 6096,
+    "dimensions_mm": [
+      150.0,
+      110.0,
+      10.5
+    ],
+    "volume_cm3": 42.48
+  },
+  "guc_jaki_baski_parcasi": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 850,
+    "dimensions_mm": [
+      12.0,
+      22.700000762939453,
+      5.800000190734863
+    ],
+    "volume_cm3": 0.94
+  },
+  "sikilik_testi": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 2672,
+    "dimensions_mm": [
+      75.0,
+      22.0,
+      6.0
+    ],
+    "volume_cm3": 3.67
+  },
+  "jack_body_clearance_mm3": 0.0,
+  "govde_kapak_intersection_mm3": 2.1257097644611367e-12,
+  "govde_jak_baskisi_intersection_mm3": 1.8005887579553015e-15,
+  "kapak_jak_baskisi_intersection_mm3": 0.0,
+  "component_envelopes": "No overlaps for assumed dimensions; excludes wires, solder pins, and actual user PCB variations."
+}

@@ -1,0 +1,58 @@
+{
+  "govde_v3": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 7682,
+    "dimensions_mm": [
+      150.0,
+      110.0,
+      52.0
+    ],
+    "volume_cm3": 131.18
+  },
+  "kapak_v3": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 9516,
+    "dimensions_mm": [
+      150.0,
+      110.0,
+      12.0
+    ],
+    "volume_cm3": 43.19
+  },
+  "guc_jaki_baski_parcasi": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 850,
+    "dimensions_mm": [
+      12.0,
+      22.700000762939453,
+      5.800000190734863
+    ],
+    "volume_cm3": 0.94
+  },
+  "sikilik_testi": {
+    "closed_surface": true,
+    "single_body": true,
+    "triangles": 2672,
+    "dimensions_mm": [
+      75.0,
+      22.0,
+      6.0
+    ],
+    "volume_cm3": 3.67
+  },
+  "jack_body_clearance_mm3": 0.0,
+  "govde_kapak_intersection_mm3": 2.074641890573159e-12,
+  "govde_jak_baskisi_intersection_mm3": 1.8005887579553015e-15,
+  "kapak_jak_baskisi_intersection_mm3": 0.0,
+  "component_envelopes": "No overlaps for assumed dimensions; excludes wires, solder pins, and actual user PCB variations.",
+  "mounting_clearances": {
+    "esp32_to_main_columns_edge_gap_mm": 27.115,
+    "perfboard_to_main_columns_edge_gap_mm": 10.987,
+    "all_board_bosses_min_edge_gap_mm": 16.8,
+    "esp32_pcb_to_main_columns_mm": 28.4,
+    "perfboard_pcb_to_main_columns_mm": 9.764
+  }
+}

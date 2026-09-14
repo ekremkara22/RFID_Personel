@@ -1,0 +1,44 @@
+RFID PERSONEL KUTUSU — V1
+
+STL birimi mm. İki dosyayı da %100 ölçekle dilimleyin.
+Dış ölçü: 150 x 110 x 55 mm. Gövde 52 mm, kapak yüzeyi 3 mm.
+Duvar 2.5 mm, taban 3 mm. Kapak konumlandırma kenarında 0.35 mm boşluk.
+
+BASKI
+govde.stl: düz taban tabla üzerinde, açık taraf yukarı.
+kapak.stl: dış yüz tabla üzerinde, montaj ayakları yukarı; dosya zaten bu yönde.
+Başlangıç ayarı: 0.4 mm nozül, 0.2 mm katman, 4 duvar, %20 dolgu.
+PLA veya PETG için yazıcı profilinizi kullanın. USB açıklığının 18 mm köprüsü
+için dilimleyici önizlemesini kontrol edin; gerekirse yalnızca burada destek ekleyin.
+Vida toleransları yazıcıya bağlıdır; tam baskı öncesi küçük bir delik testi önerilir.
+
+MONTAJ / VARSAYIMLAR
+Kapak: 4 adet M3 x 12 havşa başlı vida; gövdede 2.7 mm kör pilot delikler.
+Plastikte diş açarak veya uygun kılavuzla kullanın; aşırı sıkmayın.
+LCD varsayımı: PCB 80 x 36 mm, delik merkezleri 75 x 31 mm.
+LCD pencere: 71 x 24 mm. Montaj ayakları iç yüzden 4 mm yüksek.
+LCD pilot delikler: 2.2 mm; kısa M2.5 vidaların PCB ve ayak boyuna göre
+seçilmesi gerekir. Dış yüzeyi delmeyecek uzunluk kullanın.
+I2C kartı ve konnektörlerin gerçek yüksekliği ayrıca kontrol edilmelidir.
+RC522 varsayımı: 60 x 40 mm PCB, 61 x 41 mm iç cep. Anten tarafı kapağa bakar.
+Okutma bölgesinde plastik 1.4 mm'dir. PCB kenarlarından ince çift taraflı bantla
+sabitleyin; bant/baskı kalınlığı ve okuma mesafesini montajda deneyin.
+RC522 için kart varyantına bağlı delik konumları varsayılmadı.
+ESP32 ve 50 x 50 mm plaket için tabanda çok konumlu, 5 mm aralıklı
+2.2 mm kör pilot delikli raylar vardır. Raylar her kartın delik düzenine doğrudan
+uymaz; gerektiğinde ara adaptör veya yalıtkan yapışkan sabitleme kullanın.
+Plaket alanı yaklaşık X=12..62, Y=52..102 mm; ESP32 alanı X=115..142, Y=16..74 mm.
+USB kablo açıklığı sağ yanda 18 x 13 mm, tabandan 7 mm yüksektedir.
+ESP32 varyantına göre USB hizası için kartın yerleşimi/ara parçası ayarlanmalıdır.
+Kablo düzenini ve LCD/plaket üzerindeki yüksek bileşenlerin çakışmasını kontrol edin.
+
+Bu model baskıya uygun kapalı STL geometrisidir; fiziksel prototip denenmedi.
+Kullanıcının gerçek modülleri ölçülmediği için birebir montaj uyumu doğrulanmadı.
+Önceki konsept görseli yerine bu dosyaların geometrisi geçerlidir.
+Özellikle LCD penceresi, vida aralıkları ve USB konumu baskı öncesi ölçülmelidir.
+
+KAYNAK
+build_enclosure.py düzenlenebilir parametrik üretim kaynağıdır.
+Python bağımlılıkları: manifold3d, trimesh, numpy, networkx, matplotlib.
+mesh_validation.json: dışa aktarılan STL kapalı yüzey ve bağlantı kontrolleri.
+model_onizleme.png: STL üçgenlerinden oluşturulan gerçek geometri önizlemesi.

@@ -5,7 +5,7 @@ Bu klasor tek RFID okuyucu ile personel giris-cikis, mola giris-cikis ve mesai c
 ## Gerekli Arduino kutuphaneleri
 
 - MFRC522
-- LiquidCrystal I2C
+- LiquidCrystal
 - ArduinoJson
 
 ## Varsayilan pinler
@@ -17,13 +17,18 @@ Bu klasor tek RFID okuyucu ile personel giris-cikis, mola giris-cikis ve mesai c
 | RC522 SCK | GPIO 18 |
 | RC522 MISO | GPIO 19 |
 | RC522 MOSI | GPIO 23 |
-| 2x16 LCD SDA | GPIO 21 |
-| 2x16 LCD SCL | GPIO 22 |
+| 2x16 paralel LCD RS | GPIO 32 |
+| 2x16 paralel LCD E | GPIO 25 |
+| 2x16 paralel LCD D4 | GPIO 22 |
+| 2x16 paralel LCD D5 | GPIO 21 |
+| 2x16 paralel LCD D6 | GPIO 16 / RX2 |
+| 2x16 paralel LCD D7 | GPIO 17 / TX2 |
 | Yesil LED | GPIO 26 |
 | Kirmizi LED | GPIO 33 |
-| Buzzer | GPIO 25 |
+| Aktif buzzer sinyali | GPIO 14 / D14 |
 
-LCD adresi kodda `0x27` olarak ayarlandi. Ekran calismazsa yaygin diger adres `0x3F` olabilir.
+LCD, I2C donusturucu olmadan 4-bit paralel modda kullanilir. Ayrintili guc,
+kontrast ve buzzer baglantisi icin `BAGLANTI_DOKUMANI.md` dosyasina bak.
 
 ## Ilk kurulum
 
