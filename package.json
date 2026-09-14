@@ -13,6 +13,7 @@
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
     "calendar:backfill": "tsx scripts/backfill-attendance-calendars.ts",
+    "calendar:install-finalizer": "tsx scripts/install-daily-attendance-finalizer.ts",
     "seed": "tsx prisma/seed.ts"
   },
   "engines": {
