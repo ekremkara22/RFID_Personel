@@ -231,8 +231,8 @@ export default async function EmployeeDetailPage(props: {
         <form action={deleteEmployeeAction} className={styles.dangerForm}>
           <input type="hidden" name="employeeId" value={employee.id} />
           <SubmitButton
-            idleLabel="Personeli Sil"
-            pendingLabel="Siliniyor..."
+            idleLabel="Personeli Pasife Al"
+            pendingLabel="Pasife Alınıyor..."
             className={styles.dangerButton}
           />
         </form>

@@ -44,10 +44,6 @@ function getUserFullName(user: {
   return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.name || user.email;
 }
 
-function getInitials(firstName?: string | null, lastName?: string | null) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "P";
-}
-
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
     dateStyle: "short",
@@ -198,7 +194,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         company: true,
       },
       orderBy: [{ createdAt: "desc" }],
-      take: 8,
     }),
     prisma.attendanceLog.count({
       where: {
@@ -412,7 +407,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       };
     })
     .filter((row): row is NonNullable<typeof row> => row !== null)
-    .filter((row) => row.lateMinutes > 0 || row.breakMinutes > 0 || row.isOnBreak)
     .sort(
       (first, second) =>
         Number(second.isOnBreak) - Number(first.isOnBreak) ||
@@ -423,17 +417,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     ? Math.round(selectedLateTotalMinutes / selectedLateEmployees.length)
     : 0;
   const selectedBreakOverRows = selectedOperationalRows.filter((row) => row.breakOverMinutes > 0);
-  const selectedBreakOverTotalMinutes = selectedBreakOverRows.reduce((sum, row) => sum + row.breakOverMinutes, 0);
-  const selectedOnBreakRows = selectedOperationalRows.filter((row) => row.isOnBreak);
-  const longestActiveBreakMinutes = Math.max(...selectedOnBreakRows.map((row) => row.activeBreakMinutes), 0);
-  const selectedChartRows = selectedOperationalRows.slice(0, 8);
-  const selectedChartMaxMinutes = Math.max(
-    ...selectedChartRows.flatMap((row) => [row.lateMinutes, row.breakMinutes]),
-    1,
-  );
   const selectedLeaveEmployeeIds = new Set(selectedApprovedLeaves.map((leave) => leave.employeeId));
-  const monthlyLateTotalMinutes = monthlyLateRecords.reduce((sum, record) => sum + record.lateMinutes, 0);
-  const monthlyLateAverageMinutes = monthlyLateRecords.length > 0 ? Math.round(monthlyLateTotalMinutes / monthlyLateRecords.length) : 0;
   const monthlyLateDepartmentRows = Array.from(
     monthlyLateRecords.reduce((map, record) => {
       const current = map.get(record.department) ?? { department: record.department, count: 0, totalMinutes: 0 };
@@ -446,7 +430,42 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     .map(([, row]) => row)
     .sort((first, second) => second.count - first.count || second.totalMinutes - first.totalMinutes)
     .slice(0, 6);
-  const maxDepartmentLateCount = Math.max(...monthlyLateDepartmentRows.map((row) => row.count), 1);
+  const monthlyLogsByEmployeeDay = monthlyLogsForReport.reduce((map, log) => {
+    const key = `${log.employeeId}-${getAppDayKey(log.scannedAt)}`;
+    const current = map.get(key) ?? { department: log.employee.department || "Departmansız", logs: [] as typeof monthlyLogsForReport };
+    current.logs.push(log);
+    map.set(key, current);
+    return map;
+  }, new Map<string, { department: string; logs: typeof monthlyLogsForReport }>());
+  const monthlyBreakDepartmentRows = Array.from(monthlyLogsByEmployeeDay.values()).reduce((map, group) => {
+    const sortedLogs = group.logs.sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime());
+    const dayKey = getAppDayKey(sortedLogs[0].scannedAt);
+    const rangeEnd = dayKey === todayRange.dayKey ? new Date() : sortedLogs.at(-1)?.scannedAt ?? null;
+    const minutes = getEmployeeBreakSummary(sortedLogs, rangeEnd).totalMinutes;
+    if (minutes <= 0) return map;
+    map.set(group.department, (map.get(group.department) ?? 0) + minutes);
+    return map;
+  }, new Map<string, number>());
+  const monthlyBreakRows = Array.from(monthlyBreakDepartmentRows, ([department, totalMinutes]) => ({ department, totalMinutes }))
+    .sort((first, second) => second.totalMinutes - first.totalMinutes)
+    .slice(0, 6);
+  const maxDepartmentLateMinutes = Math.max(...monthlyLateDepartmentRows.map((row) => row.totalMinutes), 1);
+  const maxDepartmentBreakMinutes = Math.max(...monthlyBreakRows.map((row) => row.totalMinutes), 1);
+  const latestSelectedLogByEmployee = new Map<number, (typeof selectedLogsForCritical)[number]>();
+  selectedLogsForCritical.forEach((log) => latestSelectedLogByEmployee.set(log.employeeId, log));
+  const selectedWorkingEmployees = scopedEmployees.filter((employee) => {
+    if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id)) return false;
+    const latest = latestSelectedLogByEmployee.get(employee.id);
+    return latest?.type === "ENTRY" || latest?.type === "BREAK_END" || latest?.type === "MEAL_END";
+  });
+  const selectedOnBreakEmployees = scopedEmployees.filter((employee) => {
+    if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id)) return false;
+    const latest = latestSelectedLogByEmployee.get(employee.id);
+    return latest?.type === "BREAK_START" || latest?.type === "MEAL_START";
+  });
+  const selectedLeaveEmployees = Array.from(
+    new Map(selectedApprovedLeaves.map((leave) => [leave.employeeId, leave.employee])).values(),
+  );
   const onTimeTodayCount = todayDailyCalendarsForDashboard.filter((day) => {
     if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
 
@@ -482,15 +501,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     rfidCardId: log.rfidCardId ?? log.employee.rfidCardId ?? "-",
     device: log.device?.name ?? "-",
   }));
-  const attentionEmployees = scopedEmployees
-    .filter((employee) => {
-      const hasEntry = selectedLogsForCritical.some(
-        (log) => log.employeeId === employee.id && log.type === "ENTRY",
-      );
-      return employee.isActive && !hasEntry && !selectedLeaveEmployeeIds.has(employee.id);
-    })
-    .slice(0, 8);
-
   return (
     <div className={styles.page}>
       {!isSuperadmin ? (
@@ -575,16 +585,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               <strong>{formatMinutes(selectedLateAverageMinutes)}</strong>
               <small>Seçili gündeki gecikmeler</small>
             </article>
-            <article className={`${styles.operationKpiCard} ${styles.operationKpiBreak}`}>
-              <span>Mola limitini aşan</span>
-              <strong>{selectedBreakOverRows.length}</strong>
-              <small>Toplam +{formatMinutes(selectedBreakOverTotalMinutes)}</small>
-            </article>
-            <article className={styles.operationKpiCard}>
-              <span>Şu an molada</span>
-              <strong>{isSelectedToday ? selectedOnBreakRows.length : "—"}</strong>
-              <small>{isSelectedToday ? `En uzun aktif mola: ${formatMinutes(longestActiveBreakMinutes)}` : "Yalnızca bugünde canlıdır"}</small>
-            </article>
           </section>
 
           <section className={styles.operationReportGrid}>
@@ -592,39 +592,29 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               <div className={styles.operationReportHeader}>
                 <div>
                   <p className={styles.sectionEyebrow}>Operasyon özeti</p>
-                  <h2 className={styles.sectionTitle}>Bugün Dikkat Gerektiren Personeller</h2>
+                  <h2 className={styles.sectionTitle}>Özet</h2>
                 </div>
                 <form className={styles.dateFilterForm}>
                   <label><span>Tarih</span><input name="date" type="date" defaultValue={getDateOnlyKey(selectedDate)} /></label>
                   <button type="submit">Göster</button>
                 </form>
               </div>
-              <div className={styles.operationLegend}>
-                <span><i className={styles.operationLegendLate} />Geç kalma</span>
-                <span><i className={styles.operationLegendBreak} />Mola</span>
-              </div>
-              <div className={styles.operationPersonList}>
-                {selectedChartRows.length === 0 ? (
-                  <p className={styles.emptyState}>Seçili tarihte gecikme veya mola hareketi yok.</p>
-                ) : selectedChartRows.map((row) => (
-                  <article key={row.employeeId} className={styles.operationPersonRow}>
-                    <div className={styles.operationPersonIdentity}>
-                      <span
-                        className={styles.personBriefAvatar}
-                        style={row.photoUrl ? { backgroundImage: `url(${row.photoUrl})` } : undefined}
-                      >{row.photoUrl ? "" : getInitials(row.firstName, row.lastName)}</span>
-                      <div><strong>{row.employeeName}</strong><small>{row.department}</small></div>
+              <div className={styles.staffStatusGrid}>
+                {[
+                  { title: "Çalışıyor", employees: selectedWorkingEmployees, tone: "working" },
+                  { title: "Molada", employees: selectedOnBreakEmployees, tone: "break" },
+                  { title: "İzinli", employees: selectedLeaveEmployees, tone: "leave" },
+                ].map((group) => (
+                  <section key={group.title} className={`${styles.staffStatusColumn} ${styles[`staffStatus${group.tone}`]}`}>
+                    <div className={styles.staffStatusHeading}><h3>{group.title}</h3><span>{group.employees.length}</span></div>
+                    <div className={styles.staffNameList}>
+                      {group.employees.length === 0 ? <p>Personel yok</p> : group.employees.map((employee) => (
+                        <strong key={employee.id}>{employee.firstName} {employee.lastName}</strong>
+                      ))}
                     </div>
-                    <div className={styles.operationComparisonTrack}>
-                      <span className={styles.operationLateBar} style={{ width: `${(row.lateMinutes / selectedChartMaxMinutes) * 50}%` }} />
-                      <span className={styles.operationBreakBar} style={{ width: `${(row.breakMinutes / selectedChartMaxMinutes) * 50}%` }} />
-                    </div>
-                    <b className={styles.operationLateValue}>{row.lateMinutes} dk</b>
-                    <b className={styles.operationBreakValue}>{row.breakMinutes} dk</b>
-                  </article>
+                  </section>
                 ))}
               </div>
-              <p className={styles.operationChartNote}>Çubuklar personel bazında geç kalma ve toplam mola süresini birlikte karşılaştırır.</p>
             </article>
 
             <article className={styles.operationReportPanel}>
@@ -636,14 +626,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                     <p key={item.label}><span className={`${styles.statusDot} ${styles[`statusDot${item.color}`]}`} />{item.label}<strong>{item.value}</strong></p>
                   ))}
                 </div>
-              </div>
-              <div className={styles.operationAlerts}>
-                {selectedChartRows.slice(0, 3).map((row) => (
-                  <div key={row.employeeId} className={styles.operationAlertRow}>
-                    <div><strong>{row.employeeName}</strong><span>{row.lateMinutes > 0 && row.plannedStart && row.firstEntry ? `Planlanan ${row.plannedStart} · Giriş ${row.firstEntry.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE })}` : `Mola limiti ${row.plannedBreakMinutes} dk · Kullanım ${row.breakMinutes} dk`}</span></div>
-                    <b>{row.lateMinutes > 0 ? `+${row.lateMinutes} dk` : `+${row.breakOverMinutes} dk`}</b>
-                  </div>
-                ))}
               </div>
             </article>
           </section>
@@ -689,91 +671,45 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               </div>
             </section>
           ) : (
-            <section className={`glass-panel ${styles.sectionCard}`}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.sectionEyebrow}>Dikkat</p>
-                  <h2 className={styles.sectionTitle}>Dikkat Gerektiren Personel</h2>
-                </div>
-                <AlertTriangle size={18} />
-              </div>
-
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Personel</th>
-                      <th>Departman</th>
-                      <th>Sube</th>
-                      <th>Durum</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attentionEmployees.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className={styles.emptyCell}>
-                          Bugun dikkat gerektiren kayit yok.
-                        </td>
-                      </tr>
-                    ) : (
-                      attentionEmployees.map((employee) => (
-                        <tr key={employee.id}>
-                          <td>
-                            {employee.firstName} {employee.lastName}
-                          </td>
-                          <td>{employee.department}</td>
-                          <td>{employee.branch ?? "-"}</td>
-                          <td>Giris hareketi yok</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className={styles.visualAnalysisPanel}>
-                <div className={styles.sectionHeader}>
-                  <div>
-                    <p className={styles.sectionEyebrow}>Analiz</p>
-                    <h3 className={styles.sectionTitle}>Aylık Geç Kalma Görünümü</h3>
+            <div className={styles.operationDetailStack}>
+              <section className={styles.operationNamePanels}>
+                <article className={styles.operationNamePanel}>
+                  <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Mola takibi</p><h2 className={styles.sectionTitle}>Mola Limitini Aşan Personeller</h2></div><span className={styles.countPill}>{selectedBreakOverRows.length}</span></div>
+                  <div className={styles.alertNameList}>
+                    {selectedBreakOverRows.length === 0 ? <p className={styles.emptyState}>Seçili tarihte mola limitini aşan personel yok.</p> : selectedBreakOverRows.map((row) => (
+                      <div key={row.employeeId}><strong>{row.employeeName}</strong><span>+{formatMinutes(row.breakOverMinutes)}</span></div>
+                    ))}
                   </div>
-                  <span className={styles.countPill}>{monthlyLateRecords.length} hareket</span>
-                </div>
+                </article>
+                <article className={styles.operationNamePanel}>
+                  <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Giriş takibi</p><h2 className={styles.sectionTitle}>Geç Kalan Personeller</h2></div><span className={styles.countPill}>{selectedLateEmployees.length}</span></div>
+                  <div className={styles.alertNameList}>
+                    {selectedLateEmployees.length === 0 ? <p className={styles.emptyState}>Seçili tarihte geç kalan personel yok.</p> : selectedLateEmployees.map((row) => (
+                      <div key={row.employeeId}><strong>{row.employeeName}</strong><span>+{formatMinutes(row.lateMinutes)}</span></div>
+                    ))}
+                  </div>
+                </article>
+              </section>
 
-                <div className={styles.analysisStatGrid}>
-                  <div className={styles.analysisStatCard}>
-                    <span>Toplam Geç Kalma</span>
-                    <strong>{monthlyLateRecords.length}</strong>
+              <section className={styles.departmentChartGrid}>
+                <article className={styles.compactChartPanel}>
+                  <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Bu ay</p><h3 className={styles.sectionTitle}>Departman Bazlı Geç Kalma Süresi</h3></div></div>
+                  <div className={styles.compactBars}>
+                    {monthlyLateDepartmentRows.length === 0 ? <p className={styles.emptyState}>Geç kalma verisi yok.</p> : monthlyLateDepartmentRows.map((row) => (
+                      <div key={row.department} className={styles.compactBarRow}><div><strong>{row.department}</strong><span>{formatMinutes(row.totalMinutes)}</span></div><div className={styles.compactBarTrack}><i className={styles.lateDepartmentBar} style={{ width: `${Math.max((row.totalMinutes / maxDepartmentLateMinutes) * 100, 6)}%` }} /></div></div>
+                    ))}
                   </div>
-                  <div className={styles.analysisStatCard}>
-                    <span>Toplam Süre</span>
-                    <strong>{formatMinutes(monthlyLateTotalMinutes)}</strong>
+                </article>
+                <article className={styles.compactChartPanel}>
+                  <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Bu ay</p><h3 className={styles.sectionTitle}>Departman Bazlı Mola Süresi</h3></div></div>
+                  <div className={styles.compactBars}>
+                    {monthlyBreakRows.length === 0 ? <p className={styles.emptyState}>Mola verisi yok.</p> : monthlyBreakRows.map((row) => (
+                      <div key={row.department} className={styles.compactBarRow}><div><strong>{row.department}</strong><span>{formatMinutes(row.totalMinutes)}</span></div><div className={styles.compactBarTrack}><i className={styles.breakDepartmentBar} style={{ width: `${Math.max((row.totalMinutes / maxDepartmentBreakMinutes) * 100, 6)}%` }} /></div></div>
+                    ))}
                   </div>
-                  <div className={styles.analysisStatCard}>
-                    <span>Ortalama</span>
-                    <strong>{formatMinutes(monthlyLateAverageMinutes)}</strong>
-                  </div>
-                </div>
-
-                <div className={styles.analysisBars}>
-                  {monthlyLateDepartmentRows.length === 0 ? (
-                    <p className={styles.emptyState}>Bu ay departman bazlı geç kalma verisi yok.</p>
-                  ) : (
-                    monthlyLateDepartmentRows.map((row) => (
-                      <div key={row.department} className={styles.analysisBarRow}>
-                        <div>
-                          <strong>{row.department}</strong>
-                          <span>{row.count} kez, {formatMinutes(row.totalMinutes)}</span>
-                        </div>
-                        <div className={styles.analysisBarTrack}>
-                          <span style={{ width: `${Math.max((row.count / maxDepartmentLateCount) * 100, 8)}%` }} />
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </section>
+                </article>
+              </section>
+            </div>
           )}
         </div>
 

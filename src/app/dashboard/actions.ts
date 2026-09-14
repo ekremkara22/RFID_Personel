@@ -1052,10 +1052,19 @@ export async function deleteEmployeeAction(formData: FormData) {
     throw new Error("Personel bilgisi eksik.");
   }
 
-  await prisma.employee.deleteMany({
+  const currentEmployee = await prisma.employee.findFirst({
+    where: { id: employeeId, companyId: user.companyId },
+    select: { terminationDate: true },
+  });
+
+  await prisma.employee.updateMany({
     where: {
       id: employeeId,
       companyId: user.companyId,
+    },
+    data: {
+      isActive: false,
+      terminationDate: currentEmployee?.terminationDate ?? new Date(),
     },
   });
 

@@ -52,7 +52,7 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
 
   const [employees, branches, calendars, logs] = await Promise.all([
     prisma.employee.findMany({
-      where: { companyId: user.companyId, isActive: true, ...(selectedBranch ? { branch: selectedBranch } : {}) },
+      where: { companyId: user.companyId, ...(selectedBranch ? { branch: selectedBranch } : {}) },
       orderBy: [{ department: "asc" }, { firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),

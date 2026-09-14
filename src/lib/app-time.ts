@@ -50,7 +50,6 @@ export function dateOnlyFromKey(dayKey: string) {
 
 export function getAppDayRange(day: Date | string) {
   const dayKey = typeof day === "string" ? day : getAppDayKey(day);
-  const [year, month, date] = dayKey.split("-").map(Number);
   // Türkiye 2016'dan beri yıl boyunca UTC+3 kullanıyor.
   const start = dateOnlyFromKey(dayKey);
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
