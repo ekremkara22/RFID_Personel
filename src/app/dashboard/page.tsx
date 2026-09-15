@@ -1,5 +1,7 @@
 import {
   Building2,
+  Clock3,
+  Coffee,
   CalendarDays,
   DoorOpen,
   AlertTriangle,
@@ -410,6 +412,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         second.lateMinutes + second.breakOverMinutes - (first.lateMinutes + first.breakOverMinutes),
     );
   const selectedLateTotalMinutes = selectedLateEmployees.reduce((sum, row) => sum + row.lateMinutes, 0);
+  const selectedBreakTotalMinutes = selectedOperationalRows.reduce((sum, row) => sum + row.breakMinutes, 0);
   const selectedBreakOverRows = selectedOperationalRows.filter((row) => row.breakOverMinutes > 0);
   const selectedLeaveEmployeeIds = new Set(selectedApprovedLeaves.map((leave) => leave.employeeId));
   const monthlyLateDepartmentRows = Array.from(
@@ -569,7 +572,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       {!isSuperadmin ? (
         <>
           <section className={styles.operationKpiGrid}>
-            <article className={styles.operationReportPanel}>
+            <article className={`${styles.operationReportPanel} ${styles.distributionCard}`}>
               <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Günlük dağılım</p><h2 className={styles.sectionTitle}>Personel Durumu</h2></div></div>
               <div className={styles.donutSummary}>
                 <div className={styles.donutCircle}><strong>{employeeCount}</strong><span>Toplam</span></div>
@@ -581,14 +584,19 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               </div>
             </article>
             <article className={`${styles.operationKpiCard} ${styles.operationKpiLate}`}>
-              <span>Geç kalan personel</span>
-              <strong>{selectedLateEmployees.length}</strong>
-              <small>Toplam {formatMinutes(selectedLateTotalMinutes)}</small>
+              <div className={styles.kpiHeader}><span>Geç kalan personel</span><div className={styles.kpiIcon}><Users size={21} aria-hidden="true" /></div></div>
+              <div className={styles.kpiValue}><strong>{selectedLateEmployees.length}</strong><span>kişi</span></div>
+              <small>Seçili günde geç giriş yapanlar</small>
             </article>
-            <article className={styles.operationKpiCard}>
-              <span>Toplam gecikme</span>
-              <strong>{selectedLateTotalMinutes} dk</strong>
-              <small>Seçili gündeki gecikmeler</small>
+            <article className={`${styles.operationKpiCard} ${styles.operationKpiDelay}`}>
+              <div className={styles.kpiHeader}><span>Toplam gecikme</span><div className={styles.kpiIcon}><Clock3 size={21} aria-hidden="true" /></div></div>
+              <div className={styles.kpiValue}><strong>{selectedLateTotalMinutes}</strong><span>dk</span></div>
+              <small>Seçili gündeki toplam gecikme</small>
+            </article>
+            <article className={`${styles.operationKpiCard} ${styles.operationKpiBreak}`}>
+              <div className={styles.kpiHeader}><span>Toplam mola</span><div className={styles.kpiIcon}><Coffee size={21} aria-hidden="true" /></div></div>
+              <div className={styles.kpiValue}><strong>{selectedBreakTotalMinutes}</strong><span>dk</span></div>
+              <small>Seçili gün · Mola ve yemek süreleri</small>
             </article>
           </section>
 

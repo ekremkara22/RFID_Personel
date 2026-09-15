@@ -811,7 +811,7 @@
 .operationKpiGrid {
   margin-bottom: 1rem;
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 0.75fr));
+  grid-template-columns: minmax(320px, 1.5fr) repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -1662,4 +1662,39 @@
 @media (max-width: 760px) {
   .personnelColumns { grid-template-columns: minmax(0, 1fr); gap: 0.7rem; }
   .personnelColumns > div + div { border-left: 0; padding-left: 0; }
+}
+
+/* Dashboard summary cards */
+.operationKpiCard {
+  --kpi-accent: #dc2626;
+  --kpi-tint: #fff1f2;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.35rem;
+  border-radius: 16px;
+  border-top: 3px solid var(--kpi-accent);
+  background: linear-gradient(145deg, #fff 35%, var(--kpi-tint));
+  box-shadow: 0 5px 18px #0f172a06;
+}
+.operationKpiDelay { --kpi-accent: #4f46e5; --kpi-tint: #eef2ff; }
+.operationKpiBreak { --kpi-accent: #d97706; --kpi-tint: #fffbeb; }
+.kpiHeader { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.kpiIcon { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px; background: var(--kpi-tint); color: var(--kpi-accent); }
+.kpiValue { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0.75rem; }
+.kpiValue strong { margin: 0; color: var(--kpi-accent); font-size: clamp(2rem, 2.8vw, 3rem); font-weight: 850; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+.kpiValue span { color: var(--kpi-accent); font-size: 0.9rem; }
+.operationKpiCard small { padding-top: 0.8rem; border-top: 1px solid #cbd5e166; line-height: 1.5; }
+.distributionCard { border-radius: 16px; box-shadow: 0 5px 18px #0f172a06; }
+.distributionCard .donutCircle { width: 116px; height: 116px; }
+.distributionCard .statusList { gap: 0.5rem; font-size: 0.8rem; }
+@media (max-width: 1120px) {
+  .operationKpiGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .operationKpiGrid { grid-template-columns: minmax(0, 1fr); }
+  .operationKpiCard { padding: 1rem 1.2rem; }
+  .distributionCard .donutSummary { grid-template-columns: auto minmax(0, 1fr); }
 }
