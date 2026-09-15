@@ -21,6 +21,7 @@ import {
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "./page.module.css";
+import { PersonnelChart } from "./personnel-chart";
 
 const attendanceLabels = {
   ENTRY: "Giriş",
@@ -263,7 +264,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         employee: true,
       },
       orderBy: { scannedAt: "asc" },
-      take: 500,
     }),
     prisma.employeeDailyCalendar.findMany({
       where: {
@@ -273,7 +273,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         },
       },
       include: { employee: true },
-      take: 500,
     }),
     prisma.leaveRequest.findMany({
       where: {
@@ -374,13 +373,11 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     map.set(log.employeeId, employeeLogs);
     return map;
   }, new Map<number, typeof selectedLogsForCritical>());
-  const selectedOperationalRows = Array.from(
-    new Set([...selectedCalendarByEmployee.keys(), ...selectedLogsByEmployee.keys()]),
-  )
-    .map((employeeId) => {
+  const selectedOperationalRows = scopedEmployees
+    .map((employee) => {
+      const employeeId = employee.id;
       const calendar = selectedCalendarByEmployee.get(employeeId);
       const employeeLogs = selectedLogsByEmployee.get(employeeId) ?? [];
-      const employee = calendar?.employee ?? employeeLogs[0]?.employee;
       const lateRecord = selectedLateByEmployee.get(employeeId);
       const breakSummary = getEmployeeBreakSummary(employeeLogs, selectedBreakRangeEnd);
       const plannedBreakMinutes = calendar?.plannedBreakMinutes ?? 0;
@@ -413,17 +410,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         second.lateMinutes + second.breakOverMinutes - (first.lateMinutes + first.breakOverMinutes),
     );
   const selectedLateTotalMinutes = selectedLateEmployees.reduce((sum, row) => sum + row.lateMinutes, 0);
-  const selectedLateAverageMinutes = selectedLateEmployees.length
-    ? Math.round(selectedLateTotalMinutes / selectedLateEmployees.length)
-    : 0;
   const selectedBreakOverRows = selectedOperationalRows.filter((row) => row.breakOverMinutes > 0);
-  const selectedPersonChartRows = selectedOperationalRows
-    .filter((row) => row.lateMinutes > 0 || row.breakMinutes > 0 || row.isOnBreak)
-    .slice(0, 8);
-  const selectedPersonChartMaxMinutes = Math.max(
-    ...selectedPersonChartRows.flatMap((row) => [row.lateMinutes, row.breakMinutes]),
-    1,
-  );
   const selectedLeaveEmployeeIds = new Set(selectedApprovedLeaves.map((leave) => leave.employeeId));
   const monthlyLateDepartmentRows = Array.from(
     monthlyLateRecords.reduce((map, record) => {
@@ -582,14 +569,25 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       {!isSuperadmin ? (
         <>
           <section className={styles.operationKpiGrid}>
+            <article className={styles.operationReportPanel}>
+              <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Günlük dağılım</p><h2 className={styles.sectionTitle}>Personel Durumu</h2></div></div>
+              <div className={styles.donutSummary}>
+                <div className={styles.donutCircle}><strong>{employeeCount}</strong><span>Toplam</span></div>
+                <div className={styles.statusList}>
+                  {statusCards.map((item) => (
+                    <p key={item.label}><span className={`${styles.statusDot} ${styles[`statusDot${item.color}`]}`} />{item.label}<strong>{item.value}</strong></p>
+                  ))}
+                </div>
+              </div>
+            </article>
             <article className={`${styles.operationKpiCard} ${styles.operationKpiLate}`}>
               <span>Geç kalan personel</span>
               <strong>{selectedLateEmployees.length}</strong>
               <small>Toplam {formatMinutes(selectedLateTotalMinutes)}</small>
             </article>
             <article className={styles.operationKpiCard}>
-              <span>Ortalama gecikme</span>
-              <strong>{formatMinutes(selectedLateAverageMinutes)}</strong>
+              <span>Toplam gecikme</span>
+              <strong>{selectedLateTotalMinutes} dk</strong>
               <small>Seçili gündeki gecikmeler</small>
             </article>
           </section>
@@ -610,31 +608,16 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                 <span><i className={styles.operationLegendLate} />Geç kalma</span>
                 <span><i className={styles.operationLegendBreak} />Mola</span>
               </div>
-              <div className={styles.operationPersonList}>
-                {selectedPersonChartRows.length === 0 ? <p className={styles.emptyState}>Seçili tarihte gecikme veya mola hareketi yok.</p> : selectedPersonChartRows.map((row) => (
-                  <article key={row.employeeId} className={styles.operationPersonRow}>
-                    <div className={styles.operationPersonIdentity}><div><strong>{row.employeeName}</strong><small>{row.department}</small></div></div>
-                    <div className={styles.operationComparisonTrack}>
-                      <span className={styles.operationLateBar} style={{ width: `${(row.lateMinutes / selectedPersonChartMaxMinutes) * 50}%` }} />
-                      <span className={styles.operationBreakBar} style={{ width: `${(row.breakMinutes / selectedPersonChartMaxMinutes) * 50}%` }} />
-                    </div>
-                    <b className={styles.operationLateValue}>{row.lateMinutes} dk</b>
-                    <b className={styles.operationBreakValue}>{row.breakMinutes} dk</b>
-                  </article>
-                ))}
-              </div>
-            </article>
-
-            <article className={styles.operationReportPanel}>
-              <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Günlük dağılım</p><h2 className={styles.sectionTitle}>Personel Durumu</h2></div></div>
-              <div className={styles.donutSummary}>
-                <div className={styles.donutCircle}><strong>{employeeCount}</strong><span>Toplam</span></div>
-                <div className={styles.statusList}>
-                  {statusCards.map((item) => (
-                    <p key={item.label}><span className={`${styles.statusDot} ${styles[`statusDot${item.color}`]}`} />{item.label}<strong>{item.value}</strong></p>
-                  ))}
-                </div>
-              </div>
+              <PersonnelChart
+                key={getDateOnlyKey(selectedDate)}
+                rows={selectedOperationalRows.map((row) => ({
+                  employeeId: row.employeeId,
+                  employeeName: row.employeeName,
+                  department: row.department,
+                  lateMinutes: row.lateMinutes,
+                  breakMinutes: row.breakMinutes,
+                }))}
+              />
             </article>
           </section>
 

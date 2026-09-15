@@ -811,7 +811,7 @@
 .operationKpiGrid {
   margin-bottom: 1rem;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 240px));
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 0.75fr));
   gap: 0.75rem;
 }
 
@@ -855,7 +855,7 @@
 .operationReportGrid {
   margin-bottom: 1rem;
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.8fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -1649,4 +1649,17 @@
   .operationPersonRow { grid-template-columns: minmax(105px, 0.8fr) minmax(70px, 1fr) 38px 38px; }
   .operationPersonIdentity .personBriefAvatar { display: none; }
   .operationPersonIdentity { grid-template-columns: minmax(0, 1fr); }
+}
+
+.personnelColumns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.personnelColumns > div { align-content: start; min-width: 0; }
+.personnelColumns > div + div { border-left: 1px solid #e2e8f0; padding-left: 1.5rem; }
+.personnelColumns .operationPersonRow { grid-template-columns: minmax(0, 1fr) minmax(40px, 1fr) auto auto; min-height: 42px; }
+.personnelPagination { display: flex; align-items: center; justify-content: flex-end; gap: 0.65rem; margin-top: 1rem; color: #64748b; font-size: 0.8rem; flex-wrap: wrap; }
+.personnelPagination button { padding: 0.5rem 0.8rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0369a1; font: inherit; cursor: pointer; }
+.personnelPagination button:disabled { opacity: 0.45; cursor: default; }
+@media (max-width: 1120px) { .operationKpiGrid > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 760px) {
+  .personnelColumns { grid-template-columns: minmax(0, 1fr); gap: 0.7rem; }
+  .personnelColumns > div + div { border-left: 0; padding-left: 0; }
 }
