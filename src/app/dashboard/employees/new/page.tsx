@@ -11,12 +11,13 @@ import styles from "../../page.module.css";
 export default async function NewEmployeePage() {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
   const companyIds = await getAccessibleCompanyIds(user);
-  const scopedCompanyIds = companyIds ?? [user.companyId];
+  const scopedCompanyIds = companyIds ?? [];
+  if (scopedCompanyIds.length === 0) redirect("/dashboard/companies/new");
 
   const [companies, departments, branches, managers] = await Promise.all([
     prisma.company.findMany({
@@ -112,7 +113,7 @@ export default async function NewEmployeePage() {
 
             <label className={styles.field}>
               <span>Firma</span>
-              <select name="companyId" required defaultValue={user.companyId}>
+              <select name="companyId" required defaultValue={user.companyId ?? scopedCompanyIds[0]}>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
                     {company.name}

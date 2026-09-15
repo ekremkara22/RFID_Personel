@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
 import {
   Building2,
   Clock3,
@@ -118,6 +120,19 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string }> }) {
   const { user } = await requireSessionUser();
   const isSuperadmin = user.role === "SUPERADMIN";
+  const companyIds = await getAccessibleCompanyIds(user);
+  const companyScope = scopedCompanyFilter(companyIds);
+  if (companyIds !== null && companyIds.length === 0) {
+    return (
+      <div className={styles.page}>
+        <section className={styles.operationReportPanel}>
+          <h1 className={styles.sectionTitle}>Firmanızı tanımlayarak başlayın</h1>
+          <p className={styles.subtitle}>Henüz erişiminize tanımlı bir firma bulunmuyor. Kendi firmanızı oluşturduktan sonra iş yerlerinizi ve personellerinizi ekleyebilirsiniz. Mevcut bir firmaya erişmeniz gerekiyorsa sistem yöneticinizden yetki isteyin.</p>
+          {user.role === "COMPANY_ADMIN" && <Link href="/dashboard/companies/new" className={styles.primaryLinkButton}>Firma oluştur</Link>}
+        </section>
+      </div>
+    );
+  }
   const searchParams = (await props.searchParams) ?? {};
 
   const todayRange = getAppDayRange(new Date());
@@ -130,27 +145,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   const monthStart = dateOnlyFromKey(monthStartKey);
   const monthAttendanceStart = getAppDayRange(monthStartKey).start;
 
-  const attendanceWhere = isSuperadmin
-    ? undefined
-    : {
-        employee: {
-          companyId: user.companyId ?? undefined,
-        },
-      };
-
-  const employeeWhere = isSuperadmin
-    ? undefined
-    : {
-        companyId: user.companyId ?? undefined,
-      };
-
-  const deviceWhere = isSuperadmin
-    ? undefined
-    : {
-        companyId: user.companyId ?? undefined,
-      };
-
-  const companyWhere = isSuperadmin ? undefined : { id: user.companyId ?? undefined };
+  const attendanceWhere = { employee: companyScope };
+  const employeeWhere = companyScope;
+  const deviceWhere = companyScope;
+  const companyWhere = companyIds === null ? {} : { id: { in: companyIds } };
 
   const [
     companyCount,
@@ -220,7 +218,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       where: {
         workDate: { gte: monthStart },
         employee: {
-          companyId: user.companyId ?? undefined,
+          ...companyScope,
         },
       },
       include: { employee: true },
@@ -242,7 +240,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       where: {
         workDate: today,
         employee: {
-          companyId: user.companyId ?? undefined,
+          ...companyScope,
         },
       },
       include: { employee: true },
@@ -250,7 +248,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
     prisma.leaveRequest.findMany({
       where: {
-        companyId: user.companyId ?? undefined,
+        ...companyScope,
         approvalStatus: LeaveApprovalStatus.APPROVED,
         startDate: { lte: new Date() },
         endDate: { gte: today },
@@ -271,14 +269,14 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       where: {
         workDate: selectedDate,
         employee: {
-          companyId: user.companyId ?? undefined,
+          ...companyScope,
         },
       },
       include: { employee: true },
     }),
     prisma.leaveRequest.findMany({
       where: {
-        companyId: user.companyId ?? undefined,
+        ...companyScope,
         approvalStatus: LeaveApprovalStatus.APPROVED,
         startDate: { lt: selectedDateEnd },
         endDate: { gte: selectedDate },

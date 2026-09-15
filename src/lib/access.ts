@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+export { scopedCompanyFilter } from "./company-scope";
 
 export async function getAccessibleCompanyIds(user: {
   id: number;
@@ -20,8 +21,4 @@ export async function getAccessibleCompanyIds(user: {
   }
 
   return Array.from(companyIds);
-}
-
-export function scopedCompanyFilter(companyIds: number[] | null) {
-  return companyIds === null ? {} : { companyId: { in: companyIds } };
 }

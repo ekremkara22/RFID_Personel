@@ -12,14 +12,15 @@ export default async function EmployeesPage(props: {
 }) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const companyIds = await getAccessibleCompanyIds(user);
-  const scopedCompanyIds = companyIds ?? [user.companyId];
+  const scopedCompanyIds = companyIds ?? [];
+  if (scopedCompanyIds.length === 0) redirect("/dashboard/companies/new");
 
   const employees = await prisma.employee.findMany({
     where: {

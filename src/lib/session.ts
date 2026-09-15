@@ -42,6 +42,15 @@ export async function requireSessionUser() {
     redirect("/login");
   }
 
+  // Access-only accounts still need a default company for creation forms.
+  if (user.role === "COMPANY_ADMIN" && !user.companyId) {
+    const defaultCompany = user.companyAccess.find((access) => access.company.isActive)?.company;
+    if (defaultCompany) {
+      user.companyId = defaultCompany.id;
+      user.company = defaultCompany;
+    }
+  }
+
   return {
     session,
     user,
