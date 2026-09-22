@@ -13,15 +13,16 @@ import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppMinutes, getDateOnl
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
+import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
 import styles from "../page.module.css";
 
 const attendanceLabels = {
   ENTRY: "Giris",
   EXIT: "Cikis",
-  BREAK_START: "Mola Giris",
-  BREAK_END: "Mola Cikis",
-  MEAL_START: "Yemek Giris",
-  MEAL_END: "Yemek Cikis",
+  BREAK_START: "Mola Çıkış",
+  BREAK_END: "Mola Giriş",
+  MEAL_START: "Yemek Çıkış",
+  MEAL_END: "Yemek Giriş",
 } as const;
 
 function formatDate(date: Date) {
@@ -85,7 +86,7 @@ export default async function MovementsPage(props: {
   const fromDate = getDateValue(searchParams.from);
   const toDate = getDateValue(searchParams.to);
 
-  const [companies, branches, departments, logs] = await Promise.all([
+  const [companies, branches, departments, logs, audits] = await Promise.all([
     prisma.company.findMany({
       where: { id: { in: accessibleCompanyIds } },
       orderBy: { name: "asc" },
@@ -136,6 +137,12 @@ export default async function MovementsPage(props: {
       orderBy: { scannedAt: "desc" },
       take: 500,
     }),
+    prisma.attendanceMovementAudit.findMany({
+      where: { employee: { companyId: { in: companyIdFilter } } },
+      include: { employee: { include: { company: true } }, changedBy: true },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
   ]);
 
   const calendarKeys = new Map<string, { employeeId: number; workDate: Date }>();
@@ -170,6 +177,25 @@ export default async function MovementsPage(props: {
 
     return getAppMinutes(log.scannedAt) > plannedStartMinutes ? "Gec kalmis" : "Zamaninda";
   }
+
+  const logsByEmployeeDay = logs.reduce((map, log) => {
+    const key = `${log.employeeId}-${getAppDayKey(log.scannedAt)}`;
+    const dayLogs = map.get(key) ?? [];
+    dayLogs.push(log);
+    map.set(key, dayLogs);
+    return map;
+  }, new Map<string, typeof logs>());
+  const auditDayKeys = new Set(audits.map((audit) => `${audit.employeeId}-${getAppDayKey(audit.movementDateTime)}`));
+  const reviewStatusByLogId = new Map<number, string>();
+  logsByEmployeeDay.forEach((dayLogs, key) => {
+    const dayKey = getAppDayKey(dayLogs[0].scannedAt);
+    const analysis = analyzeAttendanceSequence(dayLogs, {
+      requireExit: dayKey < getAppDayKey(new Date()),
+      allowOpenBreak: dayKey === getAppDayKey(new Date()),
+    });
+    const status = analysis.isValid ? (auditDayKeys.has(key) ? "DÜZELTİLDİ" : "NORMAL") : "HATALI HAREKET";
+    dayLogs.forEach((log) => reviewStatusByLogId.set(log.id, status));
+  });
 
   const exportRows = logs.map((log) => ({
     employee: `${log.employee.firstName} ${log.employee.lastName}`.trim(),
@@ -348,6 +374,7 @@ export default async function MovementsPage(props: {
                           type="datetime-local"
                           defaultValue={formatInputDate(log.scannedAt)}
                         />
+                        <input name="correctionReason" required placeholder="Düzeltme açıklaması" />
                         <SubmitButton
                           idleLabel="Kaydet"
                           pendingLabel="..."
@@ -355,12 +382,13 @@ export default async function MovementsPage(props: {
                         />
                       </form>
                     </td>
-                    <td>{getAttendanceStatus(log)}</td>
+                    <td>{getAttendanceStatus(log)}<p className={styles.tableSubText}>{reviewStatusByLogId.get(log.id)}</p></td>
                     <td className={styles.monoCell}>{log.rfidCardId ?? log.employee.rfidCardId ?? "-"}</td>
                     <td>{log.device?.name ?? "-"}</td>
                     <td>
-                      <form action={deleteAttendanceLogAction}>
+                      <form action={deleteAttendanceLogAction} className={styles.auditDeleteForm}>
                         <input type="hidden" name="logId" value={log.id} />
+                        <input name="correctionReason" required placeholder="Silme nedeni" aria-label="Silme nedeni" />
                         <SubmitButton
                           idleLabel="Sil"
                           pendingLabel="..."
@@ -371,6 +399,32 @@ export default async function MovementsPage(props: {
                   </tr>
                 ))
               )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.sectionHeader}>
+          <div><p className={styles.sectionEyebrow}>Audit</p><h2 className={styles.sectionTitle}>Manuel Düzeltme Geçmişi</h2></div>
+          <div className={styles.countPill}>{audits.length} kayıt</div>
+        </div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead><tr><th>İşlem</th><th>Personel</th><th>Hareket Zamanı</th><th>Eski Değer</th><th>Yeni Değer</th><th>Kullanıcı</th><th>İşlem Zamanı</th><th>Açıklama</th></tr></thead>
+            <tbody>
+              {audits.length === 0 ? <tr><td colSpan={8} className={styles.emptyCell}>Henüz manuel düzeltme yok.</td></tr> : audits.map((audit) => (
+                <tr key={audit.id}>
+                  <td><strong>{audit.operation}</strong></td>
+                  <td>{audit.employee.firstName} {audit.employee.lastName}<p className={styles.tableSubText}>{audit.employee.company.name}</p></td>
+                  <td>{formatDate(audit.movementDateTime)}</td>
+                  <td>{audit.oldType ? attendanceLabels[audit.oldType] : "-"}<p className={styles.tableSubText}>{audit.oldScannedAt ? formatDate(audit.oldScannedAt) : "-"}</p></td>
+                  <td>{audit.newType ? attendanceLabels[audit.newType] : "-"}<p className={styles.tableSubText}>{audit.newScannedAt ? formatDate(audit.newScannedAt) : "-"}</p></td>
+                  <td>{`${audit.changedBy.firstName ?? ""} ${audit.changedBy.lastName ?? ""}`.trim() || audit.changedBy.name || audit.changedBy.email}</td>
+                  <td>{formatDate(audit.createdAt)}</td>
+                  <td>{audit.correctionReason}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

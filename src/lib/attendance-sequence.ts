@@ -1,52 +1,87 @@
 import type { AttendanceType } from "@/generated/prisma/client";
 
-export const EXIT_TOLERANCE_MINUTES = 30;
+export const EXIT_TOLERANCE_MINUTES = 10;
 
-type Movement = { type: AttendanceType };
+type Movement = { id?: number; type: AttendanceType; scannedAt?: Date };
+
+const BREAK_START_TYPES = new Set<AttendanceType>(["BREAK_START", "MEAL_START"]);
+const BREAK_END_TYPES = new Set<AttendanceType>(["BREAK_END", "MEAL_END"]);
 
 export function inferBidirectionalMovement(params: {
   logs: Movement[];
   isNearPlannedEnd: boolean;
 }): AttendanceType {
   const { logs, isNearPlannedEnd } = params;
-  const lastLog = logs.at(-1);
+  if (logs.length === 0) return "ENTRY";
+  if (isNearPlannedEnd) return "EXIT";
 
-  if (!lastLog) return "ENTRY";
-  if (isNearPlannedEnd && lastLog.type !== "EXIT") return "EXIT";
-  if (lastLog.type === "BREAK_START") return "BREAK_END";
-  if (lastLog.type === "ENTRY") return "BREAK_START";
-  if (lastLog.type === "BREAK_END") return "EXIT";
-  if (lastLog.type === "EXIT") return "ENTRY";
-
-  return "ENTRY";
+  // Geçici EXIT kaydı aynı gün yapılacak yeni okutmayı kilitlemez.
+  const breakMovementCount = logs.filter(
+    (log) => BREAK_START_TYPES.has(log.type) || BREAK_END_TYPES.has(log.type),
+  ).length;
+  return breakMovementCount % 2 === 0 ? "BREAK_START" : "BREAK_END";
 }
 
-export function calculateBreakMinutes(
-  logs: Array<{ type: AttendanceType; scannedAt: Date }>,
-  now = new Date(),
-) {
-  let openBreak: Date | null = null;
+export type AttendanceSequenceAnalysis = {
+  totalMinutes: number;
+  isOnBreak: boolean;
+  isValid: boolean;
+  unmatchedLogIds: number[];
+};
+
+export function analyzeAttendanceSequence(
+  logs: Movement[],
+  options: { requireExit?: boolean; allowOpenBreak?: boolean } = {},
+): AttendanceSequenceAnalysis {
+  const sorted = [...logs].sort(
+    (a, b) => (a.scannedAt?.getTime() ?? 0) - (b.scannedAt?.getTime() ?? 0),
+  );
+  const unmatchedLogIds: number[] = [];
   let totalMinutes = 0;
-  let isOnBreak = false;
 
-  for (const log of [...logs].sort((a, b) => a.scannedAt.getTime() - b.scannedAt.getTime())) {
-    if (log.type === "BREAK_START") {
-      openBreak = log.scannedAt;
-      isOnBreak = true;
-    } else if (log.type === "BREAK_END" && openBreak) {
-      totalMinutes += Math.max(0, Math.round((log.scannedAt.getTime() - openBreak.getTime()) / 60_000));
-      openBreak = null;
-      isOnBreak = false;
-    } else if (log.type === "EXIT" && openBreak) {
-      totalMinutes += Math.max(0, Math.round((log.scannedAt.getTime() - openBreak.getTime()) / 60_000));
-      openBreak = null;
-      isOnBreak = false;
+  if (sorted.length === 0) {
+    return { totalMinutes, isOnBreak: false, isValid: true, unmatchedLogIds };
+  }
+
+  if (sorted[0].type !== "ENTRY" && sorted[0].id !== undefined) {
+    unmatchedLogIds.push(sorted[0].id);
+  }
+
+  const hasFinalExit = sorted.length > 1 && sorted.at(-1)?.type === "EXIT";
+  if (options.requireExit && !hasFinalExit && sorted.at(-1)?.id !== undefined) {
+    unmatchedLogIds.push(sorted.at(-1)!.id!);
+  }
+
+  const middle = sorted.slice(1, hasFinalExit ? -1 : undefined).filter((log) => log.type !== "EXIT");
+  for (let index = 0; index < middle.length;) {
+    const start = middle[index];
+    const end = middle[index + 1];
+    if (!end && options.allowOpenBreak && BREAK_START_TYPES.has(start.type)) break;
+    if (
+      BREAK_START_TYPES.has(start.type) && end && BREAK_END_TYPES.has(end.type) &&
+      start.scannedAt && end.scannedAt && end.scannedAt > start.scannedAt
+    ) {
+      totalMinutes += Math.floor((end.scannedAt.getTime() - start.scannedAt.getTime()) / 60_000);
+      index += 2;
+      continue;
     }
+    if (start.id !== undefined) unmatchedLogIds.push(start.id);
+    index += 1;
   }
 
-  if (openBreak) {
-    totalMinutes += Math.max(0, Math.round((now.getTime() - openBreak.getTime()) / 60_000));
-  }
+  const lastNonExit = [...sorted].reverse().find((log) => log.type !== "EXIT");
+  const isOnBreak = Boolean(lastNonExit && BREAK_START_TYPES.has(lastNonExit.type));
+  const uniqueUnmatchedIds = [...new Set(unmatchedLogIds)];
+  return {
+    totalMinutes,
+    isOnBreak,
+    isValid: uniqueUnmatchedIds.length === 0,
+    unmatchedLogIds: uniqueUnmatchedIds,
+  };
+}
 
-  return { totalMinutes, isOnBreak };
+export function calculateBreakMinutes(logs: Movement[], _now?: Date) {
+  void _now;
+  const analysis = analyzeAttendanceSequence(logs, { allowOpenBreak: true });
+  return { totalMinutes: analysis.totalMinutes, isOnBreak: analysis.isOnBreak };
 }

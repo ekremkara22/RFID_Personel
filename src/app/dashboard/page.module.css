@@ -782,7 +782,7 @@
 
 .inlineEditForm {
   display: grid;
-  grid-template-columns: minmax(130px, 0.8fr) minmax(170px, 1fr) auto;
+  grid-template-columns: minmax(120px, 0.75fr) minmax(165px, 1fr) minmax(180px, 1fr) auto;
   gap: 0.5rem;
   align-items: center;
   min-width: 430px;
@@ -814,6 +814,33 @@
   grid-template-columns: minmax(320px, 1.5fr) repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
+
+.auditDeleteForm { display: grid; grid-template-columns: minmax(150px, 1fr) auto; gap: 0.45rem; min-width: 240px; }
+.auditDeleteForm input { min-height: 2.35rem; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.5rem 0.6rem; font: inherit; }
+
+.filterPanel { margin-bottom: 1rem; }
+
+.operationFilterForm {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.85fr) minmax(170px, 1fr) minmax(150px, 1fr) minmax(170px, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.operationFilterForm label { display: grid; gap: 0.35rem; color: #334155; font-size: 0.78rem; font-weight: 800; }
+.operationFilterForm input,
+.operationFilterForm select,
+.operationFilterForm button {
+  width: 100%;
+  min-height: 2.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+}
+.operationFilterForm button { width: auto; min-width: 96px; border-color: #0284c7; background: #0284c7; color: #fff; font-weight: 850; cursor: pointer; }
 
 .operationKpiCard,
 .operationReportPanel {
@@ -1692,9 +1719,12 @@
 .distributionCard .statusList { gap: 0.5rem; font-size: 0.8rem; }
 @media (max-width: 1120px) {
   .operationKpiGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .operationFilterForm { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
   .operationKpiGrid { grid-template-columns: minmax(0, 1fr); }
   .operationKpiCard { padding: 1rem 1.2rem; }
   .distributionCard .donutSummary { grid-template-columns: auto minmax(0, 1fr); }
+  .operationFilterForm { grid-template-columns: minmax(0, 1fr); }
+  .operationFilterForm button { width: 100%; }
 }

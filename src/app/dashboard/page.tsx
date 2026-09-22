@@ -26,14 +26,16 @@ import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "./page.module.css";
 import { PersonnelChart } from "./personnel-chart";
+import { OperationFilters } from "./operation-filters";
+import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
 
 const attendanceLabels = {
   ENTRY: "Giriş",
   EXIT: "Çıkış",
-  BREAK_START: "Mola Giriş",
-  BREAK_END: "Mola Çıkış",
-  MEAL_START: "Yemek Giriş",
-  MEAL_END: "Yemek Çıkış",
+  BREAK_START: "Mola Çıkış",
+  BREAK_END: "Mola Giriş",
+  MEAL_START: "Yemek Çıkış",
+  MEAL_END: "Yemek Giriş",
 } as const;
 
 function getRoleLabel(role: string) {
@@ -71,45 +73,12 @@ function formatMinutes(minutes: number) {
 }
 
 function getEmployeeBreakSummary(
-  logs: Array<{ type: keyof typeof attendanceLabels; scannedAt: Date }>,
+  logs: Array<{ id: number; type: keyof typeof attendanceLabels; scannedAt: Date }>,
   rangeEnd: Date | null,
 ) {
-  let breakStartedAt: Date | null = null;
-  let mealStartedAt: Date | null = null;
-  let totalMinutes = 0;
-
-  const closePeriod = (startedAt: Date | null, endedAt: Date) => {
-    if (!startedAt || endedAt <= startedAt) return 0;
-    return Math.max(0, Math.floor((endedAt.getTime() - startedAt.getTime()) / 60_000));
-  };
-
-  logs
-    .filter((log) => ["BREAK_START", "BREAK_END", "MEAL_START", "MEAL_END"].includes(log.type))
-    .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())
-    .forEach((log) => {
-      if (log.type === "BREAK_START") breakStartedAt = log.scannedAt;
-      if (log.type === "MEAL_START") mealStartedAt = log.scannedAt;
-      if (log.type === "BREAK_END") {
-        totalMinutes += closePeriod(breakStartedAt, log.scannedAt);
-        breakStartedAt = null;
-      }
-      if (log.type === "MEAL_END") {
-        totalMinutes += closePeriod(mealStartedAt, log.scannedAt);
-        mealStartedAt = null;
-      }
-    });
-
-  const activeStartedAt = breakStartedAt ?? mealStartedAt;
-  if (rangeEnd) {
-    totalMinutes += closePeriod(breakStartedAt, rangeEnd);
-    totalMinutes += closePeriod(mealStartedAt, rangeEnd);
-  }
-
-  return {
-    totalMinutes,
-    isActive: activeStartedAt !== null,
-    activeMinutes: rangeEnd ? closePeriod(activeStartedAt, rangeEnd) : 0,
-  };
+  void rangeEnd;
+  const analysis = analyzeAttendanceSequence(logs);
+  return { totalMinutes: analysis.totalMinutes, isActive: analysis.isOnBreak, activeMinutes: 0 };
 }
 
 function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
@@ -117,7 +86,7 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   return plannedStartMinutes !== null && getAppMinutes(scannedAt) > plannedStartMinutes;
 }
 
-export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string }> }) {
+export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
   const { user } = await requireSessionUser();
   const isSuperadmin = user.role === "SUPERADMIN";
   const companyIds = await getAccessibleCompanyIds(user);
@@ -135,20 +104,52 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   }
   const searchParams = (await props.searchParams) ?? {};
 
-  const todayRange = getAppDayRange(new Date());
-  const today = todayRange.dateOnly;
-  const selectedDate = parseDateParam(searchParams.date) ?? today;
+  const currentDayRange = getAppDayRange(new Date());
+  const today = currentDayRange.dateOnly;
+  const requestedDate = parseDateParam(searchParams.date);
+  const selectedDate = requestedDate && getDateOnlyKey(requestedDate) <= currentDayRange.dayKey ? requestedDate : today;
   const selectedRange = getAppDayRange(getDateOnlyKey(selectedDate));
+  const todayRange = selectedRange;
   const selectedDateEnd = new Date(selectedDate);
   selectedDateEnd.setUTCDate(selectedDateEnd.getUTCDate() + 1);
-  const monthStartKey = `${todayRange.dayKey.slice(0, 8)}01`;
+  const monthStartKey = `${selectedRange.dayKey.slice(0, 8)}01`;
   const monthStart = dateOnlyFromKey(monthStartKey);
   const monthAttendanceStart = getAppDayRange(monthStartKey).start;
+  const monthEnd = new Date(monthStart);
+  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+  const monthAttendanceEnd = getAppDayRange(getDateOnlyKey(monthEnd)).start;
 
-  const attendanceWhere = { employee: companyScope };
-  const employeeWhere = companyScope;
-  const deviceWhere = companyScope;
-  const companyWhere = companyIds === null ? {} : { id: { in: companyIds } };
+  const allowedCompanyWhere = companyIds === null ? {} : { id: { in: companyIds } };
+  const [filterCompanies, filterScopes] = await Promise.all([
+    prisma.company.findMany({ where: allowedCompanyWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.employee.findMany({
+      where: companyScope,
+      select: { companyId: true, branch: true, department: true },
+      distinct: ["companyId", "branch", "department"],
+    }),
+  ]);
+  const requestedCompanyId = Number(searchParams.companyId);
+  const selectedCompanyId = Number.isSafeInteger(requestedCompanyId) && filterCompanies.some((company) => company.id === requestedCompanyId)
+    ? requestedCompanyId
+    : null;
+  const companyIdFilter = selectedCompanyId ? [selectedCompanyId] : filterCompanies.map((company) => company.id);
+  const companyFilteredScopes = filterScopes.filter((scope) => companyIdFilter.includes(scope.companyId));
+  const requestedBranch = typeof searchParams.branch === "string" ? searchParams.branch.trim() : "";
+  const selectedBranch = requestedBranch && companyFilteredScopes.some((scope) => scope.branch === requestedBranch) ? requestedBranch : "";
+  const branchFilteredScopes = companyFilteredScopes.filter((scope) => !selectedBranch || scope.branch === selectedBranch);
+  const requestedDepartment = typeof searchParams.department === "string" ? searchParams.department.trim() : "";
+  const selectedDepartment = requestedDepartment && branchFilteredScopes.some((scope) => scope.department === requestedDepartment)
+    ? requestedDepartment
+    : "";
+
+  const employeeWhere = {
+    companyId: { in: companyIdFilter },
+    ...(selectedBranch ? { branch: selectedBranch } : {}),
+    ...(selectedDepartment ? { department: selectedDepartment } : {}),
+  };
+  const attendanceWhere = { employee: employeeWhere };
+  const deviceWhere = { companyId: { in: companyIdFilter }, ...(selectedBranch ? { branchLocation: selectedBranch } : {}) };
+  const companyWhere = { id: { in: companyIdFilter } };
 
   const [
     companyCount,
@@ -166,9 +167,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     selectedLogsForCritical,
     selectedDailyCalendarsForCritical,
     selectedApprovedLeaves,
+    selectedAudits,
   ] = await Promise.all([
-    prisma.company.count(),
-    prisma.user.count({ where: { role: "COMPANY_ADMIN" } }),
+    prisma.company.count({ where: companyWhere }),
+    prisma.user.count({ where: { role: "COMPANY_ADMIN", companyId: { in: companyIdFilter } } }),
     prisma.employee.count({ where: employeeWhere }),
     prisma.device.count({ where: deviceWhere }),
     prisma.company.findMany({
@@ -205,7 +207,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
     prisma.attendanceLog.findMany({
       where: {
-        scannedAt: { gte: monthAttendanceStart },
+        scannedAt: { gte: monthAttendanceStart, lt: monthAttendanceEnd },
         ...attendanceWhere,
       },
       include: {
@@ -216,10 +218,8 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
     prisma.employeeDailyCalendar.findMany({
       where: {
-        workDate: { gte: monthStart },
-        employee: {
-          ...companyScope,
-        },
+        workDate: { gte: monthStart, lt: monthEnd },
+        employee: employeeWhere,
       },
       include: { employee: true },
       take: 3000,
@@ -238,20 +238,18 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     }),
     prisma.employeeDailyCalendar.findMany({
       where: {
-        workDate: today,
-        employee: {
-          ...companyScope,
-        },
+        workDate: selectedDate,
+        employee: employeeWhere,
       },
       include: { employee: true },
       take: 500,
     }),
     prisma.leaveRequest.findMany({
       where: {
-        ...companyScope,
+        employee: employeeWhere,
         approvalStatus: LeaveApprovalStatus.APPROVED,
-        startDate: { lte: new Date() },
-        endDate: { gte: today },
+        startDate: { lt: selectedDateEnd },
+        endDate: { gte: selectedDate },
       },
       include: { employee: true },
     }),
@@ -268,20 +266,25 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     prisma.employeeDailyCalendar.findMany({
       where: {
         workDate: selectedDate,
-        employee: {
-          ...companyScope,
-        },
+        employee: employeeWhere,
       },
       include: { employee: true },
     }),
     prisma.leaveRequest.findMany({
       where: {
-        ...companyScope,
+        employee: employeeWhere,
         approvalStatus: LeaveApprovalStatus.APPROVED,
         startDate: { lt: selectedDateEnd },
         endDate: { gte: selectedDate },
       },
       include: { employee: true },
+    }),
+    prisma.attendanceMovementAudit.findMany({
+      where: {
+        movementDateTime: { gte: selectedRange.start, lt: selectedRange.end },
+        employee: employeeWhere,
+      },
+      select: { employeeId: true },
     }),
   ]);
 
@@ -373,12 +376,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     map.set(log.employeeId, employeeLogs);
     return map;
   }, new Map<number, typeof selectedLogsForCritical>());
+  const auditedEmployeeIds = new Set(selectedAudits.map((audit) => audit.employeeId));
   const selectedOperationalRows = scopedEmployees
     .map((employee) => {
       const employeeId = employee.id;
       const calendar = selectedCalendarByEmployee.get(employeeId);
       const employeeLogs = selectedLogsByEmployee.get(employeeId) ?? [];
       const lateRecord = selectedLateByEmployee.get(employeeId);
+      const sequence = analyzeAttendanceSequence(employeeLogs, {
+        requireExit: !isSelectedToday,
+        allowOpenBreak: isSelectedToday,
+      });
       const breakSummary = getEmployeeBreakSummary(employeeLogs, selectedBreakRangeEnd);
       const plannedBreakMinutes = calendar?.plannedBreakMinutes ?? 0;
 
@@ -401,6 +409,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
           .filter((log) => log.type === "ENTRY")
           .sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime())[0]?.scannedAt ?? null,
         plannedBreakMinutes,
+        movementStatus: sequence.isValid
+          ? (auditedEmployeeIds.has(employeeId) ? "DÜZELTİLDİ" : "NORMAL")
+          : "HATALI HAREKET / KONTROL GEREKİYOR",
+        unmatchedMovements: employeeLogs.filter((log) => sequence.unmatchedLogIds.includes(log.id)),
       };
     })
     .filter((row): row is NonNullable<typeof row> => row !== null)
@@ -410,8 +422,12 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         second.lateMinutes + second.breakOverMinutes - (first.lateMinutes + first.breakOverMinutes),
     );
   const selectedLateTotalMinutes = selectedLateEmployees.reduce((sum, row) => sum + row.lateMinutes, 0);
+  const selectedLateAverageMinutes = selectedLateEmployees.length > 0
+    ? Math.round(selectedLateTotalMinutes / selectedLateEmployees.length)
+    : 0;
   const selectedBreakTotalMinutes = selectedOperationalRows.reduce((sum, row) => sum + row.breakMinutes, 0);
   const selectedBreakOverRows = selectedOperationalRows.filter((row) => row.breakOverMinutes > 0);
+  const selectedAttentionRows = selectedOperationalRows.filter((row) => row.movementStatus.includes("HATALI"));
   const selectedLeaveEmployeeIds = new Set(selectedApprovedLeaves.map((leave) => leave.employeeId));
   const monthlyLateDepartmentRows = Array.from(
     monthlyLateRecords.reduce((map, record) => {
@@ -435,7 +451,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   const monthlyBreakDepartmentRows = Array.from(monthlyLogsByEmployeeDay.values()).reduce((map, group) => {
     const sortedLogs = group.logs.sort((first, second) => first.scannedAt.getTime() - second.scannedAt.getTime());
     const dayKey = getAppDayKey(sortedLogs[0].scannedAt);
-    const rangeEnd = dayKey === todayRange.dayKey ? new Date() : sortedLogs.at(-1)?.scannedAt ?? null;
+    const rangeEnd = dayKey === currentDayRange.dayKey ? new Date() : sortedLogs.at(-1)?.scannedAt ?? null;
     const minutes = getEmployeeBreakSummary(sortedLogs, rangeEnd).totalMinutes;
     if (minutes <= 0) return map;
     map.set(group.department, (map.get(group.department) ?? 0) + minutes);
@@ -495,6 +511,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     scannedAt: formatDate(log.scannedAt),
     rfidCardId: log.rfidCardId ?? log.employee.rfidCardId ?? "-",
     device: log.device?.name ?? "-",
+    reviewStatus: selectedOperationalRows.find((row) => row.employeeId === log.employeeId)?.movementStatus ?? "NORMAL",
   }));
   return (
     <div className={styles.page}>
@@ -512,11 +529,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
             </p>
           </div>
           <div className={styles.quickActions}>
-            <span className={styles.quickButton}>
-              <CalendarDays size={18} />
-              Bugun
-            </span>
-            <span className={styles.quickButton}>Departman: Tumu</span>
             <ExportButton
               rows={dashboardExportRows}
               columns={[
@@ -526,8 +538,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                 { key: "scannedAt", label: "Tarih" },
                 { key: "rfidCardId", label: "RFID Kart" },
                 { key: "device", label: "Cihaz" },
+                { key: "reviewStatus", label: "Hareket Kontrol Durumu" },
               ]}
-              filename="bugun-personel-hareketleri"
+              filename={`${getDateOnlyKey(selectedDate)}-personel-hareketleri`}
               className={styles.quickButton}
               label="Rapor Indir"
             />
@@ -569,6 +582,18 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
 
       {!isSuperadmin ? (
         <>
+          <section className={`${styles.operationReportPanel} ${styles.filterPanel}`}>
+            <OperationFilters
+              todayKey={currentDayRange.dayKey}
+              selectedDate={getDateOnlyKey(selectedDate)}
+              selectedCompanyId={selectedCompanyId?.toString() ?? ""}
+              selectedBranch={selectedBranch}
+              selectedDepartment={selectedDepartment}
+              companies={filterCompanies}
+              scopes={filterScopes}
+              className={styles.operationFilterForm}
+            />
+          </section>
           <section className={styles.operationKpiGrid}>
             <article className={`${styles.operationReportPanel} ${styles.distributionCard}`}>
               <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Günlük dağılım</p><h2 className={styles.sectionTitle}>Personel Durumu</h2></div></div>
@@ -587,9 +612,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               <small>Seçili günde geç giriş yapanlar</small>
             </article>
             <article className={`${styles.operationKpiCard} ${styles.operationKpiDelay}`}>
-              <div className={styles.kpiHeader}><span>Toplam gecikme</span><div className={styles.kpiIcon}><Clock3 size={21} aria-hidden="true" /></div></div>
-              <div className={styles.kpiValue}><strong>{selectedLateTotalMinutes}</strong><span>dk</span></div>
-              <small>Seçili gündeki toplam gecikme</small>
+              <div className={styles.kpiHeader}><span>Ortalama gecikme</span><div className={styles.kpiIcon}><Clock3 size={21} aria-hidden="true" /></div></div>
+              <div className={styles.kpiValue}><strong>{selectedLateAverageMinutes}</strong><span>dk</span></div>
+              <small>Seçili gündeki kişi başı ortalama</small>
             </article>
             <article className={`${styles.operationKpiCard} ${styles.operationKpiBreak}`}>
               <div className={styles.kpiHeader}><span>Toplam mola</span><div className={styles.kpiIcon}><Coffee size={21} aria-hidden="true" /></div></div>
@@ -605,10 +630,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                   <p className={styles.sectionEyebrow}>Operasyon özeti</p>
                   <h2 className={styles.sectionTitle}>Personel Geç Kalma ve Mola Süreleri</h2>
                 </div>
-                <form className={styles.dateFilterForm}>
-                  <label><span>Tarih</span><input name="date" type="date" defaultValue={getDateOnlyKey(selectedDate)} /></label>
-                  <button type="submit">Göster</button>
-                </form>
               </div>
               <div className={styles.operationLegend}>
                 <span><i className={styles.operationLegendLate} />Geç kalma</span>
@@ -706,6 +727,23 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                     ))}
                   </div>
                 </article>
+              </section>
+
+              <section className={styles.operationReportPanel}>
+                <div className={styles.sectionHeader}>
+                  <div><p className={styles.sectionEyebrow}>Hareket kontrolü</p><h2 className={styles.sectionTitle}>Dikkat Edilmesi Gereken Kayıtlar</h2></div>
+                  <span className={styles.countPill}>{selectedAttentionRows.length}</span>
+                </div>
+                <div className={styles.alertNameList}>
+                  {selectedAttentionRows.length === 0 ? (
+                    <p className={styles.emptyState}>Seçili tarihte hatalı hareket bulunmuyor.</p>
+                  ) : selectedAttentionRows.map((row) => (
+                    <div key={row.employeeId}>
+                      <strong>{row.employeeName}</strong>
+                      <span>{row.movementStatus} · {row.unmatchedMovements.map((log) => formatDate(log.scannedAt)).join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
               </section>
 
               <section className={styles.departmentChartGrid}>

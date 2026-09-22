@@ -20,6 +20,7 @@ import {
   WorkDayType,
 } from "@/generated/prisma/client";
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { calculateGrossMinutes, calculateNetMinutes } from "@/lib/work-calendar-rules";
@@ -1295,16 +1296,17 @@ export async function updateDeviceAction(formData: FormData) {
 export async function updateAttendanceLogAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
   const logId = getId(formData, "logId");
   const type = getString(formData, "type") as AttendanceType;
   const scannedAtValue = getString(formData, "scannedAt");
+  const correctionReason = getString(formData, "correctionReason");
   const allowedTypes = new Set<string>(Object.values(AttendanceType));
 
-  if (!logId || !allowedTypes.has(type) || !scannedAtValue) {
+  if (!logId || !allowedTypes.has(type) || !scannedAtValue || !correctionReason) {
     throw new Error("Hareket bilgileri gecersiz.");
   }
 
@@ -1314,17 +1316,28 @@ export async function updateAttendanceLogAction(formData: FormData) {
     throw new Error("Hareket tarihi gecersiz.");
   }
 
-  await prisma.attendanceLog.updateMany({
-    where: {
-      id: logId,
-      employee: {
-        companyId: user.companyId,
+  const companyIds = await getAccessibleCompanyIds(user);
+  const oldLog = await prisma.attendanceLog.findFirst({
+    where: { id: logId, employee: { companyId: { in: companyIds ?? [] } } },
+  });
+  if (!oldLog) throw new Error("Hareket bulunamadi veya bu kayit icin yetkiniz yok.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.attendanceLog.update({ where: { id: logId }, data: { type, scannedAt } });
+    await tx.attendanceMovementAudit.create({
+      data: {
+        sourceLogId: logId,
+        employeeId: oldLog.employeeId,
+        movementDateTime: scannedAt,
+        oldType: oldLog.type,
+        newType: type,
+        oldScannedAt: oldLog.scannedAt,
+        newScannedAt: scannedAt,
+        operation: "UPDATE",
+        changedById: user.id,
+        correctionReason,
       },
-    },
-    data: {
-      type,
-      scannedAt,
-    },
+    });
   });
 
   revalidatePath("/dashboard");
@@ -1334,7 +1347,7 @@ export async function updateAttendanceLogAction(formData: FormData) {
 export async function createAttendanceLogAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -1343,9 +1356,10 @@ export async function createAttendanceLogAction(formData: FormData) {
   const type = getString(formData, "type") as AttendanceType;
   const scannedAtValue = getString(formData, "scannedAt");
   const rfidCardId = normalizeOptionalRfidCardId(getString(formData, "rfidCardId"));
+  const correctionReason = getString(formData, "correctionReason");
   const allowedTypes = new Set<string>(Object.values(AttendanceType));
 
-  if (!employeeId || !allowedTypes.has(type) || !scannedAtValue) {
+  if (!employeeId || !allowedTypes.has(type) || !scannedAtValue || !correctionReason) {
     throw new Error("Hareket bilgileri gecersiz.");
   }
 
@@ -1355,13 +1369,15 @@ export async function createAttendanceLogAction(formData: FormData) {
     throw new Error("Hareket tarihi gecersiz.");
   }
 
+  const companyIds = await getAccessibleCompanyIds(user);
   const employee = await prisma.employee.findFirst({
     where: {
       id: employeeId,
-      companyId: user.companyId,
+      companyId: { in: companyIds ?? [] },
     },
     select: {
       id: true,
+      companyId: true,
       rfidCardId: true,
     },
   });
@@ -1374,7 +1390,7 @@ export async function createAttendanceLogAction(formData: FormData) {
     const device = await prisma.device.findFirst({
       where: {
         id: deviceId,
-        companyId: user.companyId,
+        companyId: employee.companyId,
       },
       select: {
         id: true,
@@ -1388,14 +1404,22 @@ export async function createAttendanceLogAction(formData: FormData) {
 
   await saveResolvedEmployeeWorkCalendar(employee.id, scannedAt);
 
-  await prisma.attendanceLog.create({
-    data: {
-      employeeId: employee.id,
-      deviceId,
-      type,
-      scannedAt,
-      rfidCardId: rfidCardId ?? employee.rfidCardId,
-    },
+  await prisma.$transaction(async (tx) => {
+    const log = await tx.attendanceLog.create({
+      data: { employeeId: employee.id, deviceId, type, scannedAt, rfidCardId: rfidCardId ?? employee.rfidCardId },
+    });
+    await tx.attendanceMovementAudit.create({
+      data: {
+        sourceLogId: log.id,
+        employeeId: employee.id,
+        movementDateTime: scannedAt,
+        newType: type,
+        newScannedAt: scannedAt,
+        operation: "INSERT",
+        changedById: user.id,
+        correctionReason,
+      },
+    });
   });
 
   revalidatePath("/dashboard");
@@ -1407,23 +1431,37 @@ export async function createAttendanceLogAction(formData: FormData) {
 export async function deleteAttendanceLogAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
   const logId = getId(formData, "logId");
+  const correctionReason = getString(formData, "correctionReason");
 
-  if (!logId) {
+  if (!logId || !correctionReason) {
     throw new Error("Hareket bilgisi eksik.");
   }
 
-  await prisma.attendanceLog.deleteMany({
-    where: {
-      id: logId,
-      employee: {
-        companyId: user.companyId,
+  const companyIds = await getAccessibleCompanyIds(user);
+  const oldLog = await prisma.attendanceLog.findFirst({
+    where: { id: logId, employee: { companyId: { in: companyIds ?? [] } } },
+  });
+  if (!oldLog) throw new Error("Hareket bulunamadi veya bu kayit icin yetkiniz yok.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.attendanceMovementAudit.create({
+      data: {
+        sourceLogId: oldLog.id,
+        employeeId: oldLog.employeeId,
+        movementDateTime: oldLog.scannedAt,
+        oldType: oldLog.type,
+        oldScannedAt: oldLog.scannedAt,
+        operation: "DELETE",
+        changedById: user.id,
+        correctionReason,
       },
-    },
+    });
+    await tx.attendanceLog.delete({ where: { id: oldLog.id } });
   });
 
   revalidatePath("/dashboard");

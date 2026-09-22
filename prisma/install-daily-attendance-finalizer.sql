@@ -31,8 +31,7 @@ BEGIN
   SET movement.type = CASE
     WHEN ranked.row_number_in_day = 1 THEN 'ENTRY'
     WHEN ranked.row_number_in_day = ranked.movement_count AND ranked.movement_count > 1 THEN 'EXIT'
-    WHEN MOD(ranked.row_number_in_day, 2) = 0 THEN 'BREAK_START'
-    ELSE 'BREAK_END'
+    ELSE movement.type
   END;
 
   DROP TEMPORARY TABLE IF EXISTS daily_attendance_ranks;

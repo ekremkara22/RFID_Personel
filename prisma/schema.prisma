@@ -22,6 +22,12 @@ enum AttendanceType {
   MEAL_END
 }
 
+enum AttendanceAuditOperation {
+  INSERT
+  UPDATE
+  DELETE
+}
+
 enum DevicePurpose {
   ENTRY
   EXIT
@@ -158,20 +164,21 @@ model RoleDefinition {
 }
 
 model User {
-  id            Int                 @id @default(autoincrement()) @db.UnsignedInt
-  email         String              @unique
-  password      String
-  name          String?
-  firstName     String?
-  lastName      String?
-  tcNo          String?
-  role          Role                @default(COMPANY_ADMIN)
-  companyId     Int?                @db.UnsignedInt
-  company       Company?            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyAccess UserCompanyAccess[]
-  deviceAccess  UserDeviceAccess[]
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  id               Int                       @id @default(autoincrement()) @db.UnsignedInt
+  email            String                    @unique
+  password         String
+  name             String?
+  firstName        String?
+  lastName         String?
+  tcNo             String?
+  role             Role                      @default(COMPANY_ADMIN)
+  companyId        Int?                      @db.UnsignedInt
+  company          Company?                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyAccess    UserCompanyAccess[]
+  deviceAccess     UserDeviceAccess[]
+  attendanceAudits AttendanceMovementAudit[]
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
 }
 
 model UserCompanyAccess {
@@ -186,12 +193,12 @@ model UserCompanyAccess {
 }
 
 model Employee {
-  id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
+  id                  Int                       @id @default(autoincrement()) @db.UnsignedInt
   firstName           String
   lastName            String
   photoUrl            String?
   registrationNumber  String?
-  email               String?                  @unique
+  email               String?                   @unique
   password            String?
   department          String
   branch              String?
@@ -199,18 +206,19 @@ model Employee {
   hireDate            DateTime?
   terminationDate     DateTime?
   age                 Int
-  rfidCardId          String?                  @unique
-  isActive            Boolean                  @default(true)
-  companyId           Int                      @db.UnsignedInt
-  company             Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  rfidCardId          String?                   @unique
+  isActive            Boolean                   @default(true)
+  companyId           Int                       @db.UnsignedInt
+  company             Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   logs                AttendanceLog[]
   leaves              LeaveRequest[]
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
   dailyExceptions     CalendarDailyException[]
   dailyCalendars      EmployeeDailyCalendar[]
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  attendanceAudits    AttendanceMovementAudit[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
 
   @@unique([companyId, registrationNumber])
 }
@@ -301,6 +309,27 @@ model AttendanceLog {
   scannedAt  DateTime       @default(now())
   type       AttendanceType
   rfidCardId String?
+}
+
+model AttendanceMovementAudit {
+  id               Int                      @id @default(autoincrement()) @db.UnsignedInt
+  sourceLogId      Int?                     @db.UnsignedInt
+  employeeId       Int                      @db.UnsignedInt
+  employee         Employee                 @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  movementDateTime DateTime
+  oldType          AttendanceType?
+  newType          AttendanceType?
+  oldScannedAt     DateTime?
+  newScannedAt     DateTime?
+  operation        AttendanceAuditOperation
+  changedById      Int                      @db.UnsignedInt
+  changedBy        User                     @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  correctionReason String                   @db.Text
+  createdAt        DateTime                 @default(now())
+
+  @@index([employeeId, movementDateTime])
+  @@index([sourceLogId])
+  @@index([changedById, createdAt])
 }
 
 model LeaveRequest {

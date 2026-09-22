@@ -5,15 +5,16 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { AttendanceType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { getAccessibleCompanyIds } from "@/lib/access";
 import styles from "../../page.module.css";
 
 const attendanceLabels = {
   ENTRY: "Giris",
   EXIT: "Cikis",
-  BREAK_START: "Mola Giris",
-  BREAK_END: "Mola Cikis",
-  MEAL_START: "Yemek Giris",
-  MEAL_END: "Yemek Cikis",
+  BREAK_START: "Mola Çıkış",
+  BREAK_END: "Mola Giriş",
+  MEAL_START: "Yemek Çıkış",
+  MEAL_END: "Yemek Giriş",
 } as const;
 
 function formatInputDate(date: Date) {
@@ -24,21 +25,23 @@ function formatInputDate(date: Date) {
 export default async function NewMovementPage() {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
+  const companyIds = await getAccessibleCompanyIds(user);
+  if (!companyIds || companyIds.length === 0) redirect("/dashboard");
   const [employees, devices] = await Promise.all([
     prisma.employee.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: companyIds },
         isActive: true,
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.device.findMany({
       where: {
-        companyId: user.companyId,
+        companyId: { in: companyIds },
       },
       orderBy: { name: "asc" },
     }),
@@ -113,6 +116,11 @@ export default async function NewMovementPage() {
             <label className={`${styles.field} ${styles.fullWidth}`}>
               <span>RFID Kart Numarasi</span>
               <input name="rfidCardId" placeholder="Bos birakilirsa personelin kart numarasi kullanilir" />
+            </label>
+
+            <label className={`${styles.field} ${styles.fullWidth}`}>
+              <span>Düzeltme Açıklaması</span>
+              <textarea name="correctionReason" required placeholder="Bu manuel hareketin eklenme nedenini yazın" />
             </label>
 
             <div className={styles.fullWidthActionRow}>
