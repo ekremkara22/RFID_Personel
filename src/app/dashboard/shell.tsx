@@ -10,6 +10,7 @@ import {
   Clock3,
   ChevronDown,
   FileBarChart,
+  History,
   Timer,
   LayoutDashboard,
   LogOut,
@@ -69,6 +70,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: FileBarChart },
     { href: "/dashboard/reports/late-arrivals", label: "Geç Kalma Raporu", icon: Timer },
     { href: "/dashboard/reports/daily-attendance", label: "Günlük Mola ve Mesai", icon: Clock3 },
+    { href: "/dashboard/reports/audit", label: "Audit Raporu", icon: History },
   ];
   const calendarItems = [
     { href: "/dashboard/calendar", label: "Takvim Görünümü", icon: CalendarDays },

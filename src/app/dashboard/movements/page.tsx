@@ -86,7 +86,7 @@ export default async function MovementsPage(props: {
   const fromDate = getDateValue(searchParams.from);
   const toDate = getDateValue(searchParams.to);
 
-  const [companies, branches, departments, logs, audits] = await Promise.all([
+  const [companies, branches, departments, logs, auditMarkers] = await Promise.all([
     prisma.company.findMany({
       where: { id: { in: accessibleCompanyIds } },
       orderBy: { name: "asc" },
@@ -139,9 +139,7 @@ export default async function MovementsPage(props: {
     }),
     prisma.attendanceMovementAudit.findMany({
       where: { employee: { companyId: { in: companyIdFilter } } },
-      include: { employee: { include: { company: true } }, changedBy: true },
-      orderBy: { createdAt: "desc" },
-      take: 100,
+      select: { employeeId: true, movementDateTime: true },
     }),
   ]);
 
@@ -185,7 +183,7 @@ export default async function MovementsPage(props: {
     map.set(key, dayLogs);
     return map;
   }, new Map<string, typeof logs>());
-  const auditDayKeys = new Set(audits.map((audit) => `${audit.employeeId}-${getAppDayKey(audit.movementDateTime)}`));
+  const auditDayKeys = new Set(auditMarkers.map((audit) => `${audit.employeeId}-${getAppDayKey(audit.movementDateTime)}`));
   const reviewStatusByLogId = new Map<number, string>();
   logsByEmployeeDay.forEach((dayLogs, key) => {
     const dayKey = getAppDayKey(dayLogs[0].scannedAt);
@@ -404,31 +402,6 @@ export default async function MovementsPage(props: {
         </div>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.sectionHeader}>
-          <div><p className={styles.sectionEyebrow}>Audit</p><h2 className={styles.sectionTitle}>Manuel Düzeltme Geçmişi</h2></div>
-          <div className={styles.countPill}>{audits.length} kayıt</div>
-        </div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>İşlem</th><th>Personel</th><th>Hareket Zamanı</th><th>Eski Değer</th><th>Yeni Değer</th><th>Kullanıcı</th><th>İşlem Zamanı</th><th>Açıklama</th></tr></thead>
-            <tbody>
-              {audits.length === 0 ? <tr><td colSpan={8} className={styles.emptyCell}>Henüz manuel düzeltme yok.</td></tr> : audits.map((audit) => (
-                <tr key={audit.id}>
-                  <td><strong>{audit.operation}</strong></td>
-                  <td>{audit.employee.firstName} {audit.employee.lastName}<p className={styles.tableSubText}>{audit.employee.company.name}</p></td>
-                  <td>{formatDate(audit.movementDateTime)}</td>
-                  <td>{audit.oldType ? attendanceLabels[audit.oldType] : "-"}<p className={styles.tableSubText}>{audit.oldScannedAt ? formatDate(audit.oldScannedAt) : "-"}</p></td>
-                  <td>{audit.newType ? attendanceLabels[audit.newType] : "-"}<p className={styles.tableSubText}>{audit.newScannedAt ? formatDate(audit.newScannedAt) : "-"}</p></td>
-                  <td>{`${audit.changedBy.firstName ?? ""} ${audit.changedBy.lastName ?? ""}`.trim() || audit.changedBy.name || audit.changedBy.email}</td>
-                  <td>{formatDate(audit.createdAt)}</td>
-                  <td>{audit.correctionReason}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
     </div>
   );
 }

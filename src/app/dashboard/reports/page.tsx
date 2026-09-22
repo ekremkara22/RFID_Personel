@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Clock3, FileBarChart, Timer, Users } from "lucide-react";
+import { Clock3, FileBarChart, History, Timer, Users } from "lucide-react";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 
 export default async function ReportsPage() {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
+  if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
@@ -60,6 +60,16 @@ export default async function ReportsPage() {
             <div>
               <p className={styles.infoCardTitle}>Günlük Mola ve Mesai Raporu</p>
               <p className={styles.infoCardMeta}>Giriş, toplam mola, çıkış, geç kalma ve erken çıkış tek satırda.</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/dashboard/reports/audit" className={`glass-panel ${styles.companyCardLink}`}>
+          <div className={styles.companyCardHeader}>
+            <History size={22} />
+            <div>
+              <p className={styles.infoCardTitle}>Audit Raporu</p>
+              <p className={styles.infoCardMeta}>Manuel hareket ekleme, düzenleme ve silme işlemlerinin değişiklik geçmişi.</p>
             </div>
           </div>
         </Link>
