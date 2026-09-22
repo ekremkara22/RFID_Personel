@@ -1,3 +1,6 @@
+import { isDeviceOnline } from "@/lib/device-status";
+import { APP_TIME_ZONE } from "@/lib/app-time";
+import { DeviceStatusRefresh } from "../../device-status-refresh";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
@@ -100,6 +103,14 @@ export default async function UserDetailPage(props: {
     }),
   ]);
 
+  // This dynamic server page samples presence once per request, after reading devices.
+  // eslint-disable-next-line react-hooks/purity
+  const checkedAt = Date.now();
+  const onlineCount = visibleDevices.filter((device) => isDeviceOnline(device.lastSeenAt, checkedAt)).length;
+  const formatDeviceDate = (date: Date | null) => date
+    ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "medium", timeZone: APP_TIME_ZONE }).format(date)
+    : "Henüz yok";
+
   return (
     <div className={styles.page}>
       <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
@@ -200,18 +211,23 @@ export default async function UserDetailPage(props: {
                   <p className={styles.sectionEyebrow}>Atanan Cihazlar</p>
                   <h2 className={styles.sectionTitle}>Cihaz Bilgileri</h2>
                 </div>
-                <span className={styles.countPill}>{visibleDevices.length} kayit</span>
+                <span className={styles.countPill}>{onlineCount} çevrimiçi / {visibleDevices.length} cihaz</span>
               </div>
+              <p className={styles.subtitle}>Son 90 saniyede haber alınan cihazlar çevrimiçi görünür. Çevrimdışı cihaz kapalı veya internete bağlı olmayabilir. Son kart hareketi kullanım zamanını gösterir. Saatler Türkiye saatidir; durum 30 saniyede bir yenilenir.</p>
+              <DeviceStatusRefresh />
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
-                  <thead><tr><th>Cihaz</th><th>Firma</th><th>MAC</th><th>Kullanim</th><th>Islem</th></tr></thead>
+                  <thead><tr><th>Cihaz</th><th>Firma</th><th>Bağlantı</th><th>Son görülme</th><th>Son kart hareketi</th><th>MAC</th><th>Kullanim</th><th>Islem</th></tr></thead>
                   <tbody>
                     {visibleDevices.length === 0 ? (
-                      <tr><td colSpan={5} className={styles.emptyCell}>Kullaniciya atanmis cihaz yok.</td></tr>
+                      <tr><td colSpan={8} className={styles.emptyCell}>Kullaniciya atanmis cihaz yok.</td></tr>
                     ) : visibleDevices.map((device) => (
                       <tr key={device.id}>
                         <td>{device.name}</td>
                         <td>{device.company?.name ?? "Firma atanmadi"}</td>
+                        <td><span className={isDeviceOnline(device.lastSeenAt, checkedAt) ? styles.statusActive : styles.statusPassive}>{!device.lastSeenAt ? "Hiç bağlanmadı" : isDeviceOnline(device.lastSeenAt, checkedAt) ? "Çevrimiçi" : "Çevrimdışı"}</span></td>
+                        <td>{formatDeviceDate(device.lastSeenAt)}</td>
+                        <td>{formatDeviceDate(device.lastDataTransferAt)}</td>
                         <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
                         <td>{purposeLabels[device.purpose]}</td>
                         <td>

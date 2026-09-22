@@ -1,3 +1,4 @@
+import { isDeviceOnline } from "@/lib/device-status";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
@@ -414,8 +415,8 @@ export default async function CompanyDetailPage(props: {
                         <td>{device.branchLocation ?? "-"}</td>
                         <td>{purposeLabels[device.purpose]}</td>
                         <td>
-                          <span className={device.lastSeenAt ? styles.statusActive : styles.statusPassive}>
-                            {device.lastSeenAt ? "Online" : "Offline"}
+                          <span className={isDeviceOnline(device.lastSeenAt) ? styles.statusActive : styles.statusPassive}>
+                            {isDeviceOnline(device.lastSeenAt) ? "Çevrimiçi" : device.lastSeenAt ? "Çevrimdışı" : "Hiç bağlanmadı"}
                           </span>
                         </td>
                         <td>{device.lastSeenAt ? device.lastSeenAt.toLocaleString("tr-TR") : "-"}</td>
