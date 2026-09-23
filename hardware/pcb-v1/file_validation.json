@@ -1,0 +1,42 @@
+{
+  "checks": [
+    {
+      "check": "All generated S-expressions balanced and tokenizable (not KiCad parser)",
+      "passed": true
+    },
+    {
+      "check": "PCB pad nets equal CSV connections",
+      "passed": true
+    },
+    {
+      "check": "XML netlist equals connected PCB pads",
+      "passed": true
+    },
+    {
+      "check": "Schematic and PCB component counts match",
+      "passed": true
+    },
+    {
+      "check": "Actual schematic pin/wire/label graph equals PCB nets",
+      "passed": true
+    },
+    {
+      "check": "Shape-aware unlike-net pad clearance >=0.25mm",
+      "passed": true
+    },
+    {
+      "check": "Provisional component body rectangles do not overlap",
+      "passed": true
+    },
+    {
+      "check": "No routed copper is falsely supplied",
+      "passed": true
+    }
+  ],
+  "minimum_unlike_net_pad_gap_mm": 0.4,
+  "component_body_overlaps": [],
+  "status": "DRAFT_CHECKS_ONLY",
+  "kicad_erc_drc_run": false,
+  "routing_complete": false,
+  "production_ready": false
+}

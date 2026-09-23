@@ -1,0 +1,2203 @@
+{
+  "status": "UNROUTED_ENGINEERING_DRAFT_NOT_FOR_MANUFACTURE",
+  "board": [
+    4,
+    39,
+    132,
+    97
+  ],
+  "antenna_keepout_provisional": [
+    49,
+    39,
+    76,
+    85
+  ],
+  "holes": [
+    [
+      8.05,
+      43.1,
+      2.8
+    ],
+    [
+      8.05,
+      66.9,
+      2.8
+    ],
+    [
+      51.95,
+      43.1,
+      2.8
+    ],
+    [
+      51.95,
+      66.9,
+      2.8
+    ],
+    [
+      83.41,
+      48.41,
+      3.2
+    ],
+    [
+      83.41,
+      91.59,
+      3.2
+    ],
+    [
+      126.59,
+      48.41,
+      3.2
+    ],
+    [
+      126.59,
+      91.59,
+      3.2
+    ]
+  ],
+  "parts": [
+    {
+      "ref": "J6",
+      "value": "DevKit V1 socket 1x15",
+      "pins": [
+        {
+          "number": "1",
+          "name": "VIN",
+          "net": "ESP_VIN",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "GND",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "GPIO13",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "4",
+          "name": "GPIO12",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "5",
+          "name": "GPIO14",
+          "net": "GPIO14",
+          "type": "passive"
+        },
+        {
+          "number": "6",
+          "name": "GPIO27",
+          "net": "GPIO27",
+          "type": "passive"
+        },
+        {
+          "number": "7",
+          "name": "GPIO26",
+          "net": "GPIO26",
+          "type": "passive"
+        },
+        {
+          "number": "8",
+          "name": "GPIO25",
+          "net": "GPIO25",
+          "type": "passive"
+        },
+        {
+          "number": "9",
+          "name": "GPIO33",
+          "net": "GPIO33",
+          "type": "passive"
+        },
+        {
+          "number": "10",
+          "name": "GPIO32",
+          "net": "GPIO32",
+          "type": "passive"
+        },
+        {
+          "number": "11",
+          "name": "GPIO35",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "12",
+          "name": "GPIO34",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "13",
+          "name": "GPIO39",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "14",
+          "name": "GPIO36",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "15",
+          "name": "EN",
+          "net": null,
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 12.22,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 14.760000000000002,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 17.3,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 19.84,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 22.380000000000003,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 24.92,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 27.46,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 30.0,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 32.54,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 35.08,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 37.62,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 40.160000000000004,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 42.7,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 45.24,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 47.78,
+          "y": 42.3,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        10.92,
+        41.0,
+        49.08,
+        43.599999999999994
+      ],
+      "footprint": "J6_Header_15_P2.54_H",
+      "note": "ASSUMED 25.40 mm row spacing; 2.54 mm pitch. Confirm labels and orientation on actual board."
+    },
+    {
+      "ref": "J7",
+      "value": "DevKit V1 socket 1x15",
+      "pins": [
+        {
+          "number": "1",
+          "name": "3V3",
+          "net": "+3V3",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "GND",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "GPIO15",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "4",
+          "name": "GPIO2",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "5",
+          "name": "GPIO4",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "6",
+          "name": "GPIO16",
+          "net": "GPIO16",
+          "type": "passive"
+        },
+        {
+          "number": "7",
+          "name": "GPIO17",
+          "net": "GPIO17",
+          "type": "passive"
+        },
+        {
+          "number": "8",
+          "name": "GPIO5",
+          "net": "GPIO5",
+          "type": "passive"
+        },
+        {
+          "number": "9",
+          "name": "GPIO18",
+          "net": "GPIO18",
+          "type": "passive"
+        },
+        {
+          "number": "10",
+          "name": "GPIO19",
+          "net": "GPIO19",
+          "type": "passive"
+        },
+        {
+          "number": "11",
+          "name": "GPIO21",
+          "net": "GPIO21",
+          "type": "passive"
+        },
+        {
+          "number": "12",
+          "name": "GPIO3",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "13",
+          "name": "GPIO1",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "14",
+          "name": "GPIO22",
+          "net": "GPIO22",
+          "type": "passive"
+        },
+        {
+          "number": "15",
+          "name": "GPIO23",
+          "net": "GPIO23",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 12.22,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 14.760000000000002,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 17.3,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 19.84,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 22.380000000000003,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 24.92,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 27.46,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 30.0,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 32.54,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 35.08,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 37.62,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 40.160000000000004,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 42.7,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 45.24,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 47.78,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        10.92,
+        66.4,
+        49.08,
+        69.0
+      ],
+      "footprint": "J7_Header_15_P2.54_H",
+      "note": "ASSUMED 25.40 mm row spacing; 2.54 mm pitch. Confirm labels and orientation on actual board."
+    },
+    {
+      "ref": "J1",
+      "value": "5V DC INPUT",
+      "pins": [
+        {
+          "number": "1",
+          "name": "+5V_IN",
+          "net": "+5V_IN",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "GND",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 125,
+          "y": 59.0,
+          "diameter": 2.6,
+          "drill": 1.3
+        },
+        {
+          "x": 125,
+          "y": 64.08,
+          "diameter": 2.6,
+          "drill": 1.3
+        }
+      ],
+      "body": [
+        121.3,
+        55.8,
+        130,
+        68
+      ],
+      "footprint": "J1_Header_2_P5.08_V",
+      "note": "2-pin 5.08 mm terminal block; body envelope provisional; regulated 5V only, no reverse-polarity protection."
+    },
+    {
+      "ref": "F1",
+      "value": "MF-R075 0.75A",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+5V_IN",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "+5V",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 115,
+          "y": 71,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 120.08,
+          "y": 71,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        112.34,
+        69.4,
+        122.74,
+        72.6
+      ],
+      "footprint": "F1_PTC_P5.08_H",
+      "note": "Bourns MF-R075 nominal 5.1 mm leads; current/temperature derating and voltage drop need measurement."
+    },
+    {
+      "ref": "JP1",
+      "value": "ESP VIN LINK",
+      "pins": [
+        {
+          "number": "1",
+          "name": "5V",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "VIN",
+          "net": "ESP_VIN",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 80,
+          "y": 77.0,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 80,
+          "y": 79.54,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        78.7,
+        75.7,
+        81.3,
+        80.84
+      ],
+      "footprint": "JP1_Header_2_P2.54_V",
+      "note": "Fit shunt for normal external power. Not a USB power multiplexer; program removed module for first bring-up."
+    },
+    {
+      "ref": "J2",
+      "value": "RC522",
+      "pins": [
+        {
+          "number": "1",
+          "name": "SS",
+          "net": "GPIO5",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "SCK",
+          "net": "RFID_SCK",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "MOSI",
+          "net": "RFID_MOSI",
+          "type": "passive"
+        },
+        {
+          "number": "4",
+          "name": "MISO",
+          "net": "GPIO19",
+          "type": "passive"
+        },
+        {
+          "number": "5",
+          "name": "IRQ",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "6",
+          "name": "GND",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "7",
+          "name": "RST",
+          "net": "GPIO27",
+          "type": "passive"
+        },
+        {
+          "number": "8",
+          "name": "3V3",
+          "net": "+3V3",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 86.0,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 88.54,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 91.08,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 93.62,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 96.16,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 98.7,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 101.24,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 103.78,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        84.7,
+        41.7,
+        105.08,
+        44.3
+      ],
+      "footprint": "J2_Header_8_P2.54_H",
+      "note": "Match signal NAMES on reader, not cable colours. 3.3V only; IRQ unused."
+    },
+    {
+      "ref": "J3",
+      "value": "LCD1602 PARALLEL",
+      "pins": [
+        {
+          "number": "1",
+          "name": "VSS",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "VDD",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "VO",
+          "net": "LCD_VO",
+          "type": "passive"
+        },
+        {
+          "number": "4",
+          "name": "RS",
+          "net": "LCD_RS_5V",
+          "type": "passive"
+        },
+        {
+          "number": "5",
+          "name": "RW",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "6",
+          "name": "E",
+          "net": "LCD_E_5V",
+          "type": "passive"
+        },
+        {
+          "number": "7",
+          "name": "D0",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "8",
+          "name": "D1",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "9",
+          "name": "D2",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "10",
+          "name": "D3",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "11",
+          "name": "D4",
+          "net": "LCD_D4_5V",
+          "type": "passive"
+        },
+        {
+          "number": "12",
+          "name": "D5",
+          "net": "LCD_D5_5V",
+          "type": "passive"
+        },
+        {
+          "number": "13",
+          "name": "D6",
+          "net": "LCD_D6_5V",
+          "type": "passive"
+        },
+        {
+          "number": "14",
+          "name": "D7",
+          "net": "LCD_D7_5V",
+          "type": "passive"
+        },
+        {
+          "number": "15",
+          "name": "A",
+          "net": "LCD_A",
+          "type": "passive"
+        },
+        {
+          "number": "16",
+          "name": "K",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 87.0,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 89.54,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 92.08,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 94.62,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 97.16,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 99.7,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 102.24,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 104.78,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 107.32,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 109.86,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 112.4,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 114.94,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 117.48,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 120.02000000000001,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 122.56,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 125.1,
+          "y": 87,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        85.7,
+        85.7,
+        126.39999999999999,
+        88.3
+      ],
+      "footprint": "J3_Header_16_P2.54_H",
+      "note": "16-pin ribbon cable. Pin 1 at LEFT in this PCB view. LCD backlight must remain current limited."
+    },
+    {
+      "ref": "J4",
+      "value": "STATUS LEDs",
+      "pins": [
+        {
+          "number": "1",
+          "name": "GREEN_A",
+          "net": "GREEN_A",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "GREEN_K",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "RED_A",
+          "net": "RED_A",
+          "type": "passive"
+        },
+        {
+          "number": "4",
+          "name": "RED_K",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 110.0,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 112.54,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 115.08,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 117.62,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        108.7,
+        41.7,
+        118.92,
+        44.3
+      ],
+      "footprint": "J4_Header_4_P2.54_H",
+      "note": ""
+    },
+    {
+      "ref": "J5",
+      "value": "5V ACTIVE BUZZER",
+      "pins": [
+        {
+          "number": "1",
+          "name": "PLUS",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "MINUS",
+          "net": "BUZZ_NEG",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 124.0,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 126.54,
+          "y": 43,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        122.7,
+        41.7,
+        127.84,
+        44.3
+      ],
+      "footprint": "J5_Header_2_P2.54_H",
+      "note": ""
+    },
+    {
+      "ref": "U1",
+      "value": "SN74AHCT244N",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1OE",
+          "net": "GND",
+          "type": "input"
+        },
+        {
+          "number": "2",
+          "name": "1A1",
+          "net": "GPIO32",
+          "type": "input"
+        },
+        {
+          "number": "3",
+          "name": "2Y4",
+          "net": null,
+          "type": "tri_state"
+        },
+        {
+          "number": "4",
+          "name": "1A2",
+          "net": "GPIO25",
+          "type": "input"
+        },
+        {
+          "number": "5",
+          "name": "2Y3",
+          "net": null,
+          "type": "tri_state"
+        },
+        {
+          "number": "6",
+          "name": "1A3",
+          "net": "GPIO22",
+          "type": "input"
+        },
+        {
+          "number": "7",
+          "name": "2Y2",
+          "net": "LCD_D7_5V",
+          "type": "tri_state"
+        },
+        {
+          "number": "8",
+          "name": "1A4",
+          "net": "GPIO21",
+          "type": "input"
+        },
+        {
+          "number": "9",
+          "name": "2Y1",
+          "net": "LCD_D6_5V",
+          "type": "tri_state"
+        },
+        {
+          "number": "10",
+          "name": "GND",
+          "net": "GND",
+          "type": "power_in"
+        },
+        {
+          "number": "11",
+          "name": "2A1",
+          "net": "GPIO16",
+          "type": "input"
+        },
+        {
+          "number": "12",
+          "name": "1Y4",
+          "net": "LCD_D5_5V",
+          "type": "tri_state"
+        },
+        {
+          "number": "13",
+          "name": "2A2",
+          "net": "GPIO17",
+          "type": "input"
+        },
+        {
+          "number": "14",
+          "name": "1Y3",
+          "net": "LCD_D4_5V",
+          "type": "tri_state"
+        },
+        {
+          "number": "15",
+          "name": "2A3",
+          "net": "GND",
+          "type": "input"
+        },
+        {
+          "number": "16",
+          "name": "1Y2",
+          "net": "LCD_E_5V",
+          "type": "tri_state"
+        },
+        {
+          "number": "17",
+          "name": "2A4",
+          "net": "GND",
+          "type": "input"
+        },
+        {
+          "number": "18",
+          "name": "1Y1",
+          "net": "LCD_RS_5V",
+          "type": "tri_state"
+        },
+        {
+          "number": "19",
+          "name": "2OE",
+          "net": "GND",
+          "type": "input"
+        },
+        {
+          "number": "20",
+          "name": "VCC",
+          "net": "+5V",
+          "type": "power_in"
+        }
+      ],
+      "pads": [
+        {
+          "x": 87,
+          "y": 55.0,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 57.54,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 60.08,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 62.62,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 65.16,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 70.24,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 72.78,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 75.32,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 87,
+          "y": 77.86,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 77.86,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 75.32,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 72.78,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 70.24,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 65.16,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 62.62,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 60.08,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 57.54,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 94.62,
+          "y": 55.0,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        85.92,
+        53.73,
+        95.7,
+        79.13
+      ],
+      "footprint": "U1_DIP20_W7.62",
+      "note": "Use AHCT or separately verified HCT; ordinary HC at 5V is not an equivalent 3.3V-input replacement. Both OE pins grounded."
+    },
+    {
+      "ref": "RN1",
+      "value": "8x10k BUSSED",
+      "pins": [
+        {
+          "number": "1",
+          "name": "COMMON",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "R1",
+          "net": "GPIO32",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "R2",
+          "net": "GPIO25",
+          "type": "passive"
+        },
+        {
+          "number": "4",
+          "name": "R3",
+          "net": "GPIO22",
+          "type": "passive"
+        },
+        {
+          "number": "5",
+          "name": "R4",
+          "net": "GPIO21",
+          "type": "passive"
+        },
+        {
+          "number": "6",
+          "name": "R5",
+          "net": "GPIO16",
+          "type": "passive"
+        },
+        {
+          "number": "7",
+          "name": "R6",
+          "net": "GPIO17",
+          "type": "passive"
+        },
+        {
+          "number": "8",
+          "name": "R7",
+          "net": null,
+          "type": "passive"
+        },
+        {
+          "number": "9",
+          "name": "R8",
+          "net": null,
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 100,
+          "y": 55.0,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 57.54,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 60.08,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 62.62,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 65.16,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 67.7,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 70.24,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 72.78,
+          "diameter": 1.8,
+          "drill": 1.0
+        },
+        {
+          "x": 100,
+          "y": 75.32,
+          "diameter": 1.8,
+          "drill": 1.0
+        }
+      ],
+      "body": [
+        98.7,
+        53.7,
+        101.3,
+        76.61999999999999
+      ],
+      "footprint": "RN1_Header_9_P2.54_V",
+      "note": "SIP-9, eight resistors sharing pin 1. NOT an isolated network. Spare pins 8/9 unconnected."
+    },
+    {
+      "ref": "R1",
+      "value": "220R",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "GPIO26",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GREEN_A",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 106,
+          "y": 50,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 106,
+          "y": 57.62,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        104.9,
+        48.9,
+        107.1,
+        58.72
+      ],
+      "footprint": "R1_R_P7.62_V",
+      "note": ""
+    },
+    {
+      "ref": "R2",
+      "value": "220R",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "GPIO33",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "RED_A",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 110,
+          "y": 50,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 110,
+          "y": 57.62,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        108.9,
+        48.9,
+        111.1,
+        58.72
+      ],
+      "footprint": "R2_R_P7.62_V",
+      "note": ""
+    },
+    {
+      "ref": "R3",
+      "value": "1k",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "GPIO14",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "BUZZ_BASE",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 112,
+          "y": 62,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 119.62,
+          "y": 62,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        110.9,
+        60.9,
+        120.72,
+        63.1
+      ],
+      "footprint": "R3_R_P7.62_H",
+      "note": ""
+    },
+    {
+      "ref": "R4",
+      "value": "100k",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "BUZZ_BASE",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 112,
+          "y": 68,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 119.62,
+          "y": 68,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        110.9,
+        66.9,
+        120.72,
+        69.1
+      ],
+      "footprint": "R4_R_P7.62_H",
+      "note": ""
+    },
+    {
+      "ref": "R5",
+      "value": "330R INITIAL",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "LCD_A",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 111,
+          "y": 83,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 118.62,
+          "y": 83,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        109.9,
+        81.9,
+        119.72,
+        84.1
+      ],
+      "footprint": "R5_R_P7.62_H",
+      "note": "Safe dim starting value, adjust ONLY from backlight specifications/measured current. Never blindly bridge."
+    },
+    {
+      "ref": "R6",
+      "value": "10k",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GPIO5",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 39,
+          "y": 82,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 46.62,
+          "y": 82,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        37.9,
+        80.9,
+        47.72,
+        83.1
+      ],
+      "footprint": "R6_R_P7.62_H",
+      "note": "SS idle high; boot-strapping GPIO5 must remain compatible with actual DevKit."
+    },
+    {
+      "ref": "R7",
+      "value": "33R",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "GPIO18",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "RFID_SCK",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 20,
+          "y": 82,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 27.62,
+          "y": 82,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        18.9,
+        80.9,
+        28.720000000000002,
+        83.1
+      ],
+      "footprint": "R7_R_P7.62_H",
+      "note": "SPI clock series damping; verify waveforms/read reliability after routing."
+    },
+    {
+      "ref": "R8",
+      "value": "33R",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "GPIO23",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "RFID_MOSI",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 8,
+          "y": 82,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 15.620000000000001,
+          "y": 82,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        6.9,
+        80.9,
+        16.720000000000002,
+        83.1
+      ],
+      "footprint": "R8_R_P7.62_H",
+      "note": "SPI MOSI series damping; keep RC522 harness short."
+    },
+    {
+      "ref": "Q1",
+      "value": "BC337-40",
+      "pins": [
+        {
+          "number": "1",
+          "name": "C",
+          "net": "BUZZ_NEG",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "B",
+          "net": "BUZZ_BASE",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "E",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 115,
+          "y": 53,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 117.54,
+          "y": 53,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 120.08,
+          "y": 53,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        114,
+        50.5,
+        121.08,
+        55.5
+      ],
+      "footprint": "Q1_TO92_CBE_FORMED_P2.54",
+      "note": "onsemi C-B-E reference; formed 2.54 mm leads, check actual transistor. 1k base resistor assumes a small buzzer; measure current."
+    },
+    {
+      "ref": "D1",
+      "value": "1N4148",
+      "pins": [
+        {
+          "number": "1",
+          "name": "K",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "A",
+          "net": "BUZZ_NEG",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 113,
+          "y": 48,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 120.62,
+          "y": 48,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        111.9,
+        46.9,
+        121.72,
+        49.1
+      ],
+      "footprint": "D1_D_P7.62_H",
+      "note": "Pin 1=CATHODE, stripe at +5V; pin 2=ANODE at buzzer negative. Verify rating for actual buzzer."
+    },
+    {
+      "ref": "C1",
+      "value": "470uF 16V",
+      "pins": [
+        {
+          "number": "1",
+          "name": "+",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "-",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 123,
+          "y": 81,
+          "diameter": 1.6,
+          "drill": 0.8
+        },
+        {
+          "x": 126.5,
+          "y": 81,
+          "diameter": 1.6,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        120.75,
+        77.0,
+        128.75,
+        85.0
+      ],
+      "footprint": "C1_CP_P3.5_H",
+      "note": "Radial electrolytic, assumed diameter 8 mm and lead pitch 3.5 mm. Check actual part and polarity."
+    },
+    {
+      "ref": "C2",
+      "value": "100nF",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 117,
+          "y": 75,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 119.54,
+          "y": 75,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        115.9,
+        73.9,
+        120.64,
+        76.1
+      ],
+      "footprint": "C2_C_P2.54_H",
+      "note": ""
+    },
+    {
+      "ref": "C3",
+      "value": "100nF",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+5V",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 94.62,
+          "y": 51,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 97.16000000000001,
+          "y": 51,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        93.52000000000001,
+        49.9,
+        98.26,
+        52.1
+      ],
+      "footprint": "C3_C_P2.54_H",
+      "note": ""
+    },
+    {
+      "ref": "C4",
+      "value": "100nF",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 88,
+          "y": 50.5,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 90.54,
+          "y": 50.5,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        86.9,
+        49.4,
+        91.64,
+        51.6
+      ],
+      "footprint": "C4_C_P2.54_H",
+      "note": ""
+    },
+    {
+      "ref": "C5",
+      "value": "10uF 10V",
+      "pins": [
+        {
+          "number": "1",
+          "name": "+",
+          "net": "+3V3",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "-",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 94,
+          "y": 47,
+          "diameter": 1.6,
+          "drill": 0.8
+        },
+        {
+          "x": 96,
+          "y": 47,
+          "diameter": 1.6,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        92.5,
+        44.5,
+        97.5,
+        49.5
+      ],
+      "footprint": "C5_CP_P2_H",
+      "note": "Radial electrolytic, assumed diameter 5 mm and lead pitch 2 mm. Check actual part and polarity."
+    },
+    {
+      "ref": "C6",
+      "value": "100nF",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "ESP_VIN",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 25,
+          "y": 75,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 27.54,
+          "y": 75,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        23.9,
+        73.9,
+        28.64,
+        76.1
+      ],
+      "footprint": "C6_C_P2.54_H",
+      "note": ""
+    },
+    {
+      "ref": "C7",
+      "value": "10uF 10V",
+      "pins": [
+        {
+          "number": "1",
+          "name": "+",
+          "net": "+3V3",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "-",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 31,
+          "y": 75,
+          "diameter": 1.6,
+          "drill": 0.8
+        },
+        {
+          "x": 33,
+          "y": 75,
+          "diameter": 1.6,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        29.5,
+        72.5,
+        34.5,
+        77.5
+      ],
+      "footprint": "C7_CP_P2_H",
+      "note": "Radial electrolytic, assumed diameter 5 mm and lead pitch 2 mm. Check actual part and polarity."
+    },
+    {
+      "ref": "RV1",
+      "value": "10k CONTRAST",
+      "pins": [
+        {
+          "number": "1",
+          "name": "LOW",
+          "net": "GND",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "name": "WIPER",
+          "net": "LCD_VO",
+          "type": "passive"
+        },
+        {
+          "number": "3",
+          "name": "HIGH",
+          "net": "+5V",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 102.46,
+          "y": 79,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 105,
+          "y": 81.54,
+          "diameter": 1.8,
+          "drill": 0.8
+        },
+        {
+          "x": 107.54,
+          "y": 79,
+          "diameter": 1.8,
+          "drill": 0.8
+        }
+      ],
+      "body": [
+        101.5,
+        75.5,
+        108.5,
+        82.5
+      ],
+      "footprint": "RV1_Trimmer_3pin_5.08x2.54",
+      "note": "Provisional trimmer footprint, verify model AND wiper pin before order."
+    },
+    {
+      "ref": "TP1",
+      "value": "+5V",
+      "pins": [
+        {
+          "number": "1",
+          "name": "+5V",
+          "net": "+5V",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 113,
+          "y": 93,
+          "diameter": 2,
+          "drill": 0.9
+        }
+      ],
+      "body": [
+        112,
+        92,
+        114,
+        94
+      ],
+      "footprint": "TP1_TestPoint_THT",
+      "note": ""
+    },
+    {
+      "ref": "TP2",
+      "value": "+3V3",
+      "pins": [
+        {
+          "number": "1",
+          "name": "+3V3",
+          "net": "+3V3",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 117,
+          "y": 93,
+          "diameter": 2,
+          "drill": 0.9
+        }
+      ],
+      "body": [
+        116,
+        92,
+        118,
+        94
+      ],
+      "footprint": "TP2_TestPoint_THT",
+      "note": ""
+    },
+    {
+      "ref": "TP3",
+      "value": "GND",
+      "pins": [
+        {
+          "number": "1",
+          "name": "GND",
+          "net": "GND",
+          "type": "passive"
+        }
+      ],
+      "pads": [
+        {
+          "x": 121,
+          "y": 93,
+          "diameter": 2,
+          "drill": 0.9
+        }
+      ],
+      "body": [
+        120,
+        92,
+        122,
+        94
+      ],
+      "footprint": "TP3_TestPoint_THT",
+      "note": ""
+    }
+  ]
+}

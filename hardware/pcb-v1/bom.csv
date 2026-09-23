@@ -1,0 +1,33 @@
+﻿Reference,Qty,Value,Footprint,Notes
+J6,1,DevKit V1 socket 1x15,J6_Header_15_P2.54_H,ASSUMED 25.40 mm row spacing; 2.54 mm pitch. Confirm labels and orientation on actual board.
+J7,1,DevKit V1 socket 1x15,J7_Header_15_P2.54_H,ASSUMED 25.40 mm row spacing; 2.54 mm pitch. Confirm labels and orientation on actual board.
+J1,1,5V DC INPUT,J1_Header_2_P5.08_V,"2-pin 5.08 mm terminal block; body envelope provisional; regulated 5V only, no reverse-polarity protection."
+F1,1,MF-R075 0.75A,F1_PTC_P5.08_H,Bourns MF-R075 nominal 5.1 mm leads; current/temperature derating and voltage drop need measurement.
+JP1,1,ESP VIN LINK,JP1_Header_2_P2.54_V,Fit shunt for normal external power. Not a USB power multiplexer; program removed module for first bring-up.
+J2,1,RC522,J2_Header_8_P2.54_H,"Match signal NAMES on reader, not cable colours. 3.3V only; IRQ unused."
+J3,1,LCD1602 PARALLEL,J3_Header_16_P2.54_H,16-pin ribbon cable. Pin 1 at LEFT in this PCB view. LCD backlight must remain current limited.
+J4,1,STATUS LEDs,J4_Header_4_P2.54_H,
+J5,1,5V ACTIVE BUZZER,J5_Header_2_P2.54_H,
+U1,1,SN74AHCT244N,U1_DIP20_W7.62,Use AHCT or separately verified HCT; ordinary HC at 5V is not an equivalent 3.3V-input replacement. Both OE pins grounded.
+RN1,1,8x10k BUSSED,RN1_Header_9_P2.54_V,"SIP-9, eight resistors sharing pin 1. NOT an isolated network. Spare pins 8/9 unconnected."
+R1,1,220R,R1_R_P7.62_V,
+R2,1,220R,R2_R_P7.62_V,
+R3,1,1k,R3_R_P7.62_H,
+R4,1,100k,R4_R_P7.62_H,
+R5,1,330R INITIAL,R5_R_P7.62_H,"Safe dim starting value, adjust ONLY from backlight specifications/measured current. Never blindly bridge."
+R6,1,10k,R6_R_P7.62_H,SS idle high; boot-strapping GPIO5 must remain compatible with actual DevKit.
+R7,1,33R,R7_R_P7.62_H,SPI clock series damping; verify waveforms/read reliability after routing.
+R8,1,33R,R8_R_P7.62_H,SPI MOSI series damping; keep RC522 harness short.
+Q1,1,BC337-40,Q1_TO92_CBE_FORMED_P2.54,"onsemi C-B-E reference; formed 2.54 mm leads, check actual transistor. 1k base resistor assumes a small buzzer; measure current."
+D1,1,1N4148,D1_D_P7.62_H,"Pin 1=CATHODE, stripe at +5V; pin 2=ANODE at buzzer negative. Verify rating for actual buzzer."
+C1,1,470uF 16V,C1_CP_P3.5_H,"Radial electrolytic, assumed diameter 8 mm and lead pitch 3.5 mm. Check actual part and polarity."
+C2,1,100nF,C2_C_P2.54_H,
+C3,1,100nF,C3_C_P2.54_H,
+C4,1,100nF,C4_C_P2.54_H,
+C5,1,10uF 10V,C5_CP_P2_H,"Radial electrolytic, assumed diameter 5 mm and lead pitch 2 mm. Check actual part and polarity."
+C6,1,100nF,C6_C_P2.54_H,
+C7,1,10uF 10V,C7_CP_P2_H,"Radial electrolytic, assumed diameter 5 mm and lead pitch 2 mm. Check actual part and polarity."
+RV1,1,10k CONTRAST,RV1_Trimmer_3pin_5.08x2.54,"Provisional trimmer footprint, verify model AND wiper pin before order."
+TP1,1,+5V,TP1_TestPoint_THT,
+TP2,1,+3V3,TP2_TestPoint_THT,
+TP3,1,GND,TP3_TestPoint_THT,

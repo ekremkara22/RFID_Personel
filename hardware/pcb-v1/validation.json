@@ -1,0 +1,61 @@
+{
+  "checks": [
+    {
+      "check": "Unique component references",
+      "passed": true
+    },
+    {
+      "check": "RC522 3V3 only",
+      "passed": true
+    },
+    {
+      "check": "LCD RW grounded",
+      "passed": true
+    },
+    {
+      "check": "AHCT unused inputs grounded",
+      "passed": true
+    },
+    {
+      "check": "AHCT enables grounded",
+      "passed": true
+    },
+    {
+      "check": "Buzzer diode cathode +5V",
+      "passed": true
+    },
+    {
+      "check": "Firmware GPIO defines match",
+      "passed": true
+    },
+    {
+      "check": "All pads inside PCB edge with >=0.25mm copper margin",
+      "passed": true
+    },
+    {
+      "check": "Pads clear M2.5/M3 screw-head exclusion radii 3.0/3.5mm",
+      "passed": true
+    },
+    {
+      "check": "No pads in provisional antenna region",
+      "passed": true
+    },
+    {
+      "check": "Round-pad center clearance >=0.25mm (NOT full KiCad DRC)",
+      "passed": true
+    },
+    {
+      "check": "Eight mounting centers within 0.06mm of STL sections",
+      "passed": true
+    }
+  ],
+  "clearance_issues": [],
+  "failures": [],
+  "not_performed": [
+    "KiCad application parse/ERC/DRC",
+    "Copper routing and continuity",
+    "Full 3D component collision test",
+    "Physical fit and power/RF test"
+  ],
+  "manufacturing_release": false
+}
