@@ -1,0 +1,18 @@
+Method: Built-in ImageGen. Real product reference plus actual application screenshot with synthetic demo data changed only in browser DOM. Production records unchanged.
+
+Use case: ads-marketing / compositing.
+Create a premium finished Turkish promotional advertising image for FLODESKA, an RFID employee attendance device plus web management software. Wide landscape 16:9, high resolution, beautifully art-directed, polished commercial B2B technology campaign.
+INPUT 1: exact hardware product photograph. Preserve its appearance faithfully: near-square textured black box, four silver corner screws, horizontal blue character LCD, red and green LEDs at lower left, small buzzer holes lower right, actual thickness and proportions. Do not redesign it or invent a scanner/keypad/logo on the enclosure.
+INPUT 2: REAL software screenshot with intentionally synthetic demo data. This is the screen content reference. Use this actual screenshot faithfully as the content of a large, nearly front-facing refined dark-metal laptop display. Preserve its navy sidebar, "Operasyon Özeti" heading, white UI, colorful KPI cards, orange/red horizontal personnel bars, and sample names. DO NOT invent a different dashboard. Keep screenshot sufficiently large and legible.
+COMPOSITION: elegant very pale cool gray studio background with a subtle blue glow and sophisticated restrained navy typography. Generous top whitespace for a crisp typographic headline. Lower-right and center: large open laptop showing input 2, occupying roughly 55 percent image width. Foreground left of laptop: the real black RFID device from input 1 on the same surface, roughly 27 percent canvas width and smaller than laptop display; slight overlap at laptop lower-left edge but do not obscure key dashboard data. Soft grounded shadows, real material texture, subtle depth; no floating sci-fi screens, no stock humans, no visual clutter.
+TYPOGRAPHY and text, exact Turkish spelling:
+Small top left wordmark "FLODESKA" in bold navy modern sans-serif.
+Large headline in upper left/top, on two lines if necessary:
+"Personel takibi,"
+"tek panelde."
+One smaller supporting line underneath: "Giriş, çıkış ve mola kayıtlarını kolayca yönetin."
+Three restrained small feature labels near bottom, separated by small dots: "RFID kart okuma" · "Operasyon özeti" · "Mola takibi"
+Bottom left clear website: "flodeska.com"
+Bottom right very small but readable note: "Ekran verileri örnektir."
+LCD on real device should retain "Kart bekleniyor" and "09:00:00" in white pixel characters.
+Avoid fake claims, pricing, client logos, app-store badges, fake certifications, additional slogans, watermarks, gratuitous graphic flourishes. Product identity and screenshot accuracy are paramount. Make this feel like a professionally photographed and typeset product launch visual with an authentic software screenshot.
