@@ -88,7 +88,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: Tags },
         ]
       : [
-          { href: "/dashboard/companies", label: "Firmalar", icon: Building2 },
+          { href: "/dashboard/companies", label: "Firma Tanım", icon: Building2 },
           { href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags },
           { href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags },
           { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
-import { updateBranchAction } from "@/app/dashboard/actions";
+import { deleteBranchAction, updateBranchAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
@@ -39,6 +39,10 @@ export default async function BranchDetailPage(props: { params: Promise<{ id: st
           <div className={styles.fullWidthActionRow}>
             <SubmitButton idleLabel="Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} />
           </div>
+        </form>
+        <form action={deleteBranchAction} className={styles.dangerForm}>
+          <input type="hidden" name="branchId" value={branch.id} />
+          <SubmitButton idleLabel="Şubeyi Sil" pendingLabel="Siliniyor..." className={styles.dangerButton} />
         </form>
       </section>
     </div>

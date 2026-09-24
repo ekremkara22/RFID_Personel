@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
-import { updateManagerAction } from "@/app/dashboard/actions";
+import { deleteManagerAction, updateManagerAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/ids";
@@ -29,6 +29,10 @@ export default async function ManagerDetailPage(props: { params: Promise<{ id: s
           <div className={styles.fullWidthActionRow}>
             <SubmitButton idleLabel="Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} />
           </div>
+        </form>
+        <form action={deleteManagerAction} className={styles.dangerForm}>
+          <input type="hidden" name="managerId" value={manager.id} />
+          <SubmitButton idleLabel="Yöneticiyi Sil" pendingLabel="Siliniyor..." className={styles.dangerButton} />
         </form>
       </section>
     </div>

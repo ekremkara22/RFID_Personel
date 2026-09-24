@@ -1,102 +1,63 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  createCompanyCategoryAction,
-  updateCompanyCategoryAction,
-} from "@/app/dashboard/actions";
-import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
-export default async function CompanyCategoriesPage() {
+export default async function CompanyCategoriesPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
+  if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
 
-  if (user.role !== "COMPANY_ADMIN") {
-    redirect("/dashboard");
-  }
-
+  const params = (await props.searchParams) ?? {};
+  const query = typeof params.q === "string" ? params.q.trim() : "";
   const categories = await prisma.companyCategory.findMany({
+    where: query ? { name: { contains: query } } : undefined,
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
   });
+
+  const usageCounts = await prisma.company.groupBy({
+    by: ["category"],
+    where: { category: { not: null } },
+    _count: { _all: true },
+  });
+  const usageByName = new Map(usageCounts.map((item) => [item.category, item._count._all]));
 
   return (
     <div className={styles.page}>
       <section className={`glass-panel ${styles.heroCard}`}>
         <div>
-          <p className={styles.eyebrow}>Sabit Tanimlar</p>
-          <h1 className={styles.title}>Firma Kategori</h1>
-          <p className={styles.subtitle}>
-            Firma kayitlarinda kullanilacak kategori degerlerini buradan tanimlayabilir ve aktif/pasif yapabilirsin.
-          </p>
+          <p className={styles.eyebrow}>Sabit Tanımlar</p>
+          <h1 className={styles.title}>Firma Kategorileri</h1>
+          <p className={styles.subtitle}>Firma tanımlarında kullanılan kategorileri arayın, görüntüleyin ve yönetin.</p>
         </div>
+        <Link href="/dashboard/settings/company-categories/new" className={styles.primaryLinkButton}>Kategori Ekle</Link>
       </section>
 
-      <section className={styles.mainGrid}>
-        <div className={styles.primaryColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Yeni Tanim</p>
-                <h2 className={styles.sectionTitle}>Kategori Ekle</h2>
-              </div>
-            </div>
-
-            <form action={createCompanyCategoryAction} className={styles.formGrid}>
-              <label className={styles.field}>
-                <span>Kategori Adi</span>
-                <input name="name" required placeholder="Uretim, Lojistik, Hizmet..." />
-              </label>
-
-              <div className={styles.formActionAlign}>
-                <SubmitButton
-                  idleLabel="Kategori Kaydet"
-                  pendingLabel="Kaydediliyor..."
-                  className={styles.primaryButton}
-                />
-              </div>
-            </form>
-          </section>
+      <section className={`glass-panel ${styles.sectionCard}`}>
+        <div className={styles.listToolbar}>
+          <form className={styles.searchForm}>
+            <input name="q" defaultValue={query} placeholder="Kategori ara" />
+            <button type="submit">Ara</button>
+          </form>
         </div>
-
-        <aside className={styles.sideColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Kayitli Tanimlar</p>
-                <h2 className={styles.sectionTitle}>Firma Kategorileri</h2>
-              </div>
-            </div>
-
-            <div className={styles.logList}>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead><tr><th>Kategori</th><th>Kullanan Firma</th><th>Durum</th><th>Kayıt Tarihi</th><th>İşlem</th></tr></thead>
+            <tbody>
               {categories.length === 0 ? (
-                <p className={styles.emptyState}>Henuz firma kategorisi tanimlanmadi.</p>
-              ) : (
-                categories.map((category) => (
-                  <form
-                    key={category.id}
-                    action={updateCompanyCategoryAction}
-                    className={styles.definitionItem}
-                  >
-                    <input type="hidden" name="categoryId" value={category.id} />
-                    <label className={styles.field}>
-                      <span>Kategori</span>
-                      <input name="name" defaultValue={category.name} required />
-                    </label>
-                    <label className={styles.checkField}>
-                      <input name="isActive" type="checkbox" defaultChecked={category.isActive} />
-                      <span>Aktif</span>
-                    </label>
-                    <SubmitButton
-                      idleLabel="Guncelle"
-                      pendingLabel="Guncelleniyor..."
-                      className={styles.smallButton}
-                    />
-                  </form>
-                ))
-              )}
-            </div>
-          </section>
-        </aside>
+                <tr><td colSpan={5} className={styles.emptyCell}>Kayıt bulunamadı.</td></tr>
+              ) : categories.map((category) => (
+                <tr key={category.id}>
+                  <td><strong>{category.name}</strong></td>
+                  <td>{usageByName.get(category.name) ?? 0}</td>
+                  <td>{category.isActive ? "Aktif" : "Pasif"}</td>
+                  <td>{new Intl.DateTimeFormat("tr-TR").format(category.createdAt)}</td>
+                  <td><Link href={`/dashboard/settings/company-categories/${category.id}`} className={styles.inlineAction}>İncele</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

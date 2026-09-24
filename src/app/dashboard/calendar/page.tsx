@@ -257,6 +257,7 @@ export default async function CalendarOverviewPage(props: {
               <div>
                 <p className={styles.sectionEyebrow}>Takvim Uret</p>
                 <h2 className={styles.sectionTitle}>Personel-Gun Hesapla</h2>
+                <p className={styles.tableSubText}>Seçilen tarih aralığında vardiya, izin, özel gün ve takvim atamalarını birleştirerek personellerin günlük çalışma planını oluşturur veya günceller.</p>
               </div>
             </div>
             <form action={generateEmployeeDailyCalendarAction} className={styles.formGridSingle}>

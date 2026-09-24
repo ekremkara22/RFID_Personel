@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
-import { updateDepartmentAction } from "@/app/dashboard/actions";
+import { deleteDepartmentAction, updateDepartmentAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/ids";
@@ -39,6 +39,10 @@ export default async function DepartmentDetailPage(props: { params: Promise<{ id
           <div className={styles.fullWidthActionRow}>
             <SubmitButton idleLabel="Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} />
           </div>
+        </form>
+        <form action={deleteDepartmentAction} className={styles.dangerForm}>
+          <input type="hidden" name="departmentId" value={department.id} />
+          <SubmitButton idleLabel="Departmanı Sil" pendingLabel="Siliniyor..." className={styles.dangerButton} />
         </form>
       </section>
     </div>

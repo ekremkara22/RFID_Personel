@@ -708,6 +708,7 @@ export async function createCompanyCategoryAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings/company-categories");
   revalidatePath("/dashboard/companies/new");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function updateCompanyCategoryAction(formData: FormData) {
@@ -732,6 +733,26 @@ export async function updateCompanyCategoryAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings/company-categories");
   revalidatePath("/dashboard/companies");
+  if (getReturnTo(formData)) redirectToReturnPath(formData);
+}
+
+export async function deleteCompanyCategoryAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  if (user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
+
+  const categoryId = getId(formData, "categoryId");
+  const category = await prisma.companyCategory.findUnique({ where: { id: categoryId } });
+  if (!category) throw new Error("Firma kategorisi bulunamadi.");
+
+  const companyCount = await prisma.company.count({ where: { category: category.name } });
+  if (companyCount > 0) {
+    throw new Error("Bu kategori firmalarda kullaniliyor. Once ilgili firmalarin kategorisini degistirin.");
+  }
+
+  await prisma.companyCategory.delete({ where: { id: categoryId } });
+  revalidatePath("/dashboard/settings/company-categories");
+  revalidatePath("/dashboard/companies");
+  redirect("/dashboard/settings/company-categories");
 }
 
 async function assertCompanyDepartment(companyId: number, department: string) {
@@ -803,6 +824,29 @@ export async function updateDepartmentAction(formData: FormData) {
   if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
+export async function deleteDepartmentAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) throw new Error("Bu islem icin yetkiniz yok.");
+
+  const departmentId = getId(formData, "departmentId");
+  const department = await prisma.department.findFirst({ where: { id: departmentId, companyId: user.companyId } });
+  if (!department) throw new Error("Departman bulunamadi.");
+
+  const [employeeCount, assignmentCount, specialDayCount, exceptionCount] = await Promise.all([
+    prisma.employee.count({ where: { companyId: user.companyId, department: department.name } }),
+    prisma.calendarAssignment.count({ where: { departmentId } }),
+    prisma.calendarSpecialDay.count({ where: { departmentId } }),
+    prisma.calendarDailyException.count({ where: { departmentId } }),
+  ]);
+  if (employeeCount + assignmentCount + specialDayCount + exceptionCount > 0) {
+    throw new Error("Bu departman personel veya takvim kayitlarinda kullaniliyor. Silmek yerine pasif yapin.");
+  }
+
+  await prisma.department.delete({ where: { id: departmentId } });
+  revalidatePath("/dashboard/settings/departments");
+  redirect("/dashboard/settings/departments");
+}
+
 export async function createBranchAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
@@ -856,6 +900,32 @@ export async function updateBranchAction(formData: FormData) {
   revalidatePath("/dashboard/settings/branches");
   revalidatePath("/dashboard/employees");
   if (getReturnTo(formData)) redirectToReturnPath(formData);
+}
+
+export async function deleteBranchAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
+
+  const branchId = getId(formData, "branchId");
+  const companyIds = await getAccessibleCompanyIds(user);
+  const branch = await prisma.branch.findFirst({
+    where: { id: branchId, ...(companyIds ? { companyId: { in: companyIds } } : {}) },
+  });
+  if (!branch) throw new Error("Sube bulunamadi.");
+
+  const [employeeCount, assignmentCount, specialDayCount, exceptionCount] = await Promise.all([
+    prisma.employee.count({ where: { companyId: branch.companyId, branch: branch.name } }),
+    prisma.calendarAssignment.count({ where: { branchId } }),
+    prisma.calendarSpecialDay.count({ where: { branchId } }),
+    prisma.calendarDailyException.count({ where: { branchId } }),
+  ]);
+  if (employeeCount + assignmentCount + specialDayCount + exceptionCount > 0) {
+    throw new Error("Bu sube personel veya takvim kayitlarinda kullaniliyor. Silmek yerine pasif yapin.");
+  }
+
+  await prisma.branch.delete({ where: { id: branchId } });
+  revalidatePath("/dashboard/settings/branches");
+  redirect("/dashboard/settings/branches");
 }
 
 export async function createManagerAction(formData: FormData) {
@@ -912,6 +982,24 @@ export async function updateManagerAction(formData: FormData) {
   revalidatePath("/dashboard/settings/managers");
   revalidatePath("/dashboard/employees");
   if (getReturnTo(formData)) redirectToReturnPath(formData);
+}
+
+export async function deleteManagerAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) throw new Error("Bu islem icin yetkiniz yok.");
+
+  const managerId = getId(formData, "managerId");
+  const manager = await prisma.manager.findFirst({ where: { id: managerId, companyId: user.companyId } });
+  if (!manager) throw new Error("Yonetici bulunamadi.");
+
+  const employeeCount = await prisma.employee.count({ where: { companyId: user.companyId, managerName: manager.name } });
+  if (employeeCount > 0) {
+    throw new Error("Bu yonetici personel kayitlarinda kullaniliyor. Silmek yerine pasif yapin.");
+  }
+
+  await prisma.manager.delete({ where: { id: managerId } });
+  revalidatePath("/dashboard/settings/managers");
+  redirect("/dashboard/settings/managers");
 }
 
 export async function createEmployeeAction(formData: FormData) {
@@ -2181,7 +2269,7 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
   const companyId = user.companyId;
   const fromDate = getRequiredDate(formData, "fromDate");
   const toDate = getRequiredDate(formData, "toDate");
-  const employeeId = getId(formData, "employeeId");
+  const employeeId = getOptionalId(formData, "employeeId");
   const department = getString(formData, "department");
 
   const employees = await prisma.employee.findMany({

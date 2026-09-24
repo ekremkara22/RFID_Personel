@@ -18,7 +18,6 @@ const tabs = [
   { key: "general", label: "Genel Bilgiler" },
   { key: "employees", label: "Personeller" },
   { key: "devices", label: "Cihazlar" },
-  { key: "finance", label: "Mali Isler" },
 ] as const;
 
 const cityOptions = ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Kocaeli"];
@@ -124,8 +123,7 @@ export default async function CompanyDetailPage(props: {
           <p className={styles.eyebrow}>Firma Detay Inceleme Sayfasi</p>
           <h1 className={styles.title}>{company.name}</h1>
           <p className={styles.subtitle}>
-            Firmalar listesinden secilen musterinin genel bilgilerini, personellerini, cihazlarini ve mali islerini
-            tek ekrandan takip edebilirsin.
+            Firmalar listesinden secilen musterinin genel bilgilerini, personellerini ve cihazlarini tek ekrandan takip edebilirsin.
           </p>
         </div>
 
@@ -452,16 +450,6 @@ export default async function CompanyDetailPage(props: {
         </section>
       ) : null}
 
-      {activeTab === "finance" ? (
-        <section className={`glass-panel ${styles.sectionCard}`}>
-          <p className={styles.sectionEyebrow}>Mali Isler</p>
-          <h2 className={styles.sectionTitle}>Mali Isler Hazirlik Alani</h2>
-          <p className={styles.emptyState}>
-            Bu tab PDF revizesindeki 4. alan olarak eklendi. Faturalama, paket, lisans ve odeme takibi detaylarini
-            sonraki fazda buraya baglayabiliriz.
-          </p>
-        </section>
-      ) : null}
     </div>
   );
 }

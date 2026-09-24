@@ -13,6 +13,7 @@ type EmployeeRow = {
   fullName: string;
   registrationNumber: string;
   age: number;
+  companyName: string;
   department: string;
   branch: string;
   hireDate: string;
@@ -86,8 +87,8 @@ const columnMap: Record<
   },
   branch: {
     label: "Sirket/Sube",
-    render: (employee) => employee.branch,
-    exportValue: (employee) => employee.branch,
+    render: (employee) => `${employee.companyName} / ${employee.branch}`,
+    exportValue: (employee) => `${employee.companyName} / ${employee.branch}`,
   },
   hireDate: {
     label: "Ise Giris",
