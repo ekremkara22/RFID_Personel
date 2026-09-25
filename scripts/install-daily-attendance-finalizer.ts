@@ -38,7 +38,14 @@ BEGIN
 END`;
 
 async function main() {
-  await prisma.$executeRawUnsafe("SET GLOBAL event_scheduler = ON");
+  const schedulerRows = await prisma.$queryRawUnsafe<Array<{ schedulerStatus: string }>>(
+    "SELECT @@GLOBAL.event_scheduler AS schedulerStatus",
+  );
+  if (String(schedulerRows[0]?.schedulerStatus).toUpperCase() !== "ON") {
+    throw new Error(
+      "MariaDB event_scheduler kapalı. Sunucu yöneticisi SET GLOBAL event_scheduler = ON komutunu çalıştırmalıdır.",
+    );
+  }
   await prisma.$executeRawUnsafe("DROP EVENT IF EXISTS finalize_daily_attendance_event");
   await prisma.$executeRawUnsafe("DROP PROCEDURE IF EXISTS finalize_daily_attendance");
   await prisma.$executeRawUnsafe(procedureSql);
