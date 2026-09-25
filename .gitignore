@@ -34,6 +34,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 sunucubilgileri.txt
+sunucu bilgileri.txt
 
 # vercel
 .vercel
@@ -48,3 +49,6 @@ next-env.d.ts
 *.apk
 *.zip
 /rfid-personel-takip/
+
+# uploaded ESP32 firmware binaries
+/var/firmware/

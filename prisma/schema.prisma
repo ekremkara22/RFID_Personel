@@ -36,6 +36,14 @@ enum DevicePurpose {
   BIDIRECTIONAL
 }
 
+enum FirmwareDeploymentStatus {
+  PENDING
+  DOWNLOADING
+  INSTALLED
+  FAILED
+  CANCELLED
+}
+
 enum LeaveType {
   ANNUAL
   EXCUSE
@@ -164,21 +172,23 @@ model RoleDefinition {
 }
 
 model User {
-  id               Int                       @id @default(autoincrement()) @db.UnsignedInt
-  email            String                    @unique
-  password         String
-  name             String?
-  firstName        String?
-  lastName         String?
-  tcNo             String?
-  role             Role                      @default(COMPANY_ADMIN)
-  companyId        Int?                      @db.UnsignedInt
-  company          Company?                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyAccess    UserCompanyAccess[]
-  deviceAccess     UserDeviceAccess[]
-  attendanceAudits AttendanceMovementAudit[]
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
+  id                  Int                       @id @default(autoincrement()) @db.UnsignedInt
+  email               String                    @unique
+  password            String
+  name                String?
+  firstName           String?
+  lastName            String?
+  tcNo                String?
+  role                Role                      @default(COMPANY_ADMIN)
+  companyId           Int?                      @db.UnsignedInt
+  company             Company?                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyAccess       UserCompanyAccess[]
+  deviceAccess        UserDeviceAccess[]
+  attendanceAudits    AttendanceMovementAudit[]
+  firmwareReleases    FirmwareRelease[]
+  firmwareDeployments FirmwareDeployment[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
 }
 
 model UserCompanyAccess {
@@ -268,25 +278,69 @@ model Manager {
 }
 
 model Device {
-  id                 Int                @id @default(autoincrement()) @db.UnsignedInt
-  code               String?
-  name               String
-  macAddress         String?            @unique
-  ipAddress          String?
-  branchLocation     String?
-  purpose            DevicePurpose      @default(BIDIRECTIONAL)
-  secretKey          String             @default(uuid())
-  lastSeenAt         DateTime?
-  lastDataTransferAt DateTime?
-  clockOffsetMinutes Int?
-  companyId          Int?               @db.UnsignedInt
-  company            Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  userAccess         UserDeviceAccess[]
-  logs               AttendanceLog[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                   Int                  @id @default(autoincrement()) @db.UnsignedInt
+  code                 String?
+  name                 String
+  macAddress           String?              @unique
+  ipAddress            String?
+  branchLocation       String?
+  purpose              DevicePurpose        @default(BIDIRECTIONAL)
+  secretKey            String               @default(uuid())
+  lastSeenAt           DateTime?
+  lastDataTransferAt   DateTime?
+  clockOffsetMinutes   Int?
+  firmwareVersion      String?
+  lastFirmwareCheckAt  DateTime?
+  lastFirmwareUpdateAt DateTime?
+  firmwareLastError    String?              @db.Text
+  companyId            Int?                 @db.UnsignedInt
+  company              Company?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  userAccess           UserDeviceAccess[]
+  logs                 AttendanceLog[]
+  firmwareDeployments  FirmwareDeployment[]
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@unique([companyId, code])
+}
+
+model FirmwareRelease {
+  id               Int                  @id @default(autoincrement()) @db.UnsignedInt
+  version          String               @unique
+  releaseNotes     String?              @db.Text
+  originalFileName String
+  storageKey       String               @unique
+  sizeBytes        Int                  @db.UnsignedInt
+  sha256           String               @db.Char(64)
+  isActive         Boolean              @default(true)
+  createdById      Int                  @db.UnsignedInt
+  createdBy        User                 @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  deployments      FirmwareDeployment[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+model FirmwareDeployment {
+  id                Int                      @id @default(autoincrement()) @db.UnsignedInt
+  releaseId         Int                      @db.UnsignedInt
+  release           FirmwareRelease          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  deviceId          Int                      @db.UnsignedInt
+  device            Device                   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  status            FirmwareDeploymentStatus @default(PENDING)
+  downloadToken     String                   @unique @default(uuid())
+  attemptCount      Int                      @default(0) @db.UnsignedInt
+  lastError         String?                  @db.Text
+  requestedAt       DateTime                 @default(now())
+  downloadStartedAt DateTime?
+  installedAt       DateTime?
+  lastReportedAt    DateTime?
+  createdById       Int                      @db.UnsignedInt
+  createdBy         User                     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([deviceId, status, requestedAt])
+  @@index([releaseId, status])
 }
 
 model UserDeviceAccess {
