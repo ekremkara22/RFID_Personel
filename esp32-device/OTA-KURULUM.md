@@ -5,6 +5,7 @@
 - `rfid_personel_device_ota/rfid_personel_device_ota.ino`: canlı cihaz sürümü (`1.0.0`).
 - `rfid_personel_device_ota_test/rfid_personel_device_ota_test.ino`: staging üzerinde ilk USB yüklemesi için test sürümü (`0.1.0-test`).
 - `rfid_personel_device_ota_test_update/rfid_personel_device_ota_test_update.ino`: panelden OTA ile gönderilecek test sürümü (`0.1.1-test`).
+- `rfid_personel_device_ota_live_test_update/rfid_personel_device_ota_live_test_update.ino`: yalnızca seçilen canlı cihazda OTA doğrulaması için güvenli test sürümü (`1.0.1-live-test`).
 
 Mevcut `rfid_personel_device/rfid_personel_device.ino` korunmuştur. OTA sürümü ilk kez USB ile yüklenmelidir; sonraki sürümler panelden gönderilebilir.
 
@@ -29,6 +30,16 @@ Cihaz açılıştan yaklaşık 30 saniye sonra ilk kontrolü, ardından 6 saatte
 6. Test cihazını hedefleyip güncellemeyi başlatın.
 7. En geç ilk kontrol zamanında cihaz ekranda güncelleme mesajını gösterir, yeniden başlar ve açılışta `OTA Test 0.1.1 / Guncelleme OK` yazar.
 8. Panelde durum önce **İndiriliyor**, yeniden açıldıktan sonra **Başarılı** olur.
+
+## Canlıda tek cihazla OTA testi
+
+1. Önce `rfid_personel_device_ota.ino` (`1.0.0`) dosyasını USB ile cihaza yükleyin ve normal kart okumanın çalıştığını doğrulayın.
+2. `rfid_personel_device_ota_live_test_update.ino` dosyasını Arduino IDE'de açıp **Sketch > Export Compiled Binary** ile `.bin` üretin.
+3. Canlı yönetim panelinde `.bin` dosyasını tam olarak `1.0.1-live-test` sürüm adıyla yükleyin.
+4. Dağıtım hedefinde **Seçili cihazlar** kullanın ve yalnızca yanınızdaki cihazı işaretleyin. Firma veya şube hedefi kullanmayın.
+5. Güncellemeyi başlatın. Cihaz ilk açılıştan yaklaşık 30 saniye sonra kontrol eder; kontrolü hemen tekrarlamak için cihazı yeniden başlatabilirsiniz.
+6. Yeniden açılışta LCD'de `OTA CANLI TEST / 1.0.1 BASARILI` görünür ve panel durumu **Başarılı** olur.
+7. RFID kart okutma, LCD, buzzer ve heartbeat'i yeniden doğrulayın. Bu test firmware'i normal cihaz işlevlerini aynen korur.
 
 ## Yeni sürüm hazırlama
 
