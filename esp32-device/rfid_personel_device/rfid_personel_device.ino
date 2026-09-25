@@ -33,6 +33,7 @@ const char* DEFAULT_DEVICE_SECRET_KEY = "be628a54-e5de-466d-8921-a3220ccb913b";
 
 const unsigned long WIFI_RETRY_MS = 5000;
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
+const unsigned long CONFIG_PORTAL_WIFI_RETRY_MS = 5UL * 60UL * 1000UL;
 const unsigned long HEARTBEAT_INTERVAL_MS = 30000;
 const unsigned long RFID_DEBOUNCE_MS = 2500;
 const byte DNS_PORT = 53;
@@ -58,7 +59,9 @@ String setupApSsid = "";
 String lastCardId = "";
 
 bool isConfigPortalActive = false;
+bool configPortalRoutesRegistered = false;
 unsigned long lastWifiAttemptAt = 0;
+unsigned long lastConfigPortalWifiAttemptAt = 0;
 unsigned long lastHeartbeatAt = 0;
 unsigned long lastCardReadAt = 0;
 int lastDisplayedSecond = -1;
@@ -283,9 +286,10 @@ void handleConfigNotFound() {
 }
 
 void startConfigPortal() {
-  isConfigPortalActive = true;
   setupApSsid = getApSsid();
 
+  dnsServer.stop();
+  configServer.stop();
   WiFi.disconnect(true);
   delay(300);
   WiFi.mode(WIFI_AP_STA);
@@ -294,16 +298,28 @@ void startConfigPortal() {
   IPAddress apIp = WiFi.softAPIP();
   dnsServer.start(DNS_PORT, "*", apIp);
 
-  configServer.on("/", HTTP_GET, handleConfigRoot);
-  configServer.on("/save", HTTP_POST, handleConfigSave);
-  configServer.onNotFound(handleConfigNotFound);
+  if (!configPortalRoutesRegistered) {
+    configServer.on("/", HTTP_GET, handleConfigRoot);
+    configServer.on("/save", HTTP_POST, handleConfigSave);
+    configServer.onNotFound(handleConfigNotFound);
+    configPortalRoutesRegistered = true;
+  }
   configServer.begin();
+  isConfigPortalActive = true;
+  lastConfigPortalWifiAttemptAt = millis();
 
   Serial.print("Kurulum AP: ");
   Serial.println(setupApSsid);
   Serial.print("Kurulum IP: ");
   Serial.println(apIp);
   showLcd(setupApSsid, "192.168.4.1");
+}
+
+void stopConfigPortal() {
+  dnsServer.stop();
+  configServer.stop();
+  WiFi.softAPdisconnect(true);
+  isConfigPortalActive = false;
 }
 
 bool tryConnectWifi(const String& ssid, const String& password) {
@@ -340,6 +356,31 @@ bool tryConnectWifi(const String& ssid, const String& password) {
   WiFi.disconnect(true);
   delay(300);
   return false;
+}
+
+void retrySavedWifiFromConfigPortal() {
+  if (!isConfigPortalActive || savedWifiSsid.length() == 0) {
+    return;
+  }
+
+  unsigned long now = millis();
+  if (now - lastConfigPortalWifiAttemptAt < CONFIG_PORTAL_WIFI_RETRY_MS) {
+    return;
+  }
+
+  lastConfigPortalWifiAttemptAt = now;
+  Serial.println("Kurulum modunda kayitli Wi-Fi yeniden deneniyor.");
+  stopConfigPortal();
+
+  if (tryConnectWifi(savedWifiSsid, savedWifiPassword)) {
+    Serial.println("Kayitli Wi-Fi geri geldi. Normal moda gecildi.");
+    lastHeartbeatAt = 0;
+    showIdleClock(true);
+    return;
+  }
+
+  Serial.println("Kayitli Wi-Fi hala kullanilamiyor. Kurulum AP yeniden aciliyor.");
+  startConfigPortal();
 }
 
 void connectWifiIfNeeded() {
@@ -541,6 +582,11 @@ void loop() {
   if (isConfigPortalActive) {
     dnsServer.processNextRequest();
     configServer.handleClient();
+    retrySavedWifiFromConfigPortal();
+    if (!isConfigPortalActive) {
+      delay(30);
+      return;
+    }
     delay(10);
     return;
   }
