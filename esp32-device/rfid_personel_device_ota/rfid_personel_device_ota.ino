@@ -31,7 +31,7 @@
 #define LCD_ROWS 2
 
 const char* FIRMWARE_VERSION = "1.0.0";
-const char* DEFAULT_API_BASE_URL = "https://flodeka.com";
+const char* DEFAULT_API_BASE_URL = "https://flodeska.com";
 const char* DEFAULT_DEVICE_SECRET_KEY = "";
 const bool FORCE_DEFAULT_API_BASE_URL = false;
 
