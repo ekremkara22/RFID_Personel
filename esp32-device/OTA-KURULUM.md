@@ -34,4 +34,4 @@ Cihaz açılıştan yaklaşık 30 saniye sonra ilk kontrolü, ardından 6 saatte
 
 Her yeni firmware için `FIRMWARE_VERSION` değerini artırın. Eski veya aynı sürüm numarasını farklı bir `.bin` için tekrar kullanmayın. Firmware dosyasını panelden yüklerken yazılan sürüm ile kod içindeki değer farklı olursa cihaz kurulum sonucunu doğrulayamaz.
 
-Firmware indirme sırasında dosya boyutu ve SHA-256 özeti doğrulanır. Geçersiz veya yarım dosya aktif önyükleme bölümü yapılmaz.
+HTTPS bağlantısında Let’s Encrypt ISRG Root X1 sertifikası doğrulanır. Firmware indirme sırasında dosya boyutu ve SHA-256 özeti de doğrulanır. Geçersiz veya yarım dosya aktif önyükleme bölümü yapılmaz.
