@@ -52,3 +52,6 @@ next-env.d.ts
 
 # uploaded ESP32 firmware binaries
 /var/firmware/
+
+# Arduino CLI build cache
+/esp32-device/**/build/
