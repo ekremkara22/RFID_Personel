@@ -7,6 +7,9 @@ export async function POST(request: Request) {
     const secretKey = typeof body?.secretKey === "string" ? body.secretKey.trim() : "";
     const macAddress = typeof body?.macAddress === "string" ? body.macAddress.trim().toUpperCase() : "";
     const ipAddress = typeof body?.ipAddress === "string" ? body.ipAddress.trim() : "";
+    const firmwareVersion = typeof body?.firmwareVersion === "string"
+      ? body.firmwareVersion.trim().slice(0, 64)
+      : "";
     const clockOffsetMinutes =
       typeof body?.clockOffsetMinutes === "number" && Number.isFinite(body.clockOffsetMinutes)
         ? Math.round(body.clockOffsetMinutes)
@@ -28,6 +31,7 @@ export async function POST(request: Request) {
         lastSeenAt: new Date(),
         ...(macAddress ? { macAddress } : {}),
         ...(ipAddress ? { ipAddress } : {}),
+        ...(firmwareVersion ? { firmwareVersion } : {}),
         ...(clockOffsetMinutes !== undefined ? { clockOffsetMinutes } : {}),
       },
       select: {

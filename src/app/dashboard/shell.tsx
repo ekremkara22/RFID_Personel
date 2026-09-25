@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ClipboardList,
   Clock3,
+  CloudDownload,
   ChevronDown,
   FileBarChart,
   History,
@@ -56,7 +57,10 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   const items = [
     { href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard },
     ...(user.role === "SUPERADMIN"
-      ? [{ href: "/dashboard/users", label: "Kullanıcılar", icon: Users }]
+      ? [
+          { href: "/dashboard/users", label: "Kullanıcılar", icon: Users },
+          { href: "/dashboard/firmware-updates", label: "Cihaz Yazılım Güncellemeleri", icon: CloudDownload },
+        ]
       : [
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
           { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },

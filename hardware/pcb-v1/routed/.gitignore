@@ -1,0 +1,5 @@
+__pycache__/
+work/
+*-backups/
+*.lck
+*.kicad_prl

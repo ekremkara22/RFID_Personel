@@ -1,0 +1,830 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-09-24T17:20:45",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.99.0",
+    "schematic_parity": [],
+    "source": "rfid_carrier_v01.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Yol [+3V3] B.Cu üzerinde, uzunluk 4.9497 mm",
+                    "pos": {
+                        "x": 91.5,
+                        "y": 47.0
+                    },
+                    "uuid": "40c77d7f-9133-417e-8510-bddfb466227e"
+                },
+                {
+                    "description": "Yol [+3V3] B.Cu üzerinde, uzunluk 1.5517 mm",
+                    "pos": {
+                        "x": 31.0,
+                        "y": 75.0
+                    },
+                    "uuid": "549ba525-3a82-41dc-bbd5-e704b9f530da"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [+3V3] TP2",
+                    "pos": {
+                        "x": 117.0,
+                        "y": 93.0
+                    },
+                    "uuid": "003e8af9-cc4d-4d1b-ac8a-88737a6700f7"
+                },
+                {
+                    "description": "Yol [+3V3] B.Cu üzerinde, uzunluk 7.3317 mm",
+                    "pos": {
+                        "x": 94.0,
+                        "y": 45.4483
+                    },
+                    "uuid": "57a7e151-decc-473c-8e5a-196968623077"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "2'in Delik İçi Kaplamalı Geçit pedi [BUZZ_NEG] J5",
+                    "pos": {
+                        "x": 126.54,
+                        "y": 43.0
+                    },
+                    "uuid": "dca501de-86ad-469b-98c2-b8eddf3b8e4c"
+                },
+                {
+                    "description": "Yol [BUZZ_NEG] B.Cu üzerinde, uzunluk 0.6200 mm",
+                    "pos": {
+                        "x": 120.62,
+                        "y": 48.0
+                    },
+                    "uuid": "e51eb94c-1ee5-4124-b6b8-15d41fdefd3b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [ESP_VIN] J6",
+                    "pos": {
+                        "x": 12.22,
+                        "y": 42.3
+                    },
+                    "uuid": "9a537b77-6216-40e2-8424-369eb9f44c33"
+                },
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [ESP_VIN] C6",
+                    "pos": {
+                        "x": 25.0,
+                        "y": 75.0
+                    },
+                    "uuid": "d174ebe3-398d-4277-bd26-ac86880ca9bc"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [ESP_VIN] C6",
+                    "pos": {
+                        "x": 25.0,
+                        "y": 75.0
+                    },
+                    "uuid": "d174ebe3-398d-4277-bd26-ac86880ca9bc"
+                },
+                {
+                    "description": "2'in Delik İçi Kaplamalı Geçit pedi [ESP_VIN] JP1",
+                    "pos": {
+                        "x": 80.0,
+                        "y": 79.54
+                    },
+                    "uuid": "34516bc1-d7b5-4238-b1fc-6f16d52156c5"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Yol [GND] B.Cu üzerinde, uzunluk 7.5734 mm",
+                    "pos": {
+                        "x": 87.0,
+                        "y": 77.86
+                    },
+                    "uuid": "b92b38a3-3f0f-4c77-a962-974cb69b25ac"
+                },
+                {
+                    "description": "Yol [GND] B.Cu üzerinde, uzunluk 0.8064 mm",
+                    "pos": {
+                        "x": 33.0,
+                        "y": 75.0
+                    },
+                    "uuid": "072175da-503c-43d0-8679-09e5eae984b5"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "4'in Delik İçi Kaplamalı Geçit pedi [GND] J4",
+                    "pos": {
+                        "x": 117.62,
+                        "y": 43.0
+                    },
+                    "uuid": "06beebb9-a0c0-4b9e-9ea7-449d1d63766b"
+                },
+                {
+                    "description": "Yol [GND] F.Cu üzerinde, uzunluk 0.2036 mm",
+                    "pos": {
+                        "x": 112.54,
+                        "y": 43.2036
+                    },
+                    "uuid": "5ff15890-c95c-4b8a-a485-e2c35d033be9"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "5'in Delik İçi Kaplamalı Geçit pedi [GPIO14] J6",
+                    "pos": {
+                        "x": 22.38,
+                        "y": 42.3
+                    },
+                    "uuid": "c32abbbe-011b-4d5e-844c-3efe53233078"
+                },
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [GPIO14] R3",
+                    "pos": {
+                        "x": 112.0,
+                        "y": 62.0
+                    },
+                    "uuid": "7b6aef64-a3d7-4530-8d14-09db59d4571f"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "6'in Delik İçi Kaplamalı Geçit pedi [GPIO16] J7",
+                    "pos": {
+                        "x": 24.92,
+                        "y": 67.7
+                    },
+                    "uuid": "3cb01754-a6e9-4411-b910-f1c8f3f4afec"
+                },
+                {
+                    "description": "Yol [GPIO16] F.Cu üzerinde, uzunluk 4.7283 mm",
+                    "pos": {
+                        "x": 94.62,
+                        "y": 77.86
+                    },
+                    "uuid": "54eff016-e466-4eec-8deb-b6adbfc61ba9"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "7'in Delik İçi Kaplamalı Geçit pedi [GPIO17] J7",
+                    "pos": {
+                        "x": 27.46,
+                        "y": 67.7
+                    },
+                    "uuid": "b3746fbb-c635-4d1e-9a43-ab33fd203d3a"
+                },
+                {
+                    "description": "Yol [GPIO17] F.Cu üzerinde, uzunluk 2.8400 mm",
+                    "pos": {
+                        "x": 97.46,
+                        "y": 72.78
+                    },
+                    "uuid": "c82f63fc-b71d-4821-944a-8d919e5c1c73"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "10'in Delik İçi Kaplamalı Geçit pedi [GPIO19] J7",
+                    "pos": {
+                        "x": 35.08,
+                        "y": 67.7
+                    },
+                    "uuid": "0bc0a29a-4d9b-4441-bc92-8319fb59e53f"
+                },
+                {
+                    "description": "4'in Delik İçi Kaplamalı Geçit pedi [GPIO19] J2",
+                    "pos": {
+                        "x": 93.62,
+                        "y": 43.0
+                    },
+                    "uuid": "cd7438f8-fe6c-4d3f-892f-87d8139aa50f"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "11'in Delik İçi Kaplamalı Geçit pedi [GPIO21] J7",
+                    "pos": {
+                        "x": 37.62,
+                        "y": 67.7
+                    },
+                    "uuid": "7327436d-de9f-401a-87c7-02e74df4f826"
+                },
+                {
+                    "description": "Yol [GPIO21] F.Cu üzerinde, uzunluk 9.0436 mm",
+                    "pos": {
+                        "x": 87.0,
+                        "y": 72.78
+                    },
+                    "uuid": "32ee3fa1-3888-477a-bd57-e53a41ed5524"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "14'in Delik İçi Kaplamalı Geçit pedi [GPIO22] J7",
+                    "pos": {
+                        "x": 45.24,
+                        "y": 67.7
+                    },
+                    "uuid": "14d0061d-c001-4457-88df-53358b221247"
+                },
+                {
+                    "description": "Yol [GPIO22] F.Cu üzerinde, uzunluk 7.9295 mm",
+                    "pos": {
+                        "x": 92.607,
+                        "y": 62.093
+                    },
+                    "uuid": "20e35615-2d62-4bf9-9e66-e3e01a9b5bf1"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "8'in Delik İçi Kaplamalı Geçit pedi [GPIO25] J6",
+                    "pos": {
+                        "x": 30.0,
+                        "y": 42.3
+                    },
+                    "uuid": "2554bab0-59a2-41dc-aa51-4d949525ded4"
+                },
+                {
+                    "description": "Yol [GPIO25] F.Cu üzerinde, uzunluk 4.6081 mm",
+                    "pos": {
+                        "x": 90.2584,
+                        "y": 59.3616
+                    },
+                    "uuid": "842e6ee7-95e1-47ea-a898-990b279f107b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "7'in Delik İçi Kaplamalı Geçit pedi [GPIO26] J6",
+                    "pos": {
+                        "x": 27.46,
+                        "y": 42.3
+                    },
+                    "uuid": "986d5b20-4ed1-42f0-acf0-439676298667"
+                },
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [GPIO26] R1",
+                    "pos": {
+                        "x": 106.0,
+                        "y": 50.0
+                    },
+                    "uuid": "607a02b4-93fb-4a8f-9dcc-a502301fc04b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "6'in Delik İçi Kaplamalı Geçit pedi [GPIO27] J6",
+                    "pos": {
+                        "x": 24.92,
+                        "y": 42.3
+                    },
+                    "uuid": "0cb3d215-b8c5-4b87-9089-261e037620f8"
+                },
+                {
+                    "description": "7'in Delik İçi Kaplamalı Geçit pedi [GPIO27] J2",
+                    "pos": {
+                        "x": 101.24,
+                        "y": 43.0
+                    },
+                    "uuid": "ba16b613-ad71-4c7c-8ff5-95a0b9d80826"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "10'in Delik İçi Kaplamalı Geçit pedi [GPIO32] J6",
+                    "pos": {
+                        "x": 35.08,
+                        "y": 42.3
+                    },
+                    "uuid": "1aaba947-e625-4022-aa9a-163ee8de21d4"
+                },
+                {
+                    "description": "Yol [GPIO32] F.Cu üzerinde, uzunluk 7.0097 mm",
+                    "pos": {
+                        "x": 91.9566,
+                        "y": 52.5834
+                    },
+                    "uuid": "7f2fe134-7eae-4370-b223-01db6ee85575"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "9'in Delik İçi Kaplamalı Geçit pedi [GPIO33] J6",
+                    "pos": {
+                        "x": 32.54,
+                        "y": 42.3
+                    },
+                    "uuid": "25d07353-dfe8-4c26-8742-6c23c5c29284"
+                },
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [GPIO33] R2",
+                    "pos": {
+                        "x": 110.0,
+                        "y": 50.0
+                    },
+                    "uuid": "3273049a-8afc-4c66-ba67-0fcb07030766"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "1'in Delik İçi Kaplamalı Geçit pedi [GPIO5] J2",
+                    "pos": {
+                        "x": 86.0,
+                        "y": 43.0
+                    },
+                    "uuid": "80ea712d-54ba-44cc-bd4a-1bacac1df923"
+                },
+                {
+                    "description": "Yol [GPIO5] B.Cu üzerinde, uzunluk 3.6586 mm",
+                    "pos": {
+                        "x": 34.3262,
+                        "y": 75.6848
+                    },
+                    "uuid": "ab94d111-3739-4553-b619-51907420d0aa"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "7'in Delik İçi Kaplamalı Geçit pedi [LCD_D7_5V] U1",
+                    "pos": {
+                        "x": 87.0,
+                        "y": 70.24
+                    },
+                    "uuid": "249f5a67-ef8f-4cf4-97cc-c45845654d45"
+                },
+                {
+                    "description": "14'in Delik İçi Kaplamalı Geçit pedi [LCD_D7_5V] J3",
+                    "pos": {
+                        "x": 120.02,
+                        "y": 87.0
+                    },
+                    "uuid": "038646bd-164b-45ea-9c02-e5ac33f8c309"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "2'in Delik İçi Kaplamalı Geçit pedi [RFID_MOSI] R8",
+                    "pos": {
+                        "x": 44.0,
+                        "y": 80.62
+                    },
+                    "uuid": "281608c1-98a1-4d41-abc5-727511836d75"
+                },
+                {
+                    "description": "3'in Delik İçi Kaplamalı Geçit pedi [RFID_MOSI] J2",
+                    "pos": {
+                        "x": 91.08,
+                        "y": 43.0
+                    },
+                    "uuid": "d88affdc-0c05-4e0d-b41c-683422333e45"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "2'in Delik İçi Kaplamalı Geçit pedi [RFID_SCK] R7",
+                    "pos": {
+                        "x": 38.0,
+                        "y": 80.62
+                    },
+                    "uuid": "7910b3ee-f172-4129-9295-3913187aa0cf"
+                },
+                {
+                    "description": "2'in Delik İçi Kaplamalı Geçit pedi [RFID_SCK] J2",
+                    "pos": {
+                        "x": 88.54,
+                        "y": 43.0
+                    },
+                    "uuid": "ed932c89-f3a1-4241-9423-beb7b390faae"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H6'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 83.41,
+                        "y": 91.59
+                    },
+                    "uuid": "ef01b3a1-2c8f-4d6b-94d4-f13c3389dddf"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H3'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 51.95,
+                        "y": 43.1
+                    },
+                    "uuid": "1dbc8b03-d875-4eb5-a403-9862061e32d2"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H2'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 8.05,
+                        "y": 66.9
+                    },
+                    "uuid": "b887d7c4-6043-46ef-9cf9-2a5742ebe72d"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H5'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 83.41,
+                        "y": 48.41
+                    },
+                    "uuid": "e7d57083-cd2e-497b-ab92-ca289f0fc28c"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H1'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 8.05,
+                        "y": 43.1
+                    },
+                    "uuid": "f8895cfc-378c-44b9-8c5d-c71c59c73150"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H4'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 51.95,
+                        "y": 66.9
+                    },
+                    "uuid": "21bf2af5-cddf-4179-8522-d3c334d51f63"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H8'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 126.59,
+                        "y": 91.59
+                    },
+                    "uuid": "50770d99-5f48-4ffb-937f-0abe440c8bd5"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "İzin verilmeyen ögeler (koruma alanı)",
+            "items": [
+                {
+                    "description": "H7'in Delik İçi Kaplamasız Geçit pedi",
+                    "pos": {
+                        "x": 126.59,
+                        "y": 48.41
+                    },
+                    "uuid": "9051b8fc-47ce-471a-a316-e10ed5e3ef9c"
+                }
+            ],
+            "severity": "error",
+            "type": "items_not_allowed"
+        },
+        {
+            "description": "Courtyards overlap",
+            "items": [
+                {
+                    "description": "Ayak İzi C5",
+                    "pos": {
+                        "x": 94.0,
+                        "y": 47.0
+                    },
+                    "uuid": "1a981888-9899-52b0-9cfd-bde20b13aef3"
+                },
+                {
+                    "description": "Ayak İzi J2",
+                    "pos": {
+                        "x": 86.0,
+                        "y": 43.0
+                    },
+                    "uuid": "b48347e0-3c16-5cce-aaa0-a318b9ec7c4c"
+                }
+            ],
+            "severity": "error",
+            "type": "courtyards_overlap"
+        },
+        {
+            "description": "Courtyards overlap",
+            "items": [
+                {
+                    "description": "Ayak İzi Q1",
+                    "pos": {
+                        "x": 115.0,
+                        "y": 53.0
+                    },
+                    "uuid": "3d883b2a-e045-5c16-be19-413855bf35ea"
+                },
+                {
+                    "description": "Ayak İzi J1",
+                    "pos": {
+                        "x": 125.0,
+                        "y": 59.0
+                    },
+                    "uuid": "8481aaf3-35f8-52ca-9b5c-ec8afa0b93b1"
+                }
+            ],
+            "severity": "error",
+            "type": "courtyards_overlap"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H1",
+                    "pos": {
+                        "x": 8.05,
+                        "y": 43.1
+                    },
+                    "uuid": "1dd8a9ea-32bd-559b-9433-a82a5777167d"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H2",
+                    "pos": {
+                        "x": 8.05,
+                        "y": 66.9
+                    },
+                    "uuid": "9fce2e0c-12a5-5720-a4cb-fb9a98981c08"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H3",
+                    "pos": {
+                        "x": 51.95,
+                        "y": 43.1
+                    },
+                    "uuid": "8d356f44-4633-5bb8-9296-b03e5f3d69e6"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H4",
+                    "pos": {
+                        "x": 51.95,
+                        "y": 66.9
+                    },
+                    "uuid": "5f1c5519-fad4-5fd4-b8c9-e3098e47d242"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H5",
+                    "pos": {
+                        "x": 83.41,
+                        "y": 48.41
+                    },
+                    "uuid": "a5fd2da8-e94f-5e13-97af-e651d537c4ca"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H6",
+                    "pos": {
+                        "x": 83.41,
+                        "y": 91.59
+                    },
+                    "uuid": "e51046e6-08e7-541d-8e5e-249b979298ef"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H7",
+                    "pos": {
+                        "x": 126.59,
+                        "y": 48.41
+                    },
+                    "uuid": "3b94f360-aa21-500c-854c-3d608c9da106"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        },
+        {
+            "description": "Mevcut yapılandırma 'MountingHole' ayak izi kütüphanesini içermiyor",
+            "items": [
+                {
+                    "description": "Ayak İzi H8",
+                    "pos": {
+                        "x": 126.59,
+                        "y": 91.59
+                    },
+                    "uuid": "1867fddb-888a-509a-9ed2-5e9eb76d5944"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_issues"
+        }
+    ]
+}

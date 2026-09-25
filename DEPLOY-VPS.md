@@ -105,3 +105,11 @@ npm install
 npm run build
 pm2 restart rfid-personel-takip
 ```
+
+OTA firmware dosyalari icin `.env` dosyasina sunucuda kalici bir dizin tanimlayin:
+
+```env
+FIRMWARE_STORAGE_DIR="/var/lib/rfid-personel/firmware"
+```
+
+Ilk OTA kurulumunda `prisma/install-firmware-ota.sql` dosyasini veritabaninda calistirin ve servis kullanicisinin bu dizine yazabildigini dogrulayin. Firmware dosyalari Git deposunda tutulmaz.

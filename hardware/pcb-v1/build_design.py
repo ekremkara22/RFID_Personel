@@ -209,7 +209,7 @@ def symbol_geom(p):
     height=max(10.16,(left+1)*2.54)
     return left,height
 
-def write_schematic():
+def write_schematic(snap_grid=False):
     # A2 single sheet: embedded symbols, named nets, every pad represented.
     # Rectangular pin-functional symbols intentionally avoid guessed third-party pin numbering.
     s=['(kicad_sch (version 20231120) (generator "rfid_carrier_generator")',f'(uuid {ROOT_UUID}) (paper "A2")',
@@ -230,6 +230,8 @@ def write_schematic():
     s+=defs; s+=[')']
     for idx,p in enumerate(PARTS):
         ref=p['ref']; x=58+(idx%5)*108; y=51+(idx//5)*49
+        if snap_grid:
+            x=round(round(x/1.27)*1.27,4); y=round(round(y/1.27)*1.27,4)
         left,height=symbol_geom(p)
         s += [f'(symbol (lib_id "RFID_Carrier:Part_{ref}") (at {x} {y} 0) (unit 1) (in_bom yes) (on_board yes) (dnp no) (uuid {uid("symbol"+ref)})',
               f'(property "Reference" {q(ref)} (at {x} {num(y-height/2-5)} 0) (effects (font (size 1.27 1.27))))',
