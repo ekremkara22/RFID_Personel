@@ -1,0 +1,1 @@
+(footprint "MountingHole_2.8mm" (version 20240108) (generator "rfid_carrier_generator") (layer "F.Cu") (attr board_only exclude_from_pos_files exclude_from_bom) (fp_text reference "REF**" (at 0 4) (layer "F.Fab") (effects (font (size 1 1) (thickness 0.15)))) (pad "" np_thru_hole circle (at 0 0) (size 2.8 2.8) (drill 2.8) (layers "*.Cu" "*.Mask")))

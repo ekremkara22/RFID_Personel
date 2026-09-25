@@ -1,0 +1,4164 @@
+(export
+	(version "E")
+	(design
+		(source "C:\\Users\\ekrem.kara\\Documents\\GitHub\\RFID_Personel\\hardware\\pcb-v1\\routed\\rfid_carrier_v01.kicad_sch")
+		(date "2026-09-24T17:37:32")
+		(tool "Eeschema 10.99.0-4384-g95775e4647")
+		(sheet
+			(number "1")
+			(name "/")
+			(tstamps "/")
+			(title_block
+				(title "RFID Carrier V0.2 - ROUTED PROTOTYPE")
+				(company)
+				(rev "0.2")
+				(date "2026-09-24")
+				(source "rfid_carrier_v01.kicad_sch")
+				(comment
+					(number "1")
+					(value "NOT FOR MANUFACTURE - verify footprints, ERC/DRC and routing")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+	)
+	(components
+		(comp
+			(ref "C1")
+			(value "470uF 16V")
+			(footprint "RFID_Carrier:C1_CP_P3.5_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:C1_CP_P3.5_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_C1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "e33b428e-a75e-5def-8683-57e72b2a287f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C2")
+			(value "100nF")
+			(footprint "RFID_Carrier:C2_C_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:C2_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_C2")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "0433758f-3c0b-5157-9f96-4d9ab091f1d8")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C3")
+			(value "100nF")
+			(footprint "RFID_Carrier:C3_C_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:C3_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_C3")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "f2d6668d-7662-510a-8f88-37dc89389ed7")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C4")
+			(value "100nF")
+			(footprint "RFID_Carrier:C4_C_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:C4_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_C4")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "39d478f3-2862-5f34-88ed-9423fdb9ad97")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C5")
+			(value "10uF 10V")
+			(footprint "RFID_Carrier:C5_CP_P2_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:C5_CP_P2_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_C5")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "146fd2dc-89c5-5367-8d91-3e1bfcbc030e")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C6")
+			(value "100nF")
+			(footprint "RFID_Carrier:C6_C_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:C6_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_C6")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "46d063b9-947e-59c4-97ff-207581e419b1")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C7")
+			(value "10uF 10V")
+			(footprint "RFID_Carrier:C7_CP_P2_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:C7_CP_P2_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_C7")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "c9326e8f-f967-5678-abfc-bcd5787f169f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D1")
+			(value "1N4148")
+			(footprint "RFID_Carrier:D1_D_P7.62_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:D1_D_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_D1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "d1598a0c-ca7e-512a-bda6-867a394f97c3")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "F1")
+			(value "MF-R075 0.75A")
+			(footprint "RFID_Carrier:F1_PTC_P5.08_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:F1_PTC_P5.08_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_F1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "e05a10f0-d97a-5dfb-8459-2a732b5b65c4")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J1")
+			(value "5V DC INPUT")
+			(footprint "RFID_Carrier:J1_Header_2_P5.08_V")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:J1_Header_2_P5.08_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_J1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "2b322989-8429-5347-9943-5fb0a53616ab")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J2")
+			(value "RC522")
+			(footprint "RFID_Carrier:J2_Header_8_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:J2_Header_8_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_J2")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "d528dc6e-7f35-5ab0-88e7-4dfee661c56a")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J3")
+			(value "LCD1602 PARALLEL")
+			(footprint "RFID_Carrier:J3_Header_16_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:J3_Header_16_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_J3")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "059ffcff-ae21-5ec7-bd4d-f47e2bf7e6fb")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "11")
+						)
+						(pin
+							(num "12")
+						)
+						(pin
+							(num "13")
+						)
+						(pin
+							(num "14")
+						)
+						(pin
+							(num "15")
+						)
+						(pin
+							(num "16")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J4")
+			(value "STATUS LEDs")
+			(footprint "RFID_Carrier:J4_Header_4_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:J4_Header_4_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_J4")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "6933b58d-bf73-5e8d-9181-0aa01c09fd79")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J5")
+			(value "5V ACTIVE BUZZER")
+			(footprint "RFID_Carrier:J5_Header_2_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:J5_Header_2_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_J5")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "1a65bd5e-d355-5bdf-81e3-c5a310d2caad")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J6")
+			(value "DevKit V1 socket 1x15")
+			(footprint "RFID_Carrier:J6_Header_15_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:J6_Header_15_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_J6")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "37eb0f03-3152-515d-9cf1-a1c2e857796f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "11")
+						)
+						(pin
+							(num "12")
+						)
+						(pin
+							(num "13")
+						)
+						(pin
+							(num "14")
+						)
+						(pin
+							(num "15")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J7")
+			(value "DevKit V1 socket 1x15")
+			(footprint "RFID_Carrier:J7_Header_15_P2.54_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:J7_Header_15_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_J7")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "77b53810-59fe-5ac4-911c-42676330b0cf")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "11")
+						)
+						(pin
+							(num "12")
+						)
+						(pin
+							(num "13")
+						)
+						(pin
+							(num "14")
+						)
+						(pin
+							(num "15")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "JP1")
+			(value "ESP VIN LINK")
+			(footprint "RFID_Carrier:JP1_Header_2_P2.54_V")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:JP1_Header_2_P2.54_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_JP1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "9ecd90dc-807a-526a-b729-8fa4842b1df6")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "Q1")
+			(value "BC337-40")
+			(footprint "RFID_Carrier:Q1_TO92_CBE_FORMED_P2.54")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:Q1_TO92_CBE_FORMED_P2.54")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_Q1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "643f7167-45c9-5214-8ce2-4d4cfda9f669")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R1")
+			(value "220R")
+			(footprint "RFID_Carrier:R1_R_P7.62_V")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R1_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "7cf0899b-dd14-5a1e-868f-0ee584566580")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R2")
+			(value "220R")
+			(footprint "RFID_Carrier:R2_R_P7.62_V")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R2_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R2")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "b9e3d16c-6cf3-52b4-a25f-4676183d854f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R3")
+			(value "1k")
+			(footprint "RFID_Carrier:R3_R_P7.62_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R3_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R3")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "73640a7e-8721-55d1-9b0c-5eb308524a67")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R4")
+			(value "100k")
+			(footprint "RFID_Carrier:R4_R_P7.62_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R4_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R4")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "38222001-028d-56c0-b0f4-30079291192c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R5")
+			(value "330R INITIAL")
+			(footprint "RFID_Carrier:R5_R_P7.62_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R5_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R5")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "2ae0c0ac-9e70-5d21-8896-8763a6c4120d")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R6")
+			(value "10k")
+			(footprint "RFID_Carrier:R6_R_P7.62_H")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R6_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R6")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "27e73ae7-7a66-5f31-8e97-7b82a36f5404")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R7")
+			(value "33R")
+			(footprint "RFID_Carrier:R7_R_P7.62_V")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R7_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R7")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "a61598ba-b535-5ff7-b593-02b53e7aa789")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R8")
+			(value "33R")
+			(footprint "RFID_Carrier:R8_R_P7.62_V")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:R8_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_R8")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "4d8228f6-dbdc-5371-ad40-f581a1ac123f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "RN1")
+			(value "8x10k BUSSED")
+			(footprint "RFID_Carrier:RN1_Header_9_P2.54_V")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:RN1_Header_9_P2.54_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_RN1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "b5b4a27d-cc31-5926-ace5-cd9cbabd6873")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "9")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "RV1")
+			(value "10k CONTRAST")
+			(footprint "RFID_Carrier:RV1_Trimmer_3pin_5.08x2.54")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:RV1_Trimmer_3pin_5.08x2.54")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_RV1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "840cf917-0d15-54e9-a2e8-07ee1d8d8856")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP1")
+			(value "+5V")
+			(footprint "RFID_Carrier:TP1_TestPoint_THT")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:TP1_TestPoint_THT")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_TP1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "6f88998f-782f-5858-8b9b-da5cfcbe3422")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP2")
+			(value "+3V3")
+			(footprint "RFID_Carrier:TP2_TestPoint_THT")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:TP2_TestPoint_THT")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_TP2")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "3f06b266-b177-5bdd-bda8-8475ec034fda")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP3")
+			(value "GND")
+			(footprint "RFID_Carrier:TP3_TestPoint_THT")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:TP3_TestPoint_THT")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_TP3")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "014d8147-ded7-57bb-8c66-b00ab8144cfe")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U1")
+			(value "SN74AHCT244N")
+			(footprint "RFID_Carrier:U1_DIP20_W7.62")
+			(fields
+				(field
+					(name "Footprint") "RFID_Carrier:U1_DIP20_W7.62")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "RFID_Carrier")
+				(part "Part_U1")
+				(description "")
+			)
+			(property
+				(name "Sheetname")
+				(value "rfid_carrier_v01")
+			)
+			(property
+				(name "Sheetfile")
+				(value "rfid_carrier_v01.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "b6e74e18-1bce-515c-8949-37231585b0ad")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "11")
+						)
+						(pin
+							(num "12")
+						)
+						(pin
+							(num "13")
+						)
+						(pin
+							(num "14")
+						)
+						(pin
+							(num "15")
+						)
+						(pin
+							(num "16")
+						)
+						(pin
+							(num "17")
+						)
+						(pin
+							(num "18")
+						)
+						(pin
+							(num "19")
+						)
+						(pin
+							(num "20")
+						)
+					)
+				)
+			)
+		)
+	)
+	(groups)
+	(variants)
+	(libparts
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_C1")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "470uF 16V")
+				(field
+					(name "Footprint") "RFID_Carrier:C1_CP_P3.5_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "+")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "-")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_C2")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100nF")
+				(field
+					(name "Footprint") "RFID_Carrier:C2_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_C3")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100nF")
+				(field
+					(name "Footprint") "RFID_Carrier:C3_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_C4")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100nF")
+				(field
+					(name "Footprint") "RFID_Carrier:C4_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_C5")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "10uF 10V")
+				(field
+					(name "Footprint") "RFID_Carrier:C5_CP_P2_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "+")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "-")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_C6")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100nF")
+				(field
+					(name "Footprint") "RFID_Carrier:C6_C_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_C7")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "10uF 10V")
+				(field
+					(name "Footprint") "RFID_Carrier:C7_CP_P2_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "+")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "-")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_D1")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "1N4148")
+				(field
+					(name "Footprint") "RFID_Carrier:D1_D_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "K")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "A")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_F1")
+			(fields
+				(field
+					(name "Reference") "F")
+				(field
+					(name "Value") "MF-R075 0.75A")
+				(field
+					(name "Footprint") "RFID_Carrier:F1_PTC_P5.08_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_J1")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "5V DC INPUT")
+				(field
+					(name "Footprint") "RFID_Carrier:J1_Header_2_P5.08_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "+5V_IN")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_J2")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "RC522")
+				(field
+					(name "Footprint") "RFID_Carrier:J2_Header_8_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "SS")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "SCK")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "MOSI")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "MISO")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "IRQ")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "RST")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "3V3")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_J3")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "LCD1602 PARALLEL")
+				(field
+					(name "Footprint") "RFID_Carrier:J3_Header_16_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VSS")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "VDD")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "VO")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "RS")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "RW")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "E")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "D0")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "D1")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "D2")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "D3")
+					(type "passive")
+				)
+				(pin
+					(num "11")
+					(name "D4")
+					(type "passive")
+				)
+				(pin
+					(num "12")
+					(name "D5")
+					(type "passive")
+				)
+				(pin
+					(num "13")
+					(name "D6")
+					(type "passive")
+				)
+				(pin
+					(num "14")
+					(name "D7")
+					(type "passive")
+				)
+				(pin
+					(num "15")
+					(name "A")
+					(type "passive")
+				)
+				(pin
+					(num "16")
+					(name "K")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_J4")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "STATUS LEDs")
+				(field
+					(name "Footprint") "RFID_Carrier:J4_Header_4_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "GREEN_A")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GREEN_K")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "RED_A")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "RED_K")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_J5")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "5V ACTIVE BUZZER")
+				(field
+					(name "Footprint") "RFID_Carrier:J5_Header_2_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "PLUS")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "MINUS")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_J6")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "DevKit V1 socket 1x15")
+				(field
+					(name "Footprint") "RFID_Carrier:J6_Header_15_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VIN")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GPIO13")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "GPIO12")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "GPIO14")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "GPIO27")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "GPIO26")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "GPIO25")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "GPIO33")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "GPIO32")
+					(type "passive")
+				)
+				(pin
+					(num "11")
+					(name "GPIO35")
+					(type "passive")
+				)
+				(pin
+					(num "12")
+					(name "GPIO34")
+					(type "passive")
+				)
+				(pin
+					(num "13")
+					(name "GPIO39")
+					(type "passive")
+				)
+				(pin
+					(num "14")
+					(name "GPIO36")
+					(type "passive")
+				)
+				(pin
+					(num "15")
+					(name "EN")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_J7")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "DevKit V1 socket 1x15")
+				(field
+					(name "Footprint") "RFID_Carrier:J7_Header_15_P2.54_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "3V3")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GPIO15")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "GPIO2")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "GPIO4")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "GPIO16")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "GPIO17")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "GPIO5")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "GPIO18")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "GPIO19")
+					(type "passive")
+				)
+				(pin
+					(num "11")
+					(name "GPIO21")
+					(type "passive")
+				)
+				(pin
+					(num "12")
+					(name "GPIO3")
+					(type "passive")
+				)
+				(pin
+					(num "13")
+					(name "GPIO1")
+					(type "passive")
+				)
+				(pin
+					(num "14")
+					(name "GPIO22")
+					(type "passive")
+				)
+				(pin
+					(num "15")
+					(name "GPIO23")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_JP1")
+			(fields
+				(field
+					(name "Reference") "JP")
+				(field
+					(name "Value") "ESP VIN LINK")
+				(field
+					(name "Footprint") "RFID_Carrier:JP1_Header_2_P2.54_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "5V")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "VIN")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_Q1")
+			(fields
+				(field
+					(name "Reference") "Q")
+				(field
+					(name "Value") "BC337-40")
+				(field
+					(name "Footprint") "RFID_Carrier:Q1_TO92_CBE_FORMED_P2.54")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "C")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "B")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "E")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R1")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "220R")
+				(field
+					(name "Footprint") "RFID_Carrier:R1_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R2")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "220R")
+				(field
+					(name "Footprint") "RFID_Carrier:R2_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R3")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "1k")
+				(field
+					(name "Footprint") "RFID_Carrier:R3_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R4")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "100k")
+				(field
+					(name "Footprint") "RFID_Carrier:R4_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R5")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "330R INITIAL")
+				(field
+					(name "Footprint") "RFID_Carrier:R5_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R6")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "10k")
+				(field
+					(name "Footprint") "RFID_Carrier:R6_R_P7.62_H")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R7")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "33R")
+				(field
+					(name "Footprint") "RFID_Carrier:R7_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_R8")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "33R")
+				(field
+					(name "Footprint") "RFID_Carrier:R8_R_P7.62_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_RN1")
+			(fields
+				(field
+					(name "Reference") "RN")
+				(field
+					(name "Value") "8x10k BUSSED")
+				(field
+					(name "Footprint") "RFID_Carrier:RN1_Header_9_P2.54_V")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "COMMON")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "R1")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "R2")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "R3")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "R4")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "R5")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "R6")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "R7")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "R8")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_RV1")
+			(fields
+				(field
+					(name "Reference") "RV")
+				(field
+					(name "Value") "10k CONTRAST")
+				(field
+					(name "Footprint") "RFID_Carrier:RV1_Trimmer_3pin_5.08x2.54")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "LOW")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "WIPER")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "HIGH")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_TP1")
+			(fields
+				(field
+					(name "Reference") "TP")
+				(field
+					(name "Value") "+5V")
+				(field
+					(name "Footprint") "RFID_Carrier:TP1_TestPoint_THT")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "+5V")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_TP2")
+			(fields
+				(field
+					(name "Reference") "TP")
+				(field
+					(name "Value") "+3V3")
+				(field
+					(name "Footprint") "RFID_Carrier:TP2_TestPoint_THT")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "+3V3")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_TP3")
+			(fields
+				(field
+					(name "Reference") "TP")
+				(field
+					(name "Value") "GND")
+				(field
+					(name "Footprint") "RFID_Carrier:TP3_TestPoint_THT")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "RFID_Carrier")
+			(part "Part_U1")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN74AHCT244N")
+				(field
+					(name "Footprint") "RFID_Carrier:U1_DIP20_W7.62")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1OE")
+					(type "input")
+				)
+				(pin
+					(num "2")
+					(name "1A1")
+					(type "input")
+				)
+				(pin
+					(num "3")
+					(name "2Y4")
+					(type "tri_state")
+				)
+				(pin
+					(num "4")
+					(name "1A2")
+					(type "input")
+				)
+				(pin
+					(num "5")
+					(name "2Y3")
+					(type "tri_state")
+				)
+				(pin
+					(num "6")
+					(name "1A3")
+					(type "input")
+				)
+				(pin
+					(num "7")
+					(name "2Y2")
+					(type "tri_state")
+				)
+				(pin
+					(num "8")
+					(name "1A4")
+					(type "input")
+				)
+				(pin
+					(num "9")
+					(name "2Y1")
+					(type "tri_state")
+				)
+				(pin
+					(num "10")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "11")
+					(name "2A1")
+					(type "input")
+				)
+				(pin
+					(num "12")
+					(name "1Y4")
+					(type "tri_state")
+				)
+				(pin
+					(num "13")
+					(name "2A2")
+					(type "input")
+				)
+				(pin
+					(num "14")
+					(name "1Y3")
+					(type "tri_state")
+				)
+				(pin
+					(num "15")
+					(name "2A3")
+					(type "input")
+				)
+				(pin
+					(num "16")
+					(name "1Y2")
+					(type "tri_state")
+				)
+				(pin
+					(num "17")
+					(name "2A4")
+					(type "input")
+				)
+				(pin
+					(num "18")
+					(name "1Y1")
+					(type "tri_state")
+				)
+				(pin
+					(num "19")
+					(name "2OE")
+					(type "input")
+				)
+				(pin
+					(num "20")
+					(name "VCC")
+					(type "power_in")
+				)
+			)
+		)
+	)
+	(libraries
+		(library
+			(logical "RFID_Carrier")
+			(uri "${KIPRJMOD}/RFID_Carrier.kicad_sym")
+		)
+	)
+	(nets
+		(net
+			(code "1")
+			(name "+3V3")
+			(class "Power,Default")
+			(node
+				(ref "C4")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "1")
+				(pinfunction "+_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C7")
+				(pin "1")
+				(pinfunction "+_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "8")
+				(pinfunction "3V3_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "J7")
+				(pin "1")
+				(pinfunction "3V3_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R6")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP2")
+				(pin "1")
+				(pinfunction "+3V3_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "2")
+			(name "+5V")
+			(class "Power,Default")
+			(node
+				(ref "C1")
+				(pin "1")
+				(pinfunction "+_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "D1")
+				(pin "1")
+				(pinfunction "K_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "F1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "2")
+				(pinfunction "VDD_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J5")
+				(pin "1")
+				(pinfunction "PLUS_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "JP1")
+				(pin "1")
+				(pinfunction "5V_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R5")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "RV1")
+				(pin "3")
+				(pinfunction "HIGH_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP1")
+				(pin "1")
+				(pinfunction "+5V_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "20")
+				(pinfunction "VCC_20")
+				(pintype "power_in")
+			)
+		)
+		(net
+			(code "3")
+			(name "+5V_IN")
+			(class "Power,Default")
+			(node
+				(ref "F1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "1")
+				(pinfunction "+5V_IN_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "4")
+			(name "BUZZ_BASE")
+			(class "Default")
+			(node
+				(ref "Q1")
+				(pin "2")
+				(pinfunction "B_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R4")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "5")
+			(name "BUZZ_NEG")
+			(class "Default")
+			(node
+				(ref "D1")
+				(pin "2")
+				(pinfunction "A_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J5")
+				(pin "2")
+				(pinfunction "MINUS_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q1")
+				(pin "1")
+				(pinfunction "C_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "6")
+			(name "ESP_VIN")
+			(class "Power,Default")
+			(node
+				(ref "C6")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J6")
+				(pin "1")
+				(pinfunction "VIN_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "JP1")
+				(pin "2")
+				(pinfunction "VIN_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "7")
+			(name "GND")
+			(class "Power,Default")
+			(node
+				(ref "C1")
+				(pin "2")
+				(pinfunction "-_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C4")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "2")
+				(pinfunction "-_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C6")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C7")
+				(pin "2")
+				(pinfunction "-_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "6")
+				(pinfunction "GND_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "1")
+				(pinfunction "VSS_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "16")
+				(pinfunction "K_16")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "5")
+				(pinfunction "RW_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "2")
+				(pinfunction "GREEN_K_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "4")
+				(pinfunction "RED_K_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "J6")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J7")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q1")
+				(pin "3")
+				(pinfunction "E_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R4")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "RN1")
+				(pin "1")
+				(pinfunction "COMMON_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "RV1")
+				(pin "1")
+				(pinfunction "LOW_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP3")
+				(pin "1")
+				(pinfunction "GND_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "1")
+				(pinfunction "1OE_1")
+				(pintype "input")
+			)
+			(node
+				(ref "U1")
+				(pin "10")
+				(pinfunction "GND_10")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U1")
+				(pin "15")
+				(pinfunction "2A3_15")
+				(pintype "input")
+			)
+			(node
+				(ref "U1")
+				(pin "17")
+				(pinfunction "2A4_17")
+				(pintype "input")
+			)
+			(node
+				(ref "U1")
+				(pin "19")
+				(pinfunction "2OE_19")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "8")
+			(name "GPIO5")
+			(class "Default")
+			(node
+				(ref "J2")
+				(pin "1")
+				(pinfunction "SS_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J7")
+				(pin "8")
+				(pinfunction "GPIO5_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "R6")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "9")
+			(name "GPIO14")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "5")
+				(pinfunction "GPIO14_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "R3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "10")
+			(name "GPIO16")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "6")
+				(pinfunction "GPIO16_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "RN1")
+				(pin "6")
+				(pinfunction "R5_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "11")
+				(pinfunction "2A1_11")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "11")
+			(name "GPIO17")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "7")
+				(pinfunction "GPIO17_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "RN1")
+				(pin "7")
+				(pinfunction "R6_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "13")
+				(pinfunction "2A2_13")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "12")
+			(name "GPIO18")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "9")
+				(pinfunction "GPIO18_9")
+				(pintype "passive")
+			)
+			(node
+				(ref "R7")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "13")
+			(name "GPIO19")
+			(class "Default")
+			(node
+				(ref "J2")
+				(pin "4")
+				(pinfunction "MISO_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "J7")
+				(pin "10")
+				(pinfunction "GPIO19_10")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "14")
+			(name "GPIO21")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "11")
+				(pinfunction "GPIO21_11")
+				(pintype "passive")
+			)
+			(node
+				(ref "RN1")
+				(pin "5")
+				(pinfunction "R4_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "8")
+				(pinfunction "1A4_8")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "15")
+			(name "GPIO22")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "14")
+				(pinfunction "GPIO22_14")
+				(pintype "passive")
+			)
+			(node
+				(ref "RN1")
+				(pin "4")
+				(pinfunction "R3_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "6")
+				(pinfunction "1A3_6")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "16")
+			(name "GPIO23")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "15")
+				(pinfunction "GPIO23_15")
+				(pintype "passive")
+			)
+			(node
+				(ref "R8")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "17")
+			(name "GPIO25")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "8")
+				(pinfunction "GPIO25_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "RN1")
+				(pin "3")
+				(pinfunction "R2_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "4")
+				(pinfunction "1A2_4")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "18")
+			(name "GPIO26")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "7")
+				(pinfunction "GPIO26_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "19")
+			(name "GPIO27")
+			(class "Default")
+			(node
+				(ref "J2")
+				(pin "7")
+				(pinfunction "RST_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "J6")
+				(pin "6")
+				(pinfunction "GPIO27_6")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "20")
+			(name "GPIO32")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "10")
+				(pinfunction "GPIO32_10")
+				(pintype "passive")
+			)
+			(node
+				(ref "RN1")
+				(pin "2")
+				(pinfunction "R1_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "2")
+				(pinfunction "1A1_2")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "21")
+			(name "GPIO33")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "9")
+				(pinfunction "GPIO33_9")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "22")
+			(name "GREEN_A")
+			(class "Default")
+			(node
+				(ref "J4")
+				(pin "1")
+				(pinfunction "GREEN_A_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "23")
+			(name "LCD_A")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "15")
+				(pinfunction "A_15")
+				(pintype "passive")
+			)
+			(node
+				(ref "R5")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "24")
+			(name "LCD_D4_5V")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "11")
+				(pinfunction "D4_11")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "14")
+				(pinfunction "1Y3_14")
+				(pintype "tri_state")
+			)
+		)
+		(net
+			(code "25")
+			(name "LCD_D5_5V")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "12")
+				(pinfunction "D5_12")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "12")
+				(pinfunction "1Y4_12")
+				(pintype "tri_state")
+			)
+		)
+		(net
+			(code "26")
+			(name "LCD_D6_5V")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "13")
+				(pinfunction "D6_13")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "9")
+				(pinfunction "2Y1_9")
+				(pintype "tri_state")
+			)
+		)
+		(net
+			(code "27")
+			(name "LCD_D7_5V")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "14")
+				(pinfunction "D7_14")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "7")
+				(pinfunction "2Y2_7")
+				(pintype "tri_state")
+			)
+		)
+		(net
+			(code "28")
+			(name "LCD_E_5V")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "6")
+				(pinfunction "E_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "16")
+				(pinfunction "1Y2_16")
+				(pintype "tri_state")
+			)
+		)
+		(net
+			(code "29")
+			(name "LCD_RS_5V")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "4")
+				(pinfunction "RS_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "18")
+				(pinfunction "1Y1_18")
+				(pintype "tri_state")
+			)
+		)
+		(net
+			(code "30")
+			(name "LCD_VO")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "3")
+				(pinfunction "VO_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "RV1")
+				(pin "2")
+				(pinfunction "WIPER_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "31")
+			(name "RED_A")
+			(class "Default")
+			(node
+				(ref "J4")
+				(pin "3")
+				(pinfunction "RED_A_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "32")
+			(name "RFID_MOSI")
+			(class "Default")
+			(node
+				(ref "J2")
+				(pin "3")
+				(pinfunction "MOSI_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R8")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "33")
+			(name "RFID_SCK")
+			(class "Default")
+			(node
+				(ref "J2")
+				(pin "2")
+				(pinfunction "SCK_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R7")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "34")
+			(name "unconnected-(J2-IRQ-Pad5)")
+			(class "Default")
+			(node
+				(ref "J2")
+				(pin "5")
+				(pinfunction "IRQ_5")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "35")
+			(name "unconnected-(J3-D0-Pad7)")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "7")
+				(pinfunction "D0_7")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "36")
+			(name "unconnected-(J3-D1-Pad8)")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "8")
+				(pinfunction "D1_8")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "37")
+			(name "unconnected-(J3-D2-Pad9)")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "9")
+				(pinfunction "D2_9")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "38")
+			(name "unconnected-(J3-D3-Pad10)")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "10")
+				(pinfunction "D3_10")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "39")
+			(name "unconnected-(J6-EN-Pad15)")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "15")
+				(pinfunction "EN_15")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "40")
+			(name "unconnected-(J6-GPIO12-Pad4)")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "4")
+				(pinfunction "GPIO12_4")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "41")
+			(name "unconnected-(J6-GPIO13-Pad3)")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "3")
+				(pinfunction "GPIO13_3")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "42")
+			(name "unconnected-(J6-GPIO34-Pad12)")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "12")
+				(pinfunction "GPIO34_12")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "43")
+			(name "unconnected-(J6-GPIO35-Pad11)")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "11")
+				(pinfunction "GPIO35_11")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "44")
+			(name "unconnected-(J6-GPIO36-Pad14)")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "14")
+				(pinfunction "GPIO36_14")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "45")
+			(name "unconnected-(J6-GPIO39-Pad13)")
+			(class "Default")
+			(node
+				(ref "J6")
+				(pin "13")
+				(pinfunction "GPIO39_13")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "46")
+			(name "unconnected-(J7-GPIO1-Pad13)")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "13")
+				(pinfunction "GPIO1_13")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "47")
+			(name "unconnected-(J7-GPIO2-Pad4)")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "4")
+				(pinfunction "GPIO2_4")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "48")
+			(name "unconnected-(J7-GPIO3-Pad12)")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "12")
+				(pinfunction "GPIO3_12")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "49")
+			(name "unconnected-(J7-GPIO4-Pad5)")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "5")
+				(pinfunction "GPIO4_5")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "50")
+			(name "unconnected-(J7-GPIO15-Pad3)")
+			(class "Default")
+			(node
+				(ref "J7")
+				(pin "3")
+				(pinfunction "GPIO15_3")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "51")
+			(name "unconnected-(RN1-R7-Pad8)")
+			(class "Default")
+			(node
+				(ref "RN1")
+				(pin "8")
+				(pinfunction "R7_8")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "52")
+			(name "unconnected-(RN1-R8-Pad9)")
+			(class "Default")
+			(node
+				(ref "RN1")
+				(pin "9")
+				(pinfunction "R8_9")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "53")
+			(name "unconnected-(U1-2Y3-Pad5)")
+			(class "Default")
+			(node
+				(ref "U1")
+				(pin "5")
+				(pinfunction "2Y3_5")
+				(pintype "tri_state+no_connect")
+			)
+		)
+		(net
+			(code "54")
+			(name "unconnected-(U1-2Y4-Pad3)")
+			(class "Default")
+			(node
+				(ref "U1")
+				(pin "3")
+				(pinfunction "2Y4_3")
+				(pintype "tri_state+no_connect")
+			)
+		)
+	)
+)
