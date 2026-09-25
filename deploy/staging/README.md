@@ -7,7 +7,7 @@ Test ortamı canlıdan aşağıdaki kaynaklarla ayrılır:
 - Sistem servisi: `rfid-personel-staging`
 - Dahili port: `3003`
 - Veritabanı: `rfid_personel_staging`
-- Adres: `https://test.flodeka.com`
+- Adres: `https://test.flodeska.com`
 
 ## Yayın akışı
 
@@ -19,8 +19,8 @@ Test ortamı canlıdan aşağıdaki kaynaklarla ayrılır:
 
 Test ortamı için canlıdan farklı `DATABASE_URL` ve `JWT_SECRET` kullanılmalıdır. `.env` dosyası Git'e eklenmemelidir.
 
-DNS'te `test.flodeka.com` için sunucu IP'sine yönlenen bir `A` kaydı oluşturulduktan sonra HTTPS sertifikası şu komutla alınır:
+DNS'te `test.flodeska.com` için sunucu IP'sine yönlenen bir `A` kaydı oluşturulduktan sonra HTTPS sertifikası şu komutla alınır:
 
 ```bash
-certbot --nginx -d test.flodeka.com
+certbot --nginx -d test.flodeska.com
 ```
