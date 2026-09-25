@@ -748,6 +748,7 @@ void setup() {
 
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
   showLcd("OTA CANLI TEST", "1.0.1 BASARILI");
+  delay(2500);
 
   SPI.begin();
   rfid.PCD_Init();
