@@ -44,6 +44,21 @@ button {
   background: none;
 }
 
+.staging-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  background: #b91c1c;
+  color: #ffffff;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  box-shadow: 0 2px 8px rgba(127, 29, 29, 0.28);
+}
+
 /* Utilities */
 .container {
   width: 100%;
