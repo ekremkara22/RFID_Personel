@@ -67,7 +67,7 @@ pm2 startup
 
 ```nginx
 server {
-    server_name flodeka.com www.flodeka.com;
+    server_name flodeska.com www.flodeska.com;
 
     location / {
         proxy_pass http://127.0.0.1:3002;
@@ -93,7 +93,7 @@ systemctl restart nginx
 ## 8. SSL
 
 ```bash
-certbot --nginx -d flodeka.com -d www.flodeka.com
+certbot --nginx -d flodeska.com -d www.flodeska.com
 ```
 
 ## 9. Guncelleme akisi
