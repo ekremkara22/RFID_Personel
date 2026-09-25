@@ -8,6 +8,7 @@ Test ortamı canlıdan aşağıdaki kaynaklarla ayrılır:
 - Dahili port: `3003`
 - Veritabanı: `rfid_personel_staging`
 - Adres: `https://test.flodeska.com`
+- OTA firmware dizini: `/var/lib/rfid-personel-staging/firmware`
 
 ## Yayın akışı
 
@@ -24,3 +25,5 @@ DNS'te `test.flodeska.com` için sunucu IP'sine yönlenen bir `A` kaydı oluştu
 ```bash
 certbot --nginx -d test.flodeska.com
 ```
+
+İlk OTA kurulumunda `prisma/install-firmware-ota.sql` dosyasını staging veritabanında çalıştırın. Servis kullanıcısına `/var/lib/rfid-personel-staging/firmware` dizini için yazma yetkisi verin ve `.env` içindeki `FIRMWARE_STORAGE_DIR` değerini bu dizin olarak ayarlayın.
