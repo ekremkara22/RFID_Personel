@@ -11,6 +11,7 @@
 #include <Update.h>
 #include <SHA2Builder.h>
 #include <time.h>
+#include "ota_root_ca.h"
 
 // ESP32 pinleri. Kendi baglantina gore burayi degistirebilirsin.
 #define RFID_SS_PIN 5
@@ -220,7 +221,7 @@ String normalizeApiBaseUrl(String url) {
 
 bool beginHttp(HTTPClient& http, WiFiClient& client, WiFiClientSecure& secureClient, const String& endpoint) {
   if (isHttpsUrl(endpoint)) {
-    secureClient.setInsecure();
+    secureClient.setCACert(OTA_ROOT_CA);
     return http.begin(secureClient, endpoint);
   }
 
