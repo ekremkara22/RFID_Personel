@@ -28,6 +28,12 @@ enum AttendanceAuditOperation {
   DELETE
 }
 
+enum PayrollPeriodStatus {
+  OPEN
+  APPROVED
+  LOCKED
+}
+
 enum DevicePurpose {
   ENTRY
   EXIT
@@ -151,6 +157,7 @@ model Company {
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
   dailyExceptions     CalendarDailyException[]
+  payrollPeriods      PayrollPeriod[]
 }
 
 model CompanyCategory {
@@ -172,23 +179,26 @@ model RoleDefinition {
 }
 
 model User {
-  id                  Int                       @id @default(autoincrement()) @db.UnsignedInt
-  email               String                    @unique
-  password            String
-  name                String?
-  firstName           String?
-  lastName            String?
-  tcNo                String?
-  role                Role                      @default(COMPANY_ADMIN)
-  companyId           Int?                      @db.UnsignedInt
-  company             Company?                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyAccess       UserCompanyAccess[]
-  deviceAccess        UserDeviceAccess[]
-  attendanceAudits    AttendanceMovementAudit[]
-  firmwareReleases    FirmwareRelease[]
-  firmwareDeployments FirmwareDeployment[]
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
+  id                          Int                          @id @default(autoincrement()) @db.UnsignedInt
+  email                       String                       @unique
+  password                    String
+  name                        String?
+  firstName                   String?
+  lastName                    String?
+  tcNo                        String?
+  role                        Role                         @default(COMPANY_ADMIN)
+  companyId                   Int?                         @db.UnsignedInt
+  company                     Company?                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyAccess               UserCompanyAccess[]
+  deviceAccess                UserDeviceAccess[]
+  attendanceAudits            AttendanceMovementAudit[]
+  firmwareReleases            FirmwareRelease[]
+  firmwareDeployments         FirmwareDeployment[]
+  attendanceReviewResolutions AttendanceReviewResolution[]
+  approvedPayrollPeriods      PayrollPeriod[]              @relation("PayrollApprovedBy")
+  lockedPayrollPeriods        PayrollPeriod[]              @relation("PayrollLockedBy")
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
 }
 
 model UserCompanyAccess {
@@ -203,32 +213,33 @@ model UserCompanyAccess {
 }
 
 model Employee {
-  id                  Int                       @id @default(autoincrement()) @db.UnsignedInt
-  firstName           String
-  lastName            String
-  photoUrl            String?
-  registrationNumber  String?
-  email               String?                   @unique
-  password            String?
-  department          String
-  branch              String?
-  managerName         String?
-  hireDate            DateTime?
-  terminationDate     DateTime?
-  age                 Int
-  rfidCardId          String?                   @unique
-  isActive            Boolean                   @default(true)
-  companyId           Int                       @db.UnsignedInt
-  company             Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  logs                AttendanceLog[]
-  leaves              LeaveRequest[]
-  calendarAssignments CalendarAssignment[]
-  calendarSpecialDays CalendarSpecialDay[]
-  dailyExceptions     CalendarDailyException[]
-  dailyCalendars      EmployeeDailyCalendar[]
-  attendanceAudits    AttendanceMovementAudit[]
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
+  id                          Int                          @id @default(autoincrement()) @db.UnsignedInt
+  firstName                   String
+  lastName                    String
+  photoUrl                    String?
+  registrationNumber          String?
+  email                       String?                      @unique
+  password                    String?
+  department                  String
+  branch                      String?
+  managerName                 String?
+  hireDate                    DateTime?
+  terminationDate             DateTime?
+  age                         Int
+  rfidCardId                  String?                      @unique
+  isActive                    Boolean                      @default(true)
+  companyId                   Int                          @db.UnsignedInt
+  company                     Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  logs                        AttendanceLog[]
+  leaves                      LeaveRequest[]
+  calendarAssignments         CalendarAssignment[]
+  calendarSpecialDays         CalendarSpecialDay[]
+  dailyExceptions             CalendarDailyException[]
+  dailyCalendars              EmployeeDailyCalendar[]
+  attendanceAudits            AttendanceMovementAudit[]
+  attendanceReviewResolutions AttendanceReviewResolution[]
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
 
   @@unique([companyId, registrationNumber])
 }
@@ -293,6 +304,11 @@ model Device {
   lastFirmwareCheckAt  DateTime?
   lastFirmwareUpdateAt DateTime?
   firmwareLastError    String?              @db.Text
+  pendingQueueCount    Int?                 @db.UnsignedInt
+  oldestQueuedAt       DateTime?
+  clockSynchronized    Boolean?
+  lastSendError        String?              @db.Text
+  healthReportedAt     DateTime?
   companyId            Int?                 @db.UnsignedInt
   company              Company?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
   userAccess           UserDeviceAccess[]
@@ -362,10 +378,26 @@ model AttendanceLog {
   device        Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   clientEventId String?        @db.VarChar(96)
   scannedAt     DateTime       @default(now())
+  receivedAt    DateTime?
   type          AttendanceType
   rfidCardId    String?
 
   @@unique([deviceId, clientEventId])
+}
+
+model AttendanceReviewResolution {
+  id             Int      @id @default(autoincrement()) @db.UnsignedInt
+  employeeId     Int      @db.UnsignedInt
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workDate       DateTime
+  fingerprint    String   @db.VarChar(64)
+  resolutionNote String   @db.Text
+  resolvedById   Int      @db.UnsignedInt
+  resolvedBy     User     @relation(fields: [resolvedById], references: [id], onDelete: Restrict)
+  resolvedAt     DateTime @default(now())
+
+  @@unique([employeeId, workDate, fingerprint])
+  @@index([workDate, resolvedAt])
 }
 
 model AttendanceMovementAudit {
@@ -567,4 +599,27 @@ model CalendarChangeLog {
   changedById  Int?               @db.UnsignedInt
   approvedById Int?               @db.UnsignedInt
   changedAt    DateTime           @default(now())
+}
+
+model PayrollPeriod {
+  id                Int                 @id @default(autoincrement()) @db.UnsignedInt
+  companyId         Int                 @db.UnsignedInt
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year              Int                 @db.UnsignedSmallInt
+  month             Int                 @db.UnsignedTinyInt
+  status            PayrollPeriodStatus @default(OPEN)
+  snapshotJson      String?             @db.LongText
+  snapshotCreatedAt DateTime?
+  approvalNote      String?             @db.Text
+  approvedById      Int?                @db.UnsignedInt
+  approvedBy        User?               @relation("PayrollApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+  lockedById        Int?                @db.UnsignedInt
+  lockedBy          User?               @relation("PayrollLockedBy", fields: [lockedById], references: [id], onDelete: SetNull)
+  lockedAt          DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([companyId, year, month])
+  @@index([status, year, month])
 }

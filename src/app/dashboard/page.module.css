@@ -1641,6 +1641,82 @@
   letter-spacing: 0.05em;
 }
 
+.reviewCaseList {
+  display: grid;
+  gap: 1rem;
+}
+
+.reviewCaseCard {
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.reviewCaseHeader,
+.reviewCaseFooter,
+.reviewBadges,
+.reviewResolveForm,
+.payrollActionRow,
+.payrollActionForm {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.reviewCaseHeader,
+.reviewCaseFooter {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.8rem;
+}
+
+.reviewCaseHeader p {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.reviewBadges {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.reviewProblemRow {
+  background: #fff7ed;
+}
+
+.reviewCaseFooter {
+  margin: 0.8rem 0 0;
+  align-items: center;
+}
+
+.reviewResolveForm,
+.payrollActionForm {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.reviewResolveForm input,
+.payrollActionForm input {
+  min-width: 240px;
+  max-width: 560px;
+  flex: 1;
+  padding: 0.62rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.payrollActionRow {
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.payrollActionForm {
+  margin-bottom: 1rem;
+}
+
 @media (max-width: 1120px) {
   .metricsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1731,6 +1807,25 @@
   .primaryLinkButton {
     width: 100%;
     justify-content: center;
+  }
+
+  .reviewCaseHeader,
+  .reviewCaseFooter,
+  .reviewResolveForm,
+  .payrollActionRow,
+  .payrollActionForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reviewBadges {
+    justify-content: flex-start;
+  }
+
+  .reviewResolveForm input,
+  .payrollActionForm input {
+    min-width: 0;
+    max-width: none;
   }
 }
 

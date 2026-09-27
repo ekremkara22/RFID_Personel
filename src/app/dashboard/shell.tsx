@@ -12,6 +12,9 @@ import {
   ChevronDown,
   FileBarChart,
   History,
+  HeartPulse,
+  ListChecks,
+  FileLock2,
   Timer,
   LayoutDashboard,
   LogOut,
@@ -64,8 +67,10 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       : [
           { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
           { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },
+          { href: "/dashboard/movement-reviews", label: "İncelenecek Hareketler", icon: ListChecks },
           { href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane },
           { href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone },
+          { href: "/dashboard/device-health", label: "Cihaz Sağlığı", icon: HeartPulse },
         ]),
   ];
   const reportItems = [
@@ -75,6 +80,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     { href: "/dashboard/reports/late-arrivals", label: "Geç Kalma Raporu", icon: Timer },
     { href: "/dashboard/reports/daily-attendance", label: "Günlük Mola ve Mesai", icon: Clock3 },
     { href: "/dashboard/reports/audit", label: "Audit Raporu", icon: History },
+    { href: "/dashboard/reports/payroll", label: "Aylık Puantaj Onayı", icon: FileLock2 },
   ];
   const calendarItems = [
     { href: "/dashboard/calendar", label: "Takvim Görünümü", icon: CalendarDays },

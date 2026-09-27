@@ -6,6 +6,7 @@ import { normalizeClientEventId, resolveDeviceScanTime } from "@/lib/device-scan
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
 import { EXIT_TOLERANCE_MINUTES, inferBidirectionalMovement } from "@/lib/attendance-sequence";
+import { assertPayrollPeriodUnlocked } from "@/lib/payroll-period";
 
 function normalizeCardId(cardId: string) {
   return cardId.trim().toUpperCase();
@@ -142,6 +143,8 @@ export async function POST(request: Request) {
       );
     }
 
+    await assertPayrollPeriodUnlocked(employee.companyId, scannedAt);
+
     const nextType = await inferAttendanceType({
       employeeId: employee.id,
       devicePurpose: device.purpose,
@@ -157,6 +160,7 @@ export async function POST(request: Request) {
           type: nextType,
           rfidCardId,
           scannedAt,
+          receivedAt: new Date(),
         },
       }),
       prisma.device.update({
@@ -184,6 +188,9 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message.includes("puantaj dönemi kilitli")) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     if ((error as { code?: string })?.code === "P2002") {
       return NextResponse.json(
         { error: "Okutma zaten kaydediliyor; cihaz yeniden sorgulayabilir." },

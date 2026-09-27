@@ -5,6 +5,7 @@
 - `rfid_personel_device_ota/rfid_personel_device_ota.ino`: eski canlı sürüm (`1.0.0`), değiştirilmeden saklanır.
 - `rfid_personel_device_ota_live_test_update/rfid_personel_device_ota_live_test_update.ino`: eski canlı OTA test sürümü (`1.0.1-live-test`), değiştirilmeden saklanır.
 - `rfid_personel_device_ota_v1_1_0/rfid_personel_device_ota_v1_1_0.ino`: kalıcı kuyruklu güncel canlı sürüm (`1.1.0`).
+- `rfid_personel_device_ota_v1_2_0/rfid_personel_device_ota_v1_2_0.ino`: cihaz sağlık telemetrili sürüm (`1.2.0`); bekleyen kayıt, en eski kayıt, saat senkronizasyonu ve son gönderim hatasını heartbeat ile bildirir.
 - `rfid_personel_device_ota_test/rfid_personel_device_ota_test.ino`: eski staging temel sürümü (`0.1.0-test`), değiştirilmeden saklanır.
 - `rfid_personel_device_ota_test_update/rfid_personel_device_ota_test_update.ino`: eski staging güncellemesi (`0.1.1-test`), değiştirilmeden saklanır.
 - `rfid_personel_device_ota_test_v0_2_0/rfid_personel_device_ota_test_v0_2_0.ino`: kuyruklu staging temel sürümü (`0.2.0-test`).
@@ -14,14 +15,14 @@
 
 ## İnternet kesintisinde okutma kuyruğu
 
-Sürüm 1.1.0 ile kart okutma önce ESP32'nin LittleFS flash alanındaki kalıcı FIFO kuyruğuna yazılır. İnternet veya API kullanılamıyorsa kayıt cihaz yeniden başlasa bile korunur. Bağlantı geri geldiğinde cihaz kayıtları gerçek okutma zamanı ve benzersiz olay kimliğiyle sırasıyla gönderir. Sunucu aynı olayı yeniden alırsa ikinci hareket oluşturmaz.
+Sürüm 1.1.0 ve sonrasında kart okutma önce ESP32'nin LittleFS flash alanındaki kalıcı FIFO kuyruğuna yazılır. İnternet veya API kullanılamıyorsa kayıt cihaz yeniden başlasa bile korunur. Bağlantı geri geldiğinde cihaz kayıtları gerçek okutma zamanı ve benzersiz olay kimliğiyle sırasıyla gönderir. Sunucu aynı olayı yeniden alırsa ikinci hareket oluşturmaz. Sürüm 1.2.0 bu kuyruğun sağlık bilgilerini yönetim panelindeki **Cihaz Sağlığı** ekranına gönderir.
 
 Kuyrukta en fazla 64 KiB bekleyen kayıt tutulur. Cihaz soğuk açılıştan sonra henüz NTP ile doğru saati alamadıysa yanlış zamanlı hareket üretmemek için okutmayı kaydetmez ve LCD'de `Saat bilinmiyor / Kayit alinmadi` gösterir. Cihaz bir kez saat aldıktan sonra yalnızca internetin kesilmesi saati ve kuyruğu etkilemez.
 
 ## Canlı kurulum
 
 1. Arduino IDE'de partition scheme olarak OTA destekli, iki uygulama bölümü bulunan düzeni seçin. Derleme çıktısındaki maksimum uygulama boyutu firmware'den büyük olmalıdır.
-2. İlk kurulumda `rfid_personel_device_ota_v1_1_0.ino` dosyasını USB ile cihaza yükleyin. Mevcut OTA cihazında aynı sürümün `.bin` dosyasını panelden dağıtın.
+2. İlk kurulumda `rfid_personel_device_ota_v1_2_0.ino` dosyasını USB ile cihaza yükleyin. Mevcut OTA cihazına bu sürümün `.bin` dosyasını panelden `1.2.0` sürüm adıyla dağıtın.
 3. Cihazın kayıtlı Wi-Fi ve secret key bilgileri flash silinmediyse korunur. Flash silindiyse cihazın kurulum ağına bağlanıp bilgileri yeniden girin.
 4. Yönetim panelinde **Cihaz Yazılım Güncellemeleri** sayfasından sonraki sürümün derlenmiş `.bin` dosyasını yükleyin.
 5. Yüklenen panel sürümü ile ino içindeki `FIRMWARE_VERSION` birebir aynı olmalıdır.

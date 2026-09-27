@@ -15,6 +15,7 @@ import {
   LeaveApprovalStatus,
   LeaveDurationType,
   LeaveType,
+  PayrollPeriodStatus,
   Role,
   SpecialDayType,
   WorkDayType,
@@ -22,6 +23,13 @@ import {
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
 import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
+import {
+  assertPayrollPeriodUnlocked,
+  buildPayrollSnapshot,
+  getDefaultPayrollMonth,
+  getPayrollMonthRange,
+  PAYROLL_MONTH_PATTERN,
+} from "@/lib/payroll-period";
 import { requireSessionUser } from "@/lib/session";
 import { calculateGrossMinutes, calculateNetMinutes } from "@/lib/work-calendar-rules";
 import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
@@ -1407,8 +1415,12 @@ export async function updateAttendanceLogAction(formData: FormData) {
   const companyIds = await getAccessibleCompanyIds(user);
   const oldLog = await prisma.attendanceLog.findFirst({
     where: { id: logId, employee: { companyId: { in: companyIds ?? [] } } },
+    include: { employee: { select: { companyId: true } } },
   });
   if (!oldLog) throw new Error("Hareket bulunamadi veya bu kayit icin yetkiniz yok.");
+
+  await assertPayrollPeriodUnlocked(oldLog.employee.companyId, oldLog.scannedAt);
+  await assertPayrollPeriodUnlocked(oldLog.employee.companyId, scannedAt);
 
   await prisma.$transaction(async (tx) => {
     await tx.attendanceLog.update({ where: { id: logId }, data: { type, scannedAt } });
@@ -1430,6 +1442,9 @@ export async function updateAttendanceLogAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/movements");
+  revalidatePath("/dashboard/movement-reviews");
+  revalidatePath("/dashboard/reports/payroll");
+  redirectToReturnPath(formData, "/dashboard/movements");
 }
 
 export async function createAttendanceLogAction(formData: FormData) {
@@ -1474,6 +1489,8 @@ export async function createAttendanceLogAction(formData: FormData) {
     throw new Error("Personel bulunamadi.");
   }
 
+  await assertPayrollPeriodUnlocked(employee.companyId, scannedAt);
+
   if (deviceId) {
     const device = await prisma.device.findFirst({
       where: {
@@ -1494,7 +1511,14 @@ export async function createAttendanceLogAction(formData: FormData) {
 
   await prisma.$transaction(async (tx) => {
     const log = await tx.attendanceLog.create({
-      data: { employeeId: employee.id, deviceId, type, scannedAt, rfidCardId: rfidCardId ?? employee.rfidCardId },
+      data: {
+        employeeId: employee.id,
+        deviceId,
+        type,
+        scannedAt,
+        receivedAt: new Date(),
+        rfidCardId: rfidCardId ?? employee.rfidCardId,
+      },
     });
     await tx.attendanceMovementAudit.create({
       data: {
@@ -1512,7 +1536,9 @@ export async function createAttendanceLogAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/movements");
+  revalidatePath("/dashboard/movement-reviews");
   revalidatePath("/dashboard/reports");
+  revalidatePath("/dashboard/reports/payroll");
   redirectToReturnPath(formData, "/dashboard/movements");
 }
 
@@ -1533,8 +1559,11 @@ export async function deleteAttendanceLogAction(formData: FormData) {
   const companyIds = await getAccessibleCompanyIds(user);
   const oldLog = await prisma.attendanceLog.findFirst({
     where: { id: logId, employee: { companyId: { in: companyIds ?? [] } } },
+    include: { employee: { select: { companyId: true } } },
   });
   if (!oldLog) throw new Error("Hareket bulunamadi veya bu kayit icin yetkiniz yok.");
+
+  await assertPayrollPeriodUnlocked(oldLog.employee.companyId, oldLog.scannedAt);
 
   await prisma.$transaction(async (tx) => {
     await tx.attendanceMovementAudit.create({
@@ -1554,6 +1583,9 @@ export async function deleteAttendanceLogAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/movements");
+  revalidatePath("/dashboard/movement-reviews");
+  revalidatePath("/dashboard/reports/payroll");
+  redirectToReturnPath(formData, "/dashboard/movements");
 }
 
 export async function createLeaveRequestAction(formData: FormData) {
@@ -2312,6 +2344,132 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
 
   revalidateCalendarPaths();
   if (getReturnTo(formData)) redirectToReturnPath(formData);
+}
+
+async function assertCompanyAdminAccess(user: { id: number; role: string; companyId: number | null }, companyId: number) {
+  if (user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
+  const companyIds = await getAccessibleCompanyIds(user);
+  if (!companyIds?.includes(companyId)) throw new Error("Bu firma icin yetkiniz yok.");
+}
+
+export async function approvePayrollPeriodAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  const companyId = getId(formData, "companyId");
+  const monthKey = getString(formData, "month");
+  const approvalNote = getString(formData, "approvalNote") || null;
+  if (!PAYROLL_MONTH_PATTERN.test(monthKey)) throw new Error("Puantaj donemi gecersiz.");
+  if (monthKey > getDefaultPayrollMonth()) throw new Error("Gelecek donem onaylanamaz.");
+  await assertCompanyAdminAccess(user, companyId);
+  const { year, month } = getPayrollMonthRange(monthKey);
+  const current = await prisma.payrollPeriod.findUnique({
+    where: { companyId_year_month: { companyId, year, month } },
+  });
+  if (current?.status === PayrollPeriodStatus.LOCKED) throw new Error("Kilitli puantaj donemi degistirilemez.");
+
+  const snapshot = await buildPayrollSnapshot(companyId, monthKey);
+  await prisma.payrollPeriod.upsert({
+    where: { companyId_year_month: { companyId, year, month } },
+    create: {
+      companyId,
+      year,
+      month,
+      status: PayrollPeriodStatus.APPROVED,
+      snapshotJson: JSON.stringify(snapshot),
+      snapshotCreatedAt: new Date(),
+      approvalNote,
+      approvedById: user.id,
+      approvedAt: new Date(),
+    },
+    update: {
+      status: PayrollPeriodStatus.APPROVED,
+      snapshotJson: JSON.stringify(snapshot),
+      snapshotCreatedAt: new Date(),
+      approvalNote,
+      approvedById: user.id,
+      approvedAt: new Date(),
+      lockedById: null,
+      lockedAt: null,
+    },
+  });
+  revalidatePath("/dashboard/reports/payroll");
+  redirectToReturnPath(formData, `/dashboard/reports/payroll?month=${monthKey}&companyId=${companyId}`);
+}
+
+export async function reopenPayrollPeriodAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  const companyId = getId(formData, "companyId");
+  const monthKey = getString(formData, "month");
+  if (!PAYROLL_MONTH_PATTERN.test(monthKey)) throw new Error("Puantaj donemi gecersiz.");
+  if (monthKey > getDefaultPayrollMonth()) throw new Error("Gelecek donem acilamaz.");
+  await assertCompanyAdminAccess(user, companyId);
+  const { year, month } = getPayrollMonthRange(monthKey);
+  const period = await prisma.payrollPeriod.findUnique({
+    where: { companyId_year_month: { companyId, year, month } },
+  });
+  if (!period || period.status !== PayrollPeriodStatus.APPROVED) {
+    throw new Error("Yalnizca onayli ve henuz kilitlenmemis donem yeniden acilabilir.");
+  }
+  await prisma.payrollPeriod.update({
+    where: { id: period.id },
+    data: {
+      status: PayrollPeriodStatus.OPEN,
+      snapshotJson: null,
+      snapshotCreatedAt: null,
+      approvedById: null,
+      approvedAt: null,
+      approvalNote: null,
+    },
+  });
+  revalidatePath("/dashboard/reports/payroll");
+  redirectToReturnPath(formData, `/dashboard/reports/payroll?month=${monthKey}&companyId=${companyId}`);
+}
+
+export async function lockPayrollPeriodAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  const companyId = getId(formData, "companyId");
+  const monthKey = getString(formData, "month");
+  if (!PAYROLL_MONTH_PATTERN.test(monthKey)) throw new Error("Puantaj donemi gecersiz.");
+  if (monthKey > getDefaultPayrollMonth()) throw new Error("Gelecek donem kilitlenemez.");
+  await assertCompanyAdminAccess(user, companyId);
+  const { year, month } = getPayrollMonthRange(monthKey);
+  const period = await prisma.payrollPeriod.findUnique({
+    where: { companyId_year_month: { companyId, year, month } },
+  });
+  if (!period || period.status !== PayrollPeriodStatus.APPROVED || !period.snapshotJson) {
+    throw new Error("Donem kilitlenmeden once onaylanmalidir.");
+  }
+  await prisma.payrollPeriod.update({
+    where: { id: period.id },
+    data: { status: PayrollPeriodStatus.LOCKED, lockedById: user.id, lockedAt: new Date() },
+  });
+  revalidatePath("/dashboard/reports/payroll");
+  redirectToReturnPath(formData, `/dashboard/reports/payroll?month=${monthKey}&companyId=${companyId}`);
+}
+
+export async function resolveAttendanceReviewAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  if (user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
+  const employeeId = getId(formData, "employeeId");
+  const dayKey = getString(formData, "dayKey");
+  const fingerprint = getString(formData, "fingerprint");
+  const resolutionNote = getString(formData, "resolutionNote");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey) || !/^[a-f0-9]{64}$/.test(fingerprint) || !resolutionNote) {
+    throw new Error("Inceleme sonucu bilgileri eksik.");
+  }
+  const companyIds = await getAccessibleCompanyIds(user);
+  const employee = await prisma.employee.findFirst({
+    where: { id: employeeId, companyId: { in: companyIds ?? [] } },
+    select: { id: true },
+  });
+  if (!employee) throw new Error("Personel bulunamadi veya yetkiniz yok.");
+  const workDate = new Date(`${dayKey}T00:00:00+03:00`);
+  await prisma.attendanceReviewResolution.upsert({
+    where: { employeeId_workDate_fingerprint: { employeeId, workDate, fingerprint } },
+    create: { employeeId, workDate, fingerprint, resolutionNote, resolvedById: user.id },
+    update: { resolutionNote, resolvedById: user.id, resolvedAt: new Date() },
+  });
+  revalidatePath("/dashboard/movement-reviews");
+  redirectToReturnPath(formData, "/dashboard/movement-reviews");
 }
 
 export async function logoutAction() {

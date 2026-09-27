@@ -22,7 +22,9 @@ function formatInputDate(date: Date) {
   return offsetDate.toISOString().slice(0, 16);
 }
 
-export default async function NewMovementPage() {
+export default async function NewMovementPage(props: {
+  searchParams: Promise<{ employeeId?: string; returnTo?: string }>;
+}) {
   const { user } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN") {
@@ -31,6 +33,11 @@ export default async function NewMovementPage() {
 
   const companyIds = await getAccessibleCompanyIds(user);
   if (!companyIds || companyIds.length === 0) redirect("/dashboard");
+  const searchParams = await props.searchParams;
+  const requestedEmployeeId = Number(searchParams.employeeId);
+  const returnTo = searchParams.returnTo?.startsWith("/dashboard/")
+    ? searchParams.returnTo
+    : "/dashboard/movements";
   const [employees, devices] = await Promise.all([
     prisma.employee.findMany({
       where: {
@@ -58,7 +65,7 @@ export default async function NewMovementPage() {
             ve raporlari test edebilirsin.
           </p>
         </div>
-        <BackLink href="/dashboard/movements" />
+        <BackLink href={returnTo} />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
@@ -69,11 +76,11 @@ export default async function NewMovementPage() {
           </div>
         ) : (
           <form action={createAttendanceLogAction} className={styles.formGrid}>
-            <input type="hidden" name="returnTo" value="/dashboard/movements" />
+            <input type="hidden" name="returnTo" value={returnTo} />
 
             <label className={styles.field}>
               <span>Personel</span>
-              <select name="employeeId" required defaultValue="">
+              <select name="employeeId" required defaultValue={employees.some((employee) => employee.id === requestedEmployeeId) ? requestedEmployeeId : ""}>
                 <option value="" disabled>
                   Personel sec
                 </option>

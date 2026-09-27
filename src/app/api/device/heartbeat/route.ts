@@ -14,6 +14,19 @@ export async function POST(request: Request) {
       typeof body?.clockOffsetMinutes === "number" && Number.isFinite(body.clockOffsetMinutes)
         ? Math.round(body.clockOffsetMinutes)
         : undefined;
+    const pendingQueueCount =
+      typeof body?.pendingQueueCount === "number" && Number.isFinite(body.pendingQueueCount)
+        ? Math.max(0, Math.min(100000, Math.round(body.pendingQueueCount)))
+        : undefined;
+    const oldestQueuedAtValue = typeof body?.oldestQueuedAt === "string" ? body.oldestQueuedAt.trim() : "";
+    const parsedOldestQueuedAt = oldestQueuedAtValue ? new Date(oldestQueuedAtValue) : null;
+    const oldestQueuedAt = parsedOldestQueuedAt && !Number.isNaN(parsedOldestQueuedAt.getTime())
+      ? parsedOldestQueuedAt
+      : null;
+    const clockSynchronized = typeof body?.clockSynchronized === "boolean" ? body.clockSynchronized : undefined;
+    const lastSendError = typeof body?.lastSendError === "string"
+      ? body.lastSendError.trim().slice(0, 2000) || null
+      : undefined;
 
     if (!secretKey) {
       return NextResponse.json({ error: "Secret key zorunludur." }, { status: 400 });
@@ -33,6 +46,11 @@ export async function POST(request: Request) {
         ...(ipAddress ? { ipAddress } : {}),
         ...(firmwareVersion ? { firmwareVersion } : {}),
         ...(clockOffsetMinutes !== undefined ? { clockOffsetMinutes } : {}),
+        ...(pendingQueueCount !== undefined ? { pendingQueueCount } : {}),
+        ...(pendingQueueCount !== undefined ? { oldestQueuedAt: pendingQueueCount > 0 ? oldestQueuedAt : null } : {}),
+        ...(clockSynchronized !== undefined ? { clockSynchronized } : {}),
+        ...(lastSendError !== undefined ? { lastSendError } : {}),
+        healthReportedAt: new Date(),
       },
       select: {
         id: true,

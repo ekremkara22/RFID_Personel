@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Clock3, FileBarChart, History, Timer, Users } from "lucide-react";
+import { Clock3, FileBarChart, FileLock2, History, Timer, Users } from "lucide-react";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 
@@ -70,6 +70,16 @@ export default async function ReportsPage() {
             <div>
               <p className={styles.infoCardTitle}>Audit Raporu</p>
               <p className={styles.infoCardMeta}>Manuel hareket ekleme, düzenleme ve silme işlemlerinin değişiklik geçmişi.</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/dashboard/reports/payroll" className={`glass-panel ${styles.companyCardLink}`}>
+          <div className={styles.companyCardHeader}>
+            <FileLock2 size={22} />
+            <div>
+              <p className={styles.infoCardTitle}>Aylık Puantaj Onayı</p>
+              <p className={styles.infoCardMeta}>Dönem seçimi, ayrıntılı hareket çıktısı, onay ve değişmez dönem kilidi.</p>
             </div>
           </div>
         </Link>
