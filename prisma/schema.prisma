@@ -355,14 +355,17 @@ model UserDeviceAccess {
 }
 
 model AttendanceLog {
-  id         Int            @id @default(autoincrement()) @db.UnsignedInt
-  employeeId Int            @db.UnsignedInt
-  employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  deviceId   Int?           @db.UnsignedInt
-  device     Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
-  scannedAt  DateTime       @default(now())
-  type       AttendanceType
-  rfidCardId String?
+  id            Int            @id @default(autoincrement()) @db.UnsignedInt
+  employeeId    Int            @db.UnsignedInt
+  employee      Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deviceId      Int?           @db.UnsignedInt
+  device        Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  clientEventId String?        @db.VarChar(96)
+  scannedAt     DateTime       @default(now())
+  type          AttendanceType
+  rfidCardId    String?
+
+  @@unique([deviceId, clientEventId])
 }
 
 model AttendanceMovementAudit {

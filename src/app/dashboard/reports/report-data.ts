@@ -1,7 +1,10 @@
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
+import { collectCursorPages } from "@/lib/cursor-pagination";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
+
+const REPORT_PAGE_SIZE = 1000;
 
 function getMonthStart() {
   const date = new Date();
@@ -22,14 +25,17 @@ export async function getPdksReportData(companyId: number) {
       where: { companyId },
       orderBy: [{ department: "asc" }, { firstName: "asc" }],
     }),
-    prisma.attendanceLog.findMany({
-      where: {
-        scannedAt: { gte: monthStart },
-        employee: { companyId },
-      },
-      include: { employee: true },
-      take: 2000,
-    }),
+    collectCursorPages((afterId, pageSize) =>
+      prisma.attendanceLog.findMany({
+        where: {
+          scannedAt: { gte: monthStart },
+          employee: { companyId },
+          ...(afterId === undefined ? {} : { id: { gt: afterId } }),
+        },
+        include: { employee: true },
+        orderBy: { id: "asc" },
+        take: pageSize,
+      }), REPORT_PAGE_SIZE),
     prisma.leaveRequest.findMany({
       where: {
         companyId,
@@ -38,14 +44,17 @@ export async function getPdksReportData(companyId: number) {
       },
       include: { employee: true },
     }),
-    prisma.employeeDailyCalendar.findMany({
-      where: {
-        workDate: { gte: monthStart },
-        employee: { companyId },
-      },
-      include: { employee: true },
-      take: 3000,
-    }),
+    collectCursorPages((afterId, pageSize) =>
+      prisma.employeeDailyCalendar.findMany({
+        where: {
+          workDate: { gte: monthStart },
+          employee: { companyId },
+          ...(afterId === undefined ? {} : { id: { gt: afterId } }),
+        },
+        include: { employee: true },
+        orderBy: { id: "asc" },
+        take: pageSize,
+      }), REPORT_PAGE_SIZE),
   ]);
 
   const employeeRows = employees.map((employee) => {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAppDayRange, getAppMinutes } from "@/lib/app-time";
+import { normalizeClientEventId, resolveDeviceScanTime } from "@/lib/device-scan";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
 import { EXIT_TOLERANCE_MINUTES, inferBidirectionalMovement } from "@/lib/attendance-sequence";
@@ -13,6 +14,23 @@ function normalizeCardId(cardId: string) {
 function isNearTime(nowMinutes: number, plannedTime?: string | null) {
   const plannedMinutes = timeToMinutes(plannedTime);
   return plannedMinutes !== null && Math.abs(nowMinutes - plannedMinutes) <= EXIT_TOLERANCE_MINUTES;
+}
+
+function successResponse(params: {
+  log: { id: number; type: AttendanceType; scannedAt: Date };
+  employee: { id: number; firstName: string; lastName: string; department: string };
+  device: { id: number; name: string };
+  duplicate?: boolean;
+}) {
+  return NextResponse.json({
+    success: true,
+    duplicate: params.duplicate ?? false,
+    logId: params.log.id,
+    type: params.log.type,
+    scannedAt: params.log.scannedAt,
+    employee: params.employee,
+    device: params.device,
+  });
 }
 
 async function inferAttendanceType(params: {
@@ -53,9 +71,10 @@ export async function POST(request: Request) {
     const secretKey = typeof body?.secretKey === "string" ? body.secretKey.trim() : "";
     const rfidCardId =
       typeof body?.rfidCardId === "string" ? normalizeCardId(body.rfidCardId) : "";
+    const clientEventId = normalizeClientEventId(body?.clientEventId);
     const macAddress = typeof body?.macAddress === "string" ? body.macAddress.trim().toUpperCase() : "";
     const ipAddress = typeof body?.ipAddress === "string" ? body.ipAddress.trim() : "";
-    const scannedAt = new Date();
+    const scanTime = resolveDeviceScanTime(body?.scannedAt);
 
     if (!secretKey || !rfidCardId) {
       return NextResponse.json(
@@ -63,6 +82,13 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (body?.clientEventId && !clientEventId) {
+      return NextResponse.json({ error: "Okutma olay kimligi gecersiz." }, { status: 400 });
+    }
+    if (!scanTime.ok) {
+      return NextResponse.json({ error: scanTime.error }, { status: 400 });
+    }
+    const scannedAt = scanTime.scannedAt;
 
     const device = await prisma.device.findFirst({
       where: { secretKey },
@@ -71,6 +97,25 @@ export async function POST(request: Request) {
 
     if (!device || !device.companyId || !device.company?.isActive) {
       return NextResponse.json({ error: "Cihaz bulunamadi." }, { status: 404 });
+    }
+
+    if (clientEventId) {
+      const existingLog = await prisma.attendanceLog.findFirst({
+        where: { deviceId: device.id, clientEventId },
+        include: { employee: true },
+      });
+      if (existingLog) {
+        await prisma.device.update({
+          where: { id: device.id },
+          data: { lastSeenAt: new Date(), lastDataTransferAt: new Date() },
+        });
+        return successResponse({
+          log: existingLog,
+          employee: existingLog.employee,
+          device,
+          duplicate: true,
+        });
+      }
     }
 
     const employee = await prisma.employee.findFirst({
@@ -108,6 +153,7 @@ export async function POST(request: Request) {
         data: {
           employeeId: employee.id,
           deviceId: device.id,
+          ...(clientEventId ? { clientEventId } : {}),
           type: nextType,
           rfidCardId,
           scannedAt,
@@ -124,11 +170,8 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      logId: log.id,
-      type: log.type,
-      scannedAt: log.scannedAt,
+    return successResponse({
+      log,
       employee: {
         id: employee.id,
         firstName: employee.firstName,
@@ -141,6 +184,12 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if ((error as { code?: string })?.code === "P2002") {
+      return NextResponse.json(
+        { error: "Okutma zaten kaydediliyor; cihaz yeniden sorgulayabilir." },
+        { status: 503 },
+      );
+    }
     console.error("RFID scan error", error);
 
     return NextResponse.json(
