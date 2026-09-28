@@ -4,6 +4,7 @@ import { DeviceStatusRefresh } from "@/app/dashboard/device-status-refresh";
 import { isDeviceOnline } from "@/lib/device-status";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { deviceScopeWhere } from "@/lib/authorization";
 import styles from "../page.module.css";
 
 function formatDate(date?: Date | null) {
@@ -12,16 +13,11 @@ function formatDate(date?: Date | null) {
 }
 
 export default async function DeviceHealthPage() {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
 
-  const access = await prisma.userDeviceAccess.findMany({
-    where: { userId: user.id },
-    select: { deviceId: true },
-  });
-  const deviceIds = access.map((item) => item.deviceId);
   const devices = await prisma.device.findMany({
-    where: deviceIds.length ? { id: { in: deviceIds } } : { id: -1 },
+    where: deviceScopeWhere(authorization),
     include: { company: true },
     orderBy: [{ company: { name: "asc" } }, { name: "asc" }],
   });

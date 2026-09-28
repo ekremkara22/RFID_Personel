@@ -5,7 +5,8 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { AttendanceType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../../page.module.css";
 
 const attendanceLabels = {
@@ -25,14 +26,8 @@ function formatInputDate(date: Date) {
 export default async function NewMovementPage(props: {
   searchParams: Promise<{ employeeId?: string; returnTo?: string }>;
 }) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN") {
-    redirect("/dashboard");
-  }
-
-  const companyIds = await getAccessibleCompanyIds(user);
-  if (!companyIds || companyIds.length === 0) redirect("/dashboard");
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.MOVEMENT_CREATE);
+  if (!authorization.companyId) redirect("/dashboard");
   const searchParams = await props.searchParams;
   const requestedEmployeeId = Number(searchParams.employeeId);
   const returnTo = searchParams.returnTo?.startsWith("/dashboard/")
@@ -41,14 +36,14 @@ export default async function NewMovementPage(props: {
   const [employees, devices] = await Promise.all([
     prisma.employee.findMany({
       where: {
-        companyId: { in: companyIds },
+        ...employeeScopeWhere(authorization),
         isActive: true,
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.device.findMany({
       where: {
-        companyId: { in: companyIds },
+        ...deviceScopeWhere(authorization),
       },
       orderBy: { name: "asc" },
     }),

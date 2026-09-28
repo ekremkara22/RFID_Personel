@@ -28,6 +28,8 @@ import styles from "./page.module.css";
 import { PersonnelChart } from "./personnel-chart";
 import { OperationFilters } from "./operation-filters";
 import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
+import { can, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 
 const attendanceLabels = {
   ENTRY: "Giriş",
@@ -87,17 +89,17 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
 }
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
   const isSuperadmin = user.role === "SUPERADMIN";
   const companyIds = await getAccessibleCompanyIds(user);
-  const companyScope = scopedCompanyFilter(companyIds);
+  const companyScope = isSuperadmin ? scopedCompanyFilter(companyIds) : employeeScopeWhere(authorization);
   if (companyIds !== null && companyIds.length === 0) {
     return (
       <div className={styles.page}>
         <section className={styles.operationReportPanel}>
           <h1 className={styles.sectionTitle}>Firmanızı tanımlayarak başlayın</h1>
           <p className={styles.subtitle}>Henüz erişiminize tanımlı bir firma bulunmuyor. Kendi firmanızı oluşturduktan sonra iş yerlerinizi ve personellerinizi ekleyebilirsiniz. Mevcut bir firmaya erişmeniz gerekiyorsa sistem yöneticinizden yetki isteyin.</p>
-          {user.role === "COMPANY_ADMIN" && <Link href="/dashboard/companies/new" className={styles.primaryLinkButton}>Firma oluştur</Link>}
+          {user.role === "SUPERADMIN" && <Link href="/dashboard/companies/new" className={styles.primaryLinkButton}>Firma oluştur</Link>}
         </section>
       </div>
     );
@@ -119,7 +121,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
   const monthAttendanceEnd = getAppDayRange(getDateOnlyKey(monthEnd)).start;
 
-  const allowedCompanyWhere = companyIds === null ? {} : { id: { in: companyIds } };
+  const allowedCompanyWhere = isSuperadmin ? (companyIds === null ? {} : { id: { in: companyIds } }) : { id: authorization.companyId ?? -1 };
   const [filterCompanies, filterScopes] = await Promise.all([
     prisma.company.findMany({ where: allowedCompanyWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({
@@ -132,7 +134,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   const selectedCompanyId = Number.isSafeInteger(requestedCompanyId) && filterCompanies.some((company) => company.id === requestedCompanyId)
     ? requestedCompanyId
     : null;
-  const companyIdFilter = selectedCompanyId ? [selectedCompanyId] : filterCompanies.map((company) => company.id);
+  const companyIdFilter = isSuperadmin && selectedCompanyId ? [selectedCompanyId] : filterCompanies.map((company) => company.id);
   const companyFilteredScopes = filterScopes.filter((scope) => companyIdFilter.includes(scope.companyId));
   const requestedBranch = typeof searchParams.branch === "string" ? searchParams.branch.trim() : "";
   const selectedBranch = requestedBranch && companyFilteredScopes.some((scope) => scope.branch === requestedBranch) ? requestedBranch : "";
@@ -143,12 +145,12 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     : "";
 
   const employeeWhere = {
-    companyId: { in: companyIdFilter },
+    ...(isSuperadmin ? { companyId: { in: companyIdFilter } } : employeeScopeWhere(authorization)),
     ...(selectedBranch ? { branch: selectedBranch } : {}),
     ...(selectedDepartment ? { department: selectedDepartment } : {}),
   };
   const attendanceWhere = { employee: employeeWhere };
-  const deviceWhere = { companyId: { in: companyIdFilter }, ...(selectedBranch ? { branchLocation: selectedBranch } : {}) };
+  const deviceWhere = { ...(isSuperadmin ? { companyId: { in: companyIdFilter } } : deviceScopeWhere(authorization)), ...(selectedBranch ? { branchLocation: selectedBranch } : {}) };
   const companyWhere = { id: { in: companyIdFilter } };
 
   const [
@@ -528,7 +530,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               }).format(new Date())}
             </p>
           </div>
-          <div className={styles.quickActions}>
+          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <div className={styles.quickActions}>
             <ExportButton
               rows={dashboardExportRows}
               columns={[
@@ -544,7 +546,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               className={styles.quickButton}
               label="Rapor Indir"
             />
-          </div>
+          </div> : null}
         </section>
       ) : null}
 

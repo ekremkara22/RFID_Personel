@@ -8,7 +8,8 @@ import {
 } from "@/app/dashboard/actions";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -48,15 +49,14 @@ function getDateValue(value?: string) {
 export default async function MovementsPage(props: {
   searchParams: Promise<{
     q?: string;
-    companyId?: string;
-    branch?: string;
-    department?: string;
+    branchId?: string;
+    departmentId?: string;
     type?: string;
     from?: string;
     to?: string;
   }>;
 }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
@@ -64,20 +64,8 @@ export default async function MovementsPage(props: {
 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const accessibleCompanyIds = await getAccessibleCompanyIds(user);
-
-  if (!accessibleCompanyIds || accessibleCompanyIds.length === 0) {
-    redirect("/dashboard");
-  }
-
-  const selectedCompanyId = Number(searchParams.companyId);
-  const companyIdFilter =
-    Number.isInteger(selectedCompanyId) && accessibleCompanyIds.includes(selectedCompanyId)
-      ? [selectedCompanyId]
-      : accessibleCompanyIds;
-  const branch = typeof searchParams.branch === "string" ? searchParams.branch.trim() : "";
-  const department =
-    typeof searchParams.department === "string" ? searchParams.department.trim() : "";
+  if (!authorization.companyId) redirect("/dashboard");
+  const requestedBranchId = Number(searchParams.branchId); const requestedDepartmentId = Number(searchParams.departmentId);
   const type =
     typeof searchParams.type === "string" &&
     Object.values(AttendanceType).includes(searchParams.type as AttendanceType)
@@ -86,23 +74,17 @@ export default async function MovementsPage(props: {
   const fromDate = getDateValue(searchParams.from);
   const toDate = getDateValue(searchParams.to);
 
-  const [companies, branches, departments, logs, auditMarkers] = await Promise.all([
-    prisma.company.findMany({
-      where: { id: { in: accessibleCompanyIds } },
-      orderBy: { name: "asc" },
-    }),
+  const [company, branches, departments] = await Promise.all([
+    prisma.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
     prisma.branch.findMany({
-      where: { companyId: { in: companyIdFilter }, isActive: true },
-      include: { company: true },
-      orderBy: [{ companyId: "asc" }, { name: "asc" }],
+      where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" },
     }),
     prisma.department.findMany({
-      where: {
-        companyId: { in: companyIdFilter },
-        isActive: true,
-      },
-      orderBy: [{ companyId: "asc" }, { name: "asc" }],
+      where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" },
     }),
+  ]);
+  const branchId = branches.some((item)=>item.id === requestedBranchId) ? requestedBranchId : null; const departmentId = departments.some((item)=>item.id === requestedDepartmentId) ? requestedDepartmentId : null;
+  const [logs, auditMarkers] = await Promise.all([
     prisma.attendanceLog.findMany({
       where: {
         ...(type ? { type } : {}),
@@ -115,9 +97,9 @@ export default async function MovementsPage(props: {
             }
           : {}),
         employee: {
-          companyId: { in: companyIdFilter },
-          ...(branch ? { branch } : {}),
-          ...(department ? { department } : {}),
+          ...employeeScopeWhere(authorization),
+          ...(branchId ? { branchId } : {}),
+          ...(departmentId ? { departmentId } : {}),
           ...(query
             ? {
                 OR: [
@@ -138,7 +120,7 @@ export default async function MovementsPage(props: {
       take: 500,
     }),
     prisma.attendanceMovementAudit.findMany({
-      where: { employee: { companyId: { in: companyIdFilter } } },
+      where: { employee: employeeScopeWhere(authorization) },
       select: { employeeId: true, movementDateTime: true },
     }),
   ]);
@@ -219,11 +201,11 @@ export default async function MovementsPage(props: {
         </div>
 
         <div className={styles.heroMeta}>
-          <Link href="/dashboard/movements/new" className={styles.primaryLinkButton}>
+          {can(authorization, PERMISSIONS.MOVEMENT_CREATE) ? <Link href="/dashboard/movements/new" className={styles.primaryLinkButton}>
             <CirclePlus size={18} />
             <span>Hareket Ekle</span>
-          </Link>
-          <ExportButton
+          </Link> : null}
+          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
             rows={exportRows}
             columns={[
               { key: "employee", label: "Personel" },
@@ -238,7 +220,7 @@ export default async function MovementsPage(props: {
             ]}
             filename="personel-hareketleri"
             className={styles.primaryLinkButton}
-          />
+          /> : null}
         </div>
       </section>
 
@@ -251,23 +233,16 @@ export default async function MovementsPage(props: {
 
           <label className={styles.field}>
             <span>Firma</span>
-            <select name="companyId" defaultValue={Number.isInteger(selectedCompanyId) ? selectedCompanyId : ""}>
-              <option value="">Tum Firmalar</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+            <input value={company.name} readOnly />
           </label>
 
           <label className={styles.field}>
             <span>Şube</span>
-            <select name="branch" defaultValue={branch}>
+            <select name="branchId" defaultValue={branchId ?? ""}>
               <option value="">Tum Şubeler</option>
               {branches.map((item) => (
-                <option key={item.id} value={item.name}>
-                  {item.company.name} / {item.name}
+                <option key={item.id} value={item.id}>
+                  {item.name}
                 </option>
               ))}
             </select>
@@ -275,11 +250,11 @@ export default async function MovementsPage(props: {
 
           <label className={styles.field}>
             <span>Departman</span>
-            <select name="department" defaultValue={department}>
+            <select name="departmentId" defaultValue={departmentId ?? ""}>
               <option value="">Tum Departmanlar</option>
               {departments.map((item) => (
-                <option key={item.id} value={item.name}>
-                  {companies.length > 1 ? `${companies.find((company) => company.id === item.companyId)?.name ?? ""} / ` : ""}{item.name}
+                <option key={item.id} value={item.id}>
+                  {item.name}
                 </option>
               ))}
             </select>
@@ -358,7 +333,7 @@ export default async function MovementsPage(props: {
                     <td>{log.employee.branch ?? "-"}</td>
                     <td>{log.employee.department}</td>
                     <td>
-                      <form action={updateAttendanceLogAction} className={styles.inlineEditForm}>
+                      {can(authorization, PERMISSIONS.MOVEMENT_UPDATE) ? <form action={updateAttendanceLogAction} className={styles.inlineEditForm}>
                         <input type="hidden" name="logId" value={log.id} />
                         <select name="type" defaultValue={log.type}>
                           {Object.values(AttendanceType).map((item) => (
@@ -378,13 +353,13 @@ export default async function MovementsPage(props: {
                           pendingLabel="..."
                           className={styles.smallButton}
                         />
-                      </form>
+                      </form> : <span>{attendanceLabels[log.type]} · {formatDate(log.scannedAt)}</span>}
                     </td>
                     <td>{getAttendanceStatus(log)}<p className={styles.tableSubText}>{reviewStatusByLogId.get(log.id)}</p></td>
                     <td className={styles.monoCell}>{log.rfidCardId ?? log.employee.rfidCardId ?? "-"}</td>
                     <td>{log.device?.name ?? "-"}</td>
                     <td>
-                      <form action={deleteAttendanceLogAction} className={styles.auditDeleteForm}>
+                      {can(authorization, PERMISSIONS.MOVEMENT_DELETE) ? <form action={deleteAttendanceLogAction} className={styles.auditDeleteForm}>
                         <input type="hidden" name="logId" value={log.id} />
                         <input name="correctionReason" required placeholder="Silme nedeni" aria-label="Silme nedeni" />
                         <SubmitButton
@@ -392,7 +367,7 @@ export default async function MovementsPage(props: {
                           pendingLabel="..."
                           className={styles.dangerMiniButton}
                         />
-                      </form>
+                      </form> : "—"}
                     </td>
                   </tr>
                 ))

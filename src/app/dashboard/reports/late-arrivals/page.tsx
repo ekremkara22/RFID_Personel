@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { can, employeeScopeWhere } from "@/lib/authorization";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "../../page.module.css";
@@ -63,17 +64,8 @@ function formatMinutes(minutes: number) {
 }
 
 export default async function LateArrivalsReportPage(props: { searchParams?: Promise<SearchParams> }) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN") {
-    redirect("/dashboard");
-  }
-
-  const accessibleCompanyIds = await getAccessibleCompanyIds(user);
-
-  if (!accessibleCompanyIds || accessibleCompanyIds.length === 0) {
-    redirect("/dashboard");
-  }
+  const { authorization } = await requireSessionUser();
+  if (!authorization.companyId) redirect("/dashboard");
 
   const searchParams = (await props.searchParams) ?? {};
   const today = getAppDayRange(new Date()).dateOnly;
@@ -84,25 +76,21 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
   const attendanceStart = getAppDayRange(getDateOnlyKey(fromDate)).start;
   const attendanceEnd = getAppDayRange(getDateOnlyKey(safeToDate)).end;
   const selectedCompanyId = parseId(searchParams.companyId);
-  const companyIdFilter =
-    selectedCompanyId && accessibleCompanyIds.includes(selectedCompanyId)
-      ? [selectedCompanyId]
-      : accessibleCompanyIds;
   const selectedBranch = searchParams.branch?.trim() || "";
 
   const [companies, branches, employees, dailyCalendars, logs, approvedLeaves] = await Promise.all([
     prisma.company.findMany({
-      where: { id: { in: accessibleCompanyIds } },
+      where: { id: authorization.companyId },
       orderBy: { name: "asc" },
     }),
     prisma.branch.findMany({
-      where: { companyId: { in: companyIdFilter } },
+      where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) },
       include: { company: true },
       orderBy: [{ companyId: "asc" }, { name: "asc" }],
     }),
     prisma.employee.findMany({
       where: {
-        companyId: { in: companyIdFilter },
+        ...employeeScopeWhere(authorization),
         ...(selectedBranch ? { branch: selectedBranch } : {}),
       },
       include: { company: true },
@@ -112,7 +100,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
       where: {
         workDate: { gte: fromDate, lt: endExclusive },
         employee: {
-          companyId: { in: companyIdFilter },
+          ...employeeScopeWhere(authorization),
           ...(selectedBranch ? { branch: selectedBranch } : {}),
         },
       },
@@ -125,7 +113,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
         type: "ENTRY",
         scannedAt: { gte: attendanceStart, lt: attendanceEnd },
         employee: {
-          companyId: { in: companyIdFilter },
+          ...employeeScopeWhere(authorization),
           ...(selectedBranch ? { branch: selectedBranch } : {}),
         },
       },
@@ -135,11 +123,11 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
     }),
     prisma.leaveRequest.findMany({
       where: {
-        companyId: { in: companyIdFilter },
+        companyId: authorization.companyId,
         approvalStatus: LeaveApprovalStatus.APPROVED,
         startDate: { lt: endExclusive },
         endDate: { gte: fromDate },
-        employee: selectedBranch ? { branch: selectedBranch } : undefined,
+        employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
       },
       select: { employeeId: true, startDate: true, endDate: true },
       take: 5000,
@@ -267,7 +255,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
             Seçilen tarih, firma ve şube aralığında sadece geç kalan personeli; geç kalma adedi ve toplam dakika ile listeler.
           </p>
         </div>
-        <ExportButton
+        {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
           rows={exportRows}
           columns={[
             { key: "employee", label: "Personel" },
@@ -282,7 +270,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
           ]}
           filename="gec-kalma-raporu"
           className={styles.primaryLinkButton}
-        />
+        /> : null}
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
@@ -388,7 +376,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
             <p className={styles.sectionEyebrow}>Detay</p>
             <h2 className={styles.sectionTitle}>Geç Kalma Hareketleri</h2>
           </div>
-          <ExportButton
+          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
             rows={detailExportRows}
             columns={[
               { key: "employee", label: "Personel" },
@@ -402,7 +390,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
             ]}
             filename="gec-kalma-hareket-detayi"
             className={styles.primaryLinkButton}
-          />
+          /> : null}
         </div>
         <div className={styles.tableWrap}>
           <table className={styles.table}>

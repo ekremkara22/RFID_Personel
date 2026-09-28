@@ -15,6 +15,7 @@ git pull --ff-only origin "$BRANCH"
 npm ci
 npm run prisma:generate
 npm run db:push
+npm run rbac:migrate:staging
 npm run test
 npm run lint
 npm run build

@@ -1,0 +1,187 @@
+"use server";
+
+import bcrypt from "bcryptjs";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { CompanyInvitationStatus, CompanyMembershipStatus, DataScopeMode, Role } from "@/generated/prisma/client";
+import { AUTH_COOKIE_NAME, signToken } from "@/lib/auth";
+import { assertPermission } from "@/lib/authorization";
+import { ALL_PERMISSIONS, PERMISSIONS } from "@/lib/permission-catalog";
+import { prisma } from "@/lib/prisma";
+import { ACTIVE_COMPANY_COOKIE_NAME, requireSessionUser } from "@/lib/session";
+
+function value(formData: FormData, key: string) { const item = formData.get(key); return typeof item === "string" ? item.trim() : ""; }
+function ids(formData: FormData, key: string) { return [...new Set(formData.getAll(key).map(Number).filter((item) => Number.isSafeInteger(item) && item > 0))]; }
+function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
+function normalizeEmail(email: string) { return email.trim().toLocaleLowerCase("tr-TR"); }
+
+async function validateScopeIds(companyId: number, branchIds: number[], departmentIds: number[], employeeIds: number[], deviceIds: number[], teamIds: number[]) {
+  const [branches, departments, employees, devices, teams] = await Promise.all([
+    prisma.branch.count({ where: { id: { in: branchIds }, companyId } }),
+    prisma.department.count({ where: { id: { in: departmentIds }, companyId } }),
+    prisma.employee.count({ where: { id: { in: employeeIds }, companyId } }),
+    prisma.device.count({ where: { id: { in: deviceIds }, companyId } }),
+    prisma.companyTeam.count({ where: { id: { in: teamIds }, companyId } }),
+  ]);
+  if (branches !== branchIds.length || departments !== departmentIds.length || employees !== employeeIds.length || devices !== deviceIds.length || teams !== teamIds.length) {
+    throw new Error("Kapsam seçimlerinden biri bu firmaya ait değil.");
+  }
+}
+
+export async function setActiveCompanyAction(formData: FormData) {
+  const { user } = await requireSessionUser();
+  const companyId = Number(value(formData, "companyId"));
+  const membership = await prisma.companyMembership.findFirst({ where: { userId: user.id, companyId, status: CompanyMembershipStatus.ACTIVE, company: { isActive: true }, role: { isActive: true } }, select: { id: true } });
+  if (!membership && user.role !== Role.SUPERADMIN) throw new Error("Bu firmaya erişiminiz yok.");
+  const cookieStore = await cookies();
+  cookieStore.set(ACTIVE_COMPANY_COOKIE_NAME, String(companyId), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 365 });
+  redirect("/dashboard");
+}
+
+export async function createCompanyInvitationAction(formData: FormData) {
+  const { user, authorization } = await requireSessionUser();
+  assertPermission(authorization, PERMISSIONS.ACCESS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
+  const email = normalizeEmail(value(formData, "email"));
+  const roleId = Number(value(formData, "roleId"));
+  const scopeMode = value(formData, "scopeMode") as DataScopeMode;
+  if (!email || !email.includes("@") || !Object.values(DataScopeMode).includes(scopeMode)) throw new Error("Davet bilgileri geçersiz.");
+  const role = await prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId, isActive: true }, include: { permissions: true } });
+  if (!role || role.key === "OWNER") throw new Error("Firma sahibi davetle atanamaz; sahiplik devri kullanılmalıdır.");
+  if (role.permissions.some((item) => !authorization.permissions.has(item.permission))) throw new Error("Sahip olmadığınız bir yetkiyi devredemezsiniz.");
+  const branchIds = ids(formData, "branchIds"); const departmentIds = ids(formData, "departmentIds"); const employeeIds = ids(formData, "employeeIds"); const deviceIds = ids(formData, "deviceIds"); const teamIds = ids(formData, "teamIds");
+  await validateScopeIds(authorization.companyId, branchIds, departmentIds, employeeIds, deviceIds, teamIds);
+  const existingMembership = await prisma.companyMembership.findFirst({ where: { companyId: authorization.companyId, user: { email } } });
+  if (existingMembership && existingMembership.status !== CompanyMembershipStatus.REVOKED) throw new Error("Bu kullanıcı zaten firmaya üyedir.");
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+  await prisma.$transaction(async (tx) => {
+    await tx.companyInvitation.updateMany({ where: { companyId: authorization.companyId!, email, status: CompanyInvitationStatus.PENDING }, data: { status: CompanyInvitationStatus.REVOKED } });
+    await tx.companyInvitation.create({ data: { companyId: authorization.companyId!, email, roleId, tokenHash: hashToken(token), scopeMode, scopeJson: JSON.stringify({ branchIds, departmentIds, employeeIds, deviceIds, teamIds }), expiresAt, createdById: user.id } });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: "INVITATION_CREATED", summary: `${email} adresine ${role.name} rolü için davet oluşturuldu.` } });
+  });
+  const appUrl = process.env.APP_URL ?? "https://test.flodeska.com";
+  redirect(`/dashboard/access?invite=${encodeURIComponent(`${appUrl}/activate/${token}`)}`);
+}
+
+export async function activateCompanyInvitationAction(formData: FormData) {
+  const token = value(formData, "token"); const firstName = value(formData, "firstName"); const lastName = value(formData, "lastName"); const password = value(formData, "password");
+  if (!token || password.length < 10) throw new Error("Davet veya parola geçersiz. Parola en az 10 karakter olmalıdır.");
+  const invitation = await prisma.companyInvitation.findUnique({ where: { tokenHash: hashToken(token) }, include: { company: true, role: true } });
+  if (!invitation || invitation.status !== CompanyInvitationStatus.PENDING || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.company.isActive || !invitation.role.isActive) throw new Error("Davet geçersiz, kullanılmış veya süresi dolmuş.");
+  let user = await prisma.user.findUnique({ where: { email: invitation.email } });
+  if (user) {
+    if (!(await bcrypt.compare(password, user.password))) throw new Error("Mevcut hesap parolası hatalı. Hesabın parolası değiştirilmedi.");
+  } else {
+    if (!firstName || !lastName) throw new Error("Yeni hesap için ad ve soyad zorunludur.");
+    user = await prisma.user.create({ data: { email: invitation.email, firstName, lastName, name: `${firstName} ${lastName}`, password: await bcrypt.hash(password, 12), role: Role.COMPANY_ADMIN } });
+  }
+  const scope = JSON.parse(invitation.scopeJson || "{}") as { branchIds?: number[]; departmentIds?: number[]; employeeIds?: number[]; deviceIds?: number[]; teamIds?: number[] };
+  await prisma.$transaction(async (tx) => {
+    const membership = await tx.companyMembership.upsert({ where: { userId_companyId: { userId: user!.id, companyId: invitation.companyId } }, create: { userId: user!.id, companyId: invitation.companyId, roleId: invitation.roleId, status: CompanyMembershipStatus.ACTIVE, scopeMode: invitation.scopeMode }, update: { roleId: invitation.roleId, status: CompanyMembershipStatus.ACTIVE, scopeMode: invitation.scopeMode, sessionVersion: { increment: 1 } } });
+    await Promise.all([tx.membershipBranchScope.deleteMany({ where: { membershipId: membership.id } }), tx.membershipDepartmentScope.deleteMany({ where: { membershipId: membership.id } }), tx.membershipEmployeeScope.deleteMany({ where: { membershipId: membership.id } }), tx.membershipDeviceScope.deleteMany({ where: { membershipId: membership.id } }), tx.membershipTeamScope.deleteMany({ where: { membershipId: membership.id } })]);
+    if (scope.branchIds?.length) await tx.membershipBranchScope.createMany({ data: scope.branchIds.map((branchId) => ({ membershipId: membership.id, branchId })) });
+    if (scope.departmentIds?.length) await tx.membershipDepartmentScope.createMany({ data: scope.departmentIds.map((departmentId) => ({ membershipId: membership.id, departmentId })) });
+    if (scope.employeeIds?.length) await tx.membershipEmployeeScope.createMany({ data: scope.employeeIds.map((employeeId) => ({ membershipId: membership.id, employeeId })) });
+    if (scope.deviceIds?.length) await tx.membershipDeviceScope.createMany({ data: scope.deviceIds.map((deviceId) => ({ membershipId: membership.id, deviceId })) });
+    if (scope.teamIds?.length) await tx.membershipTeamScope.createMany({ data: scope.teamIds.map((teamId) => ({ membershipId: membership.id, teamId })) });
+    await tx.companyInvitation.update({ where: { id: invitation.id }, data: { status: CompanyInvitationStatus.ACCEPTED, acceptedAt: new Date() } });
+    await tx.companyAccessAudit.create({ data: { companyId: invitation.companyId, actorUserId: user!.id, targetUserId: user!.id, action: "INVITATION_ACCEPTED", summary: `${invitation.email} üyeliği etkinleştirildi.` } });
+  });
+  const authToken = await signToken({ id: user.id, email: user.email, name: user.name ?? (`${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email), role: user.role, companyId: invitation.companyId });
+  const cookieStore = await cookies();
+  cookieStore.set(AUTH_COOKIE_NAME, authToken, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 });
+  cookieStore.set(ACTIVE_COMPANY_COOKIE_NAME, String(invitation.companyId), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 365 });
+  redirect("/dashboard");
+}
+
+export async function updateCompanyMembershipAction(formData: FormData) {
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
+  const membershipId = Number(value(formData, "membershipId")); const roleId = Number(value(formData, "roleId")); const status = value(formData, "status") as CompanyMembershipStatus; const scopeMode = value(formData, "scopeMode") as DataScopeMode; const employeeId = Number(value(formData, "employeeId")) || null;
+  if (!Object.values(CompanyMembershipStatus).includes(status) || !Object.values(DataScopeMode).includes(scopeMode)) throw new Error("Üyelik bilgileri geçersiz.");
+  const [target, role] = await Promise.all([prisma.companyMembership.findFirst({ where: { id: membershipId, companyId: authorization.companyId }, include: { role: { include: { permissions: true } } } }), prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId, isActive: true }, include: { permissions: true } })]);
+  if (!target || !role) throw new Error("Üyelik veya rol bulunamadı.");
+  if (target.role.key === "OWNER" || role.key === "OWNER") throw new Error("Firma sahibi değişikliği yalnız sahiplik devriyle yapılabilir.");
+  if (role.permissions.some((item) => !authorization.permissions.has(item.permission))) throw new Error("Sahip olmadığınız bir yetkiyi devredemezsiniz.");
+  if (target.userId === user.id) throw new Error("Kendi rolünüzü, durumunuzu veya veri kapsamınızı değiştiremezsiniz. Bu değişikliği başka bir firma yöneticisi yapmalıdır.");
+  const branchIds = ids(formData, "branchIds"); const departmentIds = ids(formData, "departmentIds"); const employeeIds = ids(formData, "employeeIds"); const deviceIds = ids(formData, "deviceIds"); const teamIds = ids(formData, "teamIds");
+  await validateScopeIds(authorization.companyId, branchIds, departmentIds, employeeIds, deviceIds, teamIds);
+  if (employeeId && !(await prisma.employee.findFirst({ where: { id: employeeId, companyId: authorization.companyId }, select: { id: true } }))) throw new Error("Personel bağlantısı bu firmaya ait değil.");
+  await prisma.$transaction(async (tx) => {
+    await tx.companyMembership.update({ where: { id: target.id }, data: { roleId, status, scopeMode, employeeId, sessionVersion: { increment: 1 } } });
+    await Promise.all([tx.membershipBranchScope.deleteMany({ where: { membershipId } }), tx.membershipDepartmentScope.deleteMany({ where: { membershipId } }), tx.membershipEmployeeScope.deleteMany({ where: { membershipId } }), tx.membershipDeviceScope.deleteMany({ where: { membershipId } }), tx.membershipTeamScope.deleteMany({ where: { membershipId } })]);
+    if (branchIds.length) await tx.membershipBranchScope.createMany({ data: branchIds.map((branchId) => ({ membershipId, branchId })) });
+    if (departmentIds.length) await tx.membershipDepartmentScope.createMany({ data: departmentIds.map((departmentId) => ({ membershipId, departmentId })) });
+    if (employeeIds.length) await tx.membershipEmployeeScope.createMany({ data: employeeIds.map((itemEmployeeId) => ({ membershipId, employeeId: itemEmployeeId })) });
+    if (deviceIds.length) await tx.membershipDeviceScope.createMany({ data: deviceIds.map((deviceId) => ({ membershipId, deviceId })) });
+    if (teamIds.length) await tx.membershipTeamScope.createMany({ data: teamIds.map((teamId) => ({ membershipId, teamId })) });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, targetUserId: target.userId, action: "MEMBERSHIP_UPDATED", summary: `Üyelik ${role.name} rolü, ${scopeMode} kapsamı ve ${status} durumuyla güncellendi.`, metadataJson: JSON.stringify({ roleId, scopeMode, status, branchIds, departmentIds, employeeIds, deviceIds, teamIds, employeeId }) } });
+  });
+  revalidatePath("/dashboard/access"); redirect(`/dashboard/access/members/${membershipId}`);
+}
+
+export async function transferCompanyOwnershipAction(formData: FormData) {
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.OWNERSHIP_TRANSFER);
+  if (!authorization.companyId || authorization.roleKey !== "OWNER") throw new Error("Sahiplik devrini yalnız mevcut firma sahibi yapabilir.");
+  const targetMembershipId = Number(value(formData, "targetMembershipId"));
+  const [target, ownerRole, adminRole] = await Promise.all([prisma.companyMembership.findFirst({ where: { id: targetMembershipId, companyId: authorization.companyId, status: CompanyMembershipStatus.ACTIVE } }), prisma.companyRole.findUnique({ where: { companyId_key: { companyId: authorization.companyId, key: "OWNER" } } }), prisma.companyRole.findUnique({ where: { companyId_key: { companyId: authorization.companyId, key: "ADMIN" } } })]);
+  if (!target || target.userId === user.id || !ownerRole || !adminRole) throw new Error("Sahiplik devri hedefi geçersiz.");
+  await prisma.$transaction(async (tx) => {
+    await tx.companyMembership.update({ where: { id: target.id }, data: { roleId: ownerRole.id, scopeMode: DataScopeMode.COMPANY, sessionVersion: { increment: 1 } } });
+    await tx.companyMembership.update({ where: { id: authorization.membershipId! }, data: { roleId: adminRole.id, sessionVersion: { increment: 1 } } });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, targetUserId: target.userId, action: "OWNERSHIP_TRANSFERRED", summary: "Firma sahipliği açık işlemle devredildi." } });
+  });
+  redirect("/dashboard/access");
+}
+
+export async function createCompanyRoleAction(formData: FormData) {
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
+  const name = value(formData, "name"); const description = value(formData, "description"); const requested = formData.getAll("permissions").filter((item): item is string => typeof item === "string" && ALL_PERMISSIONS.includes(item as never));
+  if (!name || requested.length === 0) throw new Error("Rol adı ve en az bir izin zorunludur.");
+  if (requested.some((permission) => !authorization.permissions.has(permission))) throw new Error("Sahip olmadığınız izni role ekleyemezsiniz.");
+  const role = await prisma.$transaction(async (tx) => {
+    const created = await tx.companyRole.create({ data: { companyId: authorization.companyId!, key: `CUSTOM_${randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase()}`, name, description: description || null } });
+    await tx.companyRolePermission.createMany({ data: requested.map((permission) => ({ roleId: created.id, permission })) });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: "ROLE_CREATED", summary: `${name} özel rolü oluşturuldu.`, metadataJson: JSON.stringify({ permissions: requested }) } });
+    return created;
+  });
+  revalidatePath("/dashboard/access/roles"); redirect(`/dashboard/access/roles?created=${role.id}`);
+}
+
+export async function updateCompanyRoleAction(formData: FormData) {
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
+  const roleId = Number(value(formData, "roleId")); const name = value(formData, "name"); const isActive = formData.get("isActive") === "on"; const requested = formData.getAll("permissions").filter((item): item is string => typeof item === "string" && ALL_PERMISSIONS.includes(item as never));
+  const role = await prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId }, include: { memberships: { where: { status: CompanyMembershipStatus.ACTIVE } } } });
+  if (!role || !name) throw new Error("Rol bulunamadı.");
+  if (role.key === "OWNER" && !isActive) throw new Error("Firma sahibi rolü pasifleştirilemez.");
+  if (requested.some((permission) => !authorization.permissions.has(permission))) throw new Error("Sahip olmadığınız izni role ekleyemezsiniz.");
+  if (!isActive && role.memberships.length) throw new Error("Aktif üyesi bulunan rol önce üyelerden kaldırılmalıdır; erişim sessizce başka role genişletilmez.");
+  await prisma.$transaction(async (tx) => {
+    await tx.companyRole.update({ where: { id: role.id }, data: { name, isActive } });
+    await tx.companyRolePermission.deleteMany({ where: { roleId: role.id } });
+    if (requested.length) await tx.companyRolePermission.createMany({ data: requested.map((permission) => ({ roleId: role.id, permission })) });
+    await tx.companyMembership.updateMany({ where: { roleId: role.id }, data: { sessionVersion: { increment: 1 } } });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: "ROLE_UPDATED", summary: `${name} rolü güncellendi.`, metadataJson: JSON.stringify({ permissions: requested, isActive }) } });
+  });
+  revalidatePath("/dashboard/access/roles");
+}
+
+export async function saveCompanyTeamAction(formData: FormData) {
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
+  const teamId = Number(value(formData, "teamId")) || null; const name = value(formData, "name"); const employeeIds = ids(formData, "employeeIds"); const isActive = formData.get("isActive") === "on" || !teamId;
+  if (!name) throw new Error("Ekip adı zorunludur.");
+  await validateScopeIds(authorization.companyId, [], [], employeeIds, [], []);
+  await prisma.$transaction(async (tx) => {
+    const team = teamId ? await tx.companyTeam.update({ where: { id: teamId, companyId: authorization.companyId! }, data: { name, isActive } }) : await tx.companyTeam.create({ data: { companyId: authorization.companyId!, name, isActive: true } });
+    await tx.companyTeamEmployee.deleteMany({ where: { teamId: team.id } });
+    if (employeeIds.length) await tx.companyTeamEmployee.createMany({ data: employeeIds.map((employeeId) => ({ teamId: team.id, employeeId })) });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: teamId ? "TEAM_UPDATED" : "TEAM_CREATED", summary: `${name} ekibi ${employeeIds.length} personelle kaydedildi.` } });
+  });
+  revalidatePath("/dashboard/access/teams");
+}

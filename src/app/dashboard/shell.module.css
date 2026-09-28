@@ -248,3 +248,20 @@
     padding: 1rem;
   }
 }
+.companySwitcher {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.companySwitcher select,
+.companySwitcher button {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 0.55rem;
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  padding: 0.45rem;
+  font-size: 0.72rem;
+}

@@ -11,6 +11,7 @@ import {
   AttendanceType,
   CalendarApprovalStatus,
   CalendarScopeType,
+  DataScopeMode,
   DevicePurpose,
   LeaveApprovalStatus,
   LeaveDurationType,
@@ -21,7 +22,8 @@ import {
   WorkDayType,
 } from "@/generated/prisma/client";
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS, READY_COMPANY_ROLES } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import {
   assertPayrollPeriodUnlocked,
@@ -229,47 +231,6 @@ function redirectToReturnPath(formData: FormData, fallback?: string) {
   redirect(getReturnTo(formData) || fallback || "/dashboard");
 }
 
-async function getScopedCompanyId(formData: FormData, fallbackCompanyId?: number | null, userId?: number) {
-  const requestedCompanyId = getOptionalId(formData, "companyId");
-  const companyId = requestedCompanyId || fallbackCompanyId;
-
-  if (!companyId) {
-    throw new Error("Firma bilgisi secilmelidir.");
-  }
-
-  if (fallbackCompanyId && companyId !== fallbackCompanyId && userId) {
-    const access = await prisma.userCompanyAccess.findFirst({
-      where: {
-        userId,
-        companyId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!access) {
-      throw new Error("Bu firma icin yetkiniz yok.");
-    }
-  }
-
-  const company = await prisma.company.findFirst({
-    where: {
-      id: companyId,
-      isActive: true,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!company) {
-    throw new Error("Firma bulunamadi.");
-  }
-
-  return company.id;
-}
-
 async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
   const file = formData.get("photo");
 
@@ -294,7 +255,7 @@ async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
 export async function createCompanyAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
+  if (user.role !== "SUPERADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -313,7 +274,7 @@ export async function createCompanyAction(formData: FormData) {
 
   if (
     !companyName ||
-    (user.role === "SUPERADMIN" && (!adminFirstName || !adminLastName || !adminEmail || !adminPassword))
+    (!adminFirstName || !adminLastName || !adminEmail || !adminPassword)
   ) {
     throw new Error("Sirket ve firma yoneticisi bilgileri eksik.");
   }
@@ -352,20 +313,12 @@ export async function createCompanyAction(formData: FormData) {
           companyId: company.id,
         },
       });
-    } else {
-      await tx.userCompanyAccess.create({
-        data: {
-          userId: user.id,
-          companyId: company.id,
-        },
-      });
-
-      if (!user.companyId) {
-        await tx.user.update({
-          where: { id: user.id },
-          data: { companyId: company.id },
-        });
+      let ownerRoleId = 0;
+      for (const definition of READY_COMPANY_ROLES) {
+        const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) } } });
+        if (definition.key === "OWNER") ownerRoleId = role.id;
       }
+      await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY" } });
     }
   });
 
@@ -375,11 +328,12 @@ export async function createCompanyAction(formData: FormData) {
 }
 
 export async function updateCompanyAction(formData: FormData) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
+  if (user.role !== "SUPERADMIN") assertPermission(authorization, PERMISSIONS.COMPANY_UPDATE);
 
   const companyId = getId(formData, "companyId");
   const adminId = getId(formData, "adminId");
@@ -406,12 +360,7 @@ export async function updateCompanyAction(formData: FormData) {
   }
 
   if (user.role === "COMPANY_ADMIN") {
-    const access = await prisma.userCompanyAccess.findFirst({
-      where: { userId: user.id, companyId },
-      select: { id: true },
-    });
-
-    if (!access && user.companyId !== companyId) {
+    if (authorization.companyId !== companyId) {
       throw new Error("Bu firma icin yetkiniz yok.");
     }
   }
@@ -700,7 +649,7 @@ export async function updateRoleDefinitionAction(formData: FormData) {
 export async function createCompanyCategoryAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN") {
+  if (user.role !== "SUPERADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -722,7 +671,7 @@ export async function createCompanyCategoryAction(formData: FormData) {
 export async function updateCompanyCategoryAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "COMPANY_ADMIN") {
+  if (user.role !== "SUPERADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -746,7 +695,7 @@ export async function updateCompanyCategoryAction(formData: FormData) {
 
 export async function deleteCompanyCategoryAction(formData: FormData) {
   const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
+  if (user.role !== "SUPERADMIN") throw new Error("Bu islem icin yetkiniz yok.");
 
   const categoryId = getId(formData, "categoryId");
   const category = await prisma.companyCategory.findUnique({ where: { id: categoryId } });
@@ -775,14 +724,13 @@ async function assertCompanyDepartment(companyId: number, department: string) {
   if (!existingDepartment) {
     throw new Error("Secilen departman firma tanimlarinda aktif degil.");
   }
+  return existingDepartment;
 }
 
 export async function createDepartmentAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser();
+  assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const name = getString(formData, "name");
 
@@ -793,7 +741,7 @@ export async function createDepartmentAction(formData: FormData) {
   await prisma.department.create({
     data: {
       name,
-      companyId: user.companyId,
+      companyId: authorization.companyId,
     },
   });
 
@@ -804,11 +752,9 @@ export async function createDepartmentAction(formData: FormData) {
 }
 
 export async function updateDepartmentAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser();
+  assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const departmentId = getId(formData, "departmentId");
   const name = getString(formData, "name");
@@ -821,7 +767,7 @@ export async function updateDepartmentAction(formData: FormData) {
   await prisma.department.updateMany({
     where: {
       id: departmentId,
-      companyId: user.companyId,
+      companyId: authorization.companyId,
     },
     data: { name, isActive },
   });
@@ -833,15 +779,15 @@ export async function updateDepartmentAction(formData: FormData) {
 }
 
 export async function deleteDepartmentAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) throw new Error("Bu islem icin yetkiniz yok.");
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const departmentId = getId(formData, "departmentId");
-  const department = await prisma.department.findFirst({ where: { id: departmentId, companyId: user.companyId } });
+  const department = await prisma.department.findFirst({ where: { id: departmentId, companyId: authorization.companyId } });
   if (!department) throw new Error("Departman bulunamadi.");
 
   const [employeeCount, assignmentCount, specialDayCount, exceptionCount] = await Promise.all([
-    prisma.employee.count({ where: { companyId: user.companyId, department: department.name } }),
+    prisma.employee.count({ where: { companyId: authorization.companyId, departmentId } }),
     prisma.calendarAssignment.count({ where: { departmentId } }),
     prisma.calendarSpecialDay.count({ where: { departmentId } }),
     prisma.calendarDailyException.count({ where: { departmentId } }),
@@ -856,13 +802,9 @@ export async function deleteDepartmentAction(formData: FormData) {
 }
 
 export async function createBranchAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const name = getString(formData, "name");
   const location = getString(formData, "location");
 
@@ -884,14 +826,11 @@ export async function createBranchAction(formData: FormData) {
 }
 
 export async function updateBranchAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const branchId = getId(formData, "branchId");
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
+  const companyId = authorization.companyId;
   const name = getString(formData, "name");
   const location = getString(formData, "location");
   const isActive = formData.get("isActive") === "on";
@@ -911,18 +850,17 @@ export async function updateBranchAction(formData: FormData) {
 }
 
 export async function deleteBranchAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const branchId = getId(formData, "branchId");
-  const companyIds = await getAccessibleCompanyIds(user);
   const branch = await prisma.branch.findFirst({
-    where: { id: branchId, ...(companyIds ? { companyId: { in: companyIds } } : {}) },
+    where: { id: branchId, companyId: authorization.companyId },
   });
   if (!branch) throw new Error("Sube bulunamadi.");
 
   const [employeeCount, assignmentCount, specialDayCount, exceptionCount] = await Promise.all([
-    prisma.employee.count({ where: { companyId: branch.companyId, branch: branch.name } }),
+    prisma.employee.count({ where: { companyId: branch.companyId, branchId } }),
     prisma.calendarAssignment.count({ where: { branchId } }),
     prisma.calendarSpecialDay.count({ where: { branchId } }),
     prisma.calendarDailyException.count({ where: { branchId } }),
@@ -937,11 +875,8 @@ export async function deleteBranchAction(formData: FormData) {
 }
 
 export async function createManagerAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const name = getString(formData, "name");
   const email = normalizeOptionalEmail(getString(formData, "email"));
@@ -954,7 +889,7 @@ export async function createManagerAction(formData: FormData) {
     data: {
       name,
       email,
-      companyId: user.companyId,
+      companyId: authorization.companyId,
     },
   });
 
@@ -964,11 +899,8 @@ export async function createManagerAction(formData: FormData) {
 }
 
 export async function updateManagerAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const managerId = getId(formData, "managerId");
   const name = getString(formData, "name");
@@ -982,7 +914,7 @@ export async function updateManagerAction(formData: FormData) {
   await prisma.manager.updateMany({
     where: {
       id: managerId,
-      companyId: user.companyId,
+      companyId: authorization.companyId,
     },
     data: { name, email, isActive },
   });
@@ -993,14 +925,14 @@ export async function updateManagerAction(formData: FormData) {
 }
 
 export async function deleteManagerAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) throw new Error("Bu islem icin yetkiniz yok.");
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const managerId = getId(formData, "managerId");
-  const manager = await prisma.manager.findFirst({ where: { id: managerId, companyId: user.companyId } });
+  const manager = await prisma.manager.findFirst({ where: { id: managerId, companyId: authorization.companyId } });
   if (!manager) throw new Error("Yonetici bulunamadi.");
 
-  const employeeCount = await prisma.employee.count({ where: { companyId: user.companyId, managerName: manager.name } });
+  const employeeCount = await prisma.employee.count({ where: { companyId: authorization.companyId, managerName: manager.name } });
   if (employeeCount > 0) {
     throw new Error("Bu yonetici personel kayitlarinda kullaniliyor. Silmek yerine pasif yapin.");
   }
@@ -1011,15 +943,12 @@ export async function deleteManagerAction(formData: FormData) {
 }
 
 export async function createEmployeeAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.PERSONNEL_CREATE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
-  const companyId = await getScopedCompanyId(formData, user.companyId, user.id);
+  const companyId = authorization.companyId;
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const department = getString(formData, "department");
@@ -1036,7 +965,12 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Personel bilgileri gecersiz.");
   }
 
-  await assertCompanyDepartment(companyId, department);
+  const departmentRef = await assertCompanyDepartment(companyId, department);
+  const branchRef = branch ? await prisma.branch.findFirst({ where: { companyId, name: branch, isActive: true } }) : null;
+  if (branch && !branchRef) throw new Error("Secilen sube bu firmaya ait degil.");
+  if (authorization.scopeMode === "OWN" || authorization.scopeMode === "NONE" || (authorization.scopeMode === "RESTRICTED" && (authorization.employeeIds.length > 0 || authorization.teamEmployeeIds.length > 0))) throw new Error("Bu veri kapsaminda yeni personel olusturamazsiniz.");
+  if (authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length && (!branchRef || !authorization.branchIds.includes(branchRef.id))) throw new Error("Secilen sube yetki kapsaminizda degil.");
+  if (authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length && !authorization.departmentIds.includes(departmentRef.id)) throw new Error("Secilen departman yetki kapsaminizda degil.");
 
   await prisma.employee.create({
     data: {
@@ -1047,7 +981,9 @@ export async function createEmployeeAction(formData: FormData) {
       email,
       password: password ? await bcrypt.hash(password, 10) : null,
       department,
+      departmentId: departmentRef.id,
       branch,
+      branchId: branchRef?.id ?? null,
       managerName,
       hireDate,
       terminationDate,
@@ -1063,16 +999,13 @@ export async function createEmployeeAction(formData: FormData) {
 }
 
 export async function updateEmployeeAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.PERSONNEL_UPDATE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const employeeId = getId(formData, "employeeId");
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
-  const companyId = await getScopedCompanyId(formData, user.companyId, user.id);
+  const companyId = authorization.companyId;
   const email = normalizeOptionalEmail(getString(formData, "email"));
   const password = getString(formData, "password");
   const department = getString(formData, "department");
@@ -1089,28 +1022,22 @@ export async function updateEmployeeAction(formData: FormData) {
     throw new Error("Personel bilgileri gecersiz.");
   }
 
-  await assertCompanyDepartment(companyId, department);
-
-  const accessRows = await prisma.userCompanyAccess.findMany({
-    where: { userId: user.id },
-    select: { companyId: true },
-  });
-  const accessibleCompanyIds = Array.from(
-    new Set([user.companyId, ...accessRows.map((access) => access.companyId)].filter((value): value is number => value !== null)),
-  );
+  const departmentRef = await assertCompanyDepartment(companyId, department);
+  const branchRef = branch ? await prisma.branch.findFirst({ where: { companyId, name: branch, isActive: true } }) : null;
+  if (branch && !branchRef) throw new Error("Secilen sube bu firmaya ait degil.");
   const currentEmployee = await prisma.employee.findFirst({
-    where: {
-      id: employeeId,
-      companyId: { in: accessibleCompanyIds },
-    },
+    where: { id: employeeId, ...employeeScopeWhere(authorization) },
     select: { photoUrl: true },
   });
+  if (!currentEmployee) throw new Error("Personel bulunamadi veya yetki kapsaminizin disinda.");
+  if (authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length && (!branchRef || !authorization.branchIds.includes(branchRef.id))) throw new Error("Secilen sube yetki kapsaminizda degil.");
+  if (authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length && !authorization.departmentIds.includes(departmentRef.id)) throw new Error("Secilen departman yetki kapsaminizda degil.");
   const photoUrl = await saveEmployeePhoto(formData, currentEmployee?.photoUrl);
 
   await prisma.employee.updateMany({
     where: {
       id: employeeId,
-      companyId: { in: accessibleCompanyIds },
+      ...employeeScopeWhere(authorization),
     },
     data: {
       firstName,
@@ -1119,7 +1046,9 @@ export async function updateEmployeeAction(formData: FormData) {
       registrationNumber,
       email,
       department,
+      departmentId: departmentRef.id,
       branch,
+      branchId: branchRef?.id ?? null,
       managerName,
       hireDate,
       terminationDate,
@@ -1137,11 +1066,8 @@ export async function updateEmployeeAction(formData: FormData) {
 }
 
 export async function deleteEmployeeAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.PERSONNEL_DELETE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const employeeId = getId(formData, "employeeId");
 
@@ -1150,14 +1076,14 @@ export async function deleteEmployeeAction(formData: FormData) {
   }
 
   const currentEmployee = await prisma.employee.findFirst({
-    where: { id: employeeId, companyId: user.companyId },
+    where: { id: employeeId, ...employeeScopeWhere(authorization) },
     select: { terminationDate: true },
   });
 
   await prisma.employee.updateMany({
     where: {
       id: employeeId,
-      companyId: user.companyId,
+      ...employeeScopeWhere(authorization),
     },
     data: {
       isActive: false,
@@ -1343,11 +1269,7 @@ export async function deleteUserDeviceAccessAction(formData: FormData) {
 }
 
 export async function updateDeviceAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN") {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.DEVICE_MANAGE);
 
   const deviceId = getId(formData, "deviceId");
   const companyId = getId(formData, "companyId");
@@ -1358,19 +1280,11 @@ export async function updateDeviceAction(formData: FormData) {
     throw new Error("Cihaz adi ve firma bilgisi zorunludur.");
   }
 
-  const accessibleCompanyIds = await prisma.userCompanyAccess.findMany({
-    where: { userId: user.id },
-    select: { companyId: true },
-  });
-  const companyIds = new Set(accessibleCompanyIds.map((access) => access.companyId));
-  if (user.companyId) companyIds.add(user.companyId);
-
-  if (!companyIds.has(companyId)) {
+  if (authorization.companyId !== companyId) {
     throw new Error("Bu firma icin yetkiniz yok.");
   }
-
-  const assignedDevice = await prisma.userDeviceAccess.findFirst({
-    where: { userId: user.id, deviceId },
+  const assignedDevice = await prisma.device.findFirst({
+    where: { id: deviceId, ...deviceScopeWhere(authorization) },
     select: { id: true },
   });
 
@@ -1390,11 +1304,7 @@ export async function updateDeviceAction(formData: FormData) {
 }
 
 export async function updateAttendanceLogAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN") {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.MOVEMENT_UPDATE);
 
   const logId = getId(formData, "logId");
   const type = getString(formData, "type") as AttendanceType;
@@ -1412,9 +1322,8 @@ export async function updateAttendanceLogAction(formData: FormData) {
     throw new Error("Hareket tarihi gecersiz.");
   }
 
-  const companyIds = await getAccessibleCompanyIds(user);
   const oldLog = await prisma.attendanceLog.findFirst({
-    where: { id: logId, employee: { companyId: { in: companyIds ?? [] } } },
+    where: { id: logId, employee: employeeScopeWhere(authorization) },
     include: { employee: { select: { companyId: true } } },
   });
   if (!oldLog) throw new Error("Hareket bulunamadi veya bu kayit icin yetkiniz yok.");
@@ -1448,11 +1357,7 @@ export async function updateAttendanceLogAction(formData: FormData) {
 }
 
 export async function createAttendanceLogAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN") {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.MOVEMENT_CREATE);
 
   const employeeId = getId(formData, "employeeId");
   const deviceId = getOptionalId(formData, "deviceId");
@@ -1472,11 +1377,10 @@ export async function createAttendanceLogAction(formData: FormData) {
     throw new Error("Hareket tarihi gecersiz.");
   }
 
-  const companyIds = await getAccessibleCompanyIds(user);
   const employee = await prisma.employee.findFirst({
     where: {
       id: employeeId,
-      companyId: { in: companyIds ?? [] },
+      ...employeeScopeWhere(authorization),
     },
     select: {
       id: true,
@@ -1495,7 +1399,7 @@ export async function createAttendanceLogAction(formData: FormData) {
     const device = await prisma.device.findFirst({
       where: {
         id: deviceId,
-        companyId: employee.companyId,
+        ...deviceScopeWhere(authorization),
       },
       select: {
         id: true,
@@ -1543,11 +1447,7 @@ export async function createAttendanceLogAction(formData: FormData) {
 }
 
 export async function deleteAttendanceLogAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN") {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.MOVEMENT_DELETE);
 
   const logId = getId(formData, "logId");
   const correctionReason = getString(formData, "correctionReason");
@@ -1556,9 +1456,8 @@ export async function deleteAttendanceLogAction(formData: FormData) {
     throw new Error("Hareket bilgisi eksik.");
   }
 
-  const companyIds = await getAccessibleCompanyIds(user);
   const oldLog = await prisma.attendanceLog.findFirst({
-    where: { id: logId, employee: { companyId: { in: companyIds ?? [] } } },
+    where: { id: logId, employee: employeeScopeWhere(authorization) },
     include: { employee: { select: { companyId: true } } },
   });
   if (!oldLog) throw new Error("Hareket bulunamadi veya bu kayit icin yetkiniz yok.");
@@ -1589,11 +1488,8 @@ export async function deleteAttendanceLogAction(formData: FormData) {
 }
 
 export async function createLeaveRequestAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.LEAVE_CREATE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const employeeId = getId(formData, "employeeId");
   const type = getString(formData, "type") as LeaveType;
@@ -1615,9 +1511,11 @@ export async function createLeaveRequestAction(formData: FormData) {
   ) {
     throw new Error("Izin bilgileri gecersiz.");
   }
+  if (approvalStatus !== LeaveApprovalStatus.PENDING) assertPermission(authorization, PERMISSIONS.LEAVE_APPROVE);
+  if (approvalStatus !== LeaveApprovalStatus.PENDING && authorization.employeeId === employeeId) throw new Error("Kendi izin talebinizi onaylayamazsiniz.");
 
   const employee = await prisma.employee.findFirst({
-    where: { id: employeeId, companyId: user.companyId },
+    where: { id: employeeId, ...employeeScopeWhere(authorization) },
     select: { id: true },
   });
 
@@ -1628,7 +1526,7 @@ export async function createLeaveRequestAction(formData: FormData) {
   await prisma.leaveRequest.create({
     data: {
       employeeId,
-      companyId: user.companyId,
+      companyId: authorization.companyId,
       type,
       durationType,
       approvalStatus,
@@ -1647,11 +1545,8 @@ export async function createLeaveRequestAction(formData: FormData) {
 }
 
 export async function updateLeaveRequestAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.LEAVE_CREATE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const leaveId = getId(formData, "leaveId");
   const employeeId = getId(formData, "employeeId");
@@ -1673,9 +1568,15 @@ export async function updateLeaveRequestAction(formData: FormData) {
   ) {
     throw new Error("Izin bilgileri gecersiz.");
   }
+  const existingLeave = await prisma.leaveRequest.findFirst({ where: { id: leaveId, companyId: authorization.companyId, employee: employeeScopeWhere(authorization) }, select: { approvalStatus: true, employeeId: true } });
+  if (!existingLeave) throw new Error("Izin kaydi bulunamadi veya kapsam disinda.");
+  if (existingLeave.approvalStatus !== approvalStatus) {
+    assertPermission(authorization, PERMISSIONS.LEAVE_APPROVE);
+    if (authorization.employeeId === existingLeave.employeeId) throw new Error("Kendi izin talebinizi onaylayamazsiniz.");
+  }
 
   const employee = await prisma.employee.findFirst({
-    where: { id: employeeId, companyId: user.companyId },
+    where: { id: employeeId, ...employeeScopeWhere(authorization) },
     select: { id: true },
   });
 
@@ -1684,7 +1585,7 @@ export async function updateLeaveRequestAction(formData: FormData) {
   }
 
   await prisma.leaveRequest.updateMany({
-    where: { id: leaveId, companyId: user.companyId },
+    where: { id: leaveId, companyId: authorization.companyId, employee: employeeScopeWhere(authorization) },
     data: {
       employeeId,
       type,
@@ -1705,11 +1606,8 @@ export async function updateLeaveRequestAction(formData: FormData) {
 }
 
 export async function deleteLeaveRequestAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.LEAVE_DELETE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
 
   const leaveId = getId(formData, "leaveId");
 
@@ -1718,7 +1616,7 @@ export async function deleteLeaveRequestAction(formData: FormData) {
   }
 
   await prisma.leaveRequest.deleteMany({
-    where: { id: leaveId, companyId: user.companyId },
+    where: { id: leaveId, companyId: authorization.companyId, employee: employeeScopeWhere(authorization) },
   });
 
   revalidatePath("/dashboard");
@@ -1728,13 +1626,9 @@ export async function deleteLeaveRequestAction(formData: FormData) {
 }
 
 export async function createWorkCalendarTemplateAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
   const description = getString(formData, "description") || null;
@@ -1785,13 +1679,9 @@ export async function createWorkCalendarTemplateAction(formData: FormData) {
 }
 
 export async function updateWorkCalendarTemplateAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const templateId = getId(formData, "templateId");
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
@@ -1849,13 +1739,9 @@ export async function updateWorkCalendarTemplateAction(formData: FormData) {
 }
 
 export async function deleteWorkCalendarTemplateAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const templateId = getId(formData, "templateId");
 
   if (!templateId) {
@@ -1881,13 +1767,9 @@ export async function deleteWorkCalendarTemplateAction(formData: FormData) {
 }
 
 export async function createCalendarSpecialDayAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const name = getString(formData, "name");
   const specialDayType = getString(formData, "specialDayType") as SpecialDayType;
   const dateFrom = getRequiredDate(formData, "dateFrom");
@@ -1934,13 +1816,9 @@ export async function createCalendarSpecialDayAction(formData: FormData) {
 }
 
 export async function updateCalendarSpecialDayAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const specialDayId = getId(formData, "specialDayId");
   const name = getString(formData, "name");
   const specialDayType = getString(formData, "specialDayType") as SpecialDayType;
@@ -1987,13 +1865,9 @@ export async function updateCalendarSpecialDayAction(formData: FormData) {
 }
 
 export async function deleteCalendarSpecialDayAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const specialDayId = getId(formData, "specialDayId");
 
   if (!specialDayId) {
@@ -2022,13 +1896,9 @@ export async function deleteCalendarSpecialDayAction(formData: FormData) {
 }
 
 export async function createCalendarAssignmentAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const calendarTemplateId = getId(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
   const validFrom = getRequiredDate(formData, "validFrom");
@@ -2102,13 +1972,9 @@ export async function createCalendarAssignmentAction(formData: FormData) {
 }
 
 export async function updateCalendarAssignmentAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const assignmentId = getId(formData, "assignmentId");
   const calendarTemplateId = getId(formData, "calendarTemplateId");
   const scope = parseCalendarScope(formData);
@@ -2163,13 +2029,9 @@ export async function updateCalendarAssignmentAction(formData: FormData) {
 }
 
 export async function deleteCalendarAssignmentAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = await getScopedCompanyId(formData, user.role === "COMPANY_ADMIN" ? user.companyId : null, user.id);
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const assignmentId = getId(formData, "assignmentId");
 
   if (!assignmentId) {
@@ -2195,13 +2057,9 @@ export async function deleteCalendarAssignmentAction(formData: FormData) {
 }
 
 export async function createCalendarDailyExceptionAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const scope = parseCalendarScope(formData);
   const newDayType = getString(formData, "newDayType") as WorkDayType;
   const changeReason = getString(formData, "changeReason");
@@ -2247,13 +2105,9 @@ export async function createCalendarDailyExceptionAction(formData: FormData) {
 }
 
 export async function updateCalendarDailyExceptionAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const exceptionId = getId(formData, "exceptionId");
   const newDayType = getString(formData, "newDayType") as WorkDayType;
   const changeReason = getString(formData, "changeReason");
@@ -2292,13 +2146,9 @@ export async function updateCalendarDailyExceptionAction(formData: FormData) {
 }
 
 export async function generateEmployeeDailyCalendarAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
-    throw new Error("Bu islem icin yetkiniz yok.");
-  }
-
-  const companyId = user.companyId;
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.CALENDAR_MANAGE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+  const companyId = authorization.companyId;
   const fromDate = getRequiredDate(formData, "fromDate");
   const toDate = getRequiredDate(formData, "toDate");
   const employeeId = getOptionalId(formData, "employeeId");
@@ -2306,7 +2156,7 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
 
   const employees = await prisma.employee.findMany({
     where: {
-      companyId,
+      ...employeeScopeWhere(authorization),
       ...(employeeId ? { id: employeeId } : {}),
       ...(department ? { department } : {}),
     },
@@ -2346,20 +2196,15 @@ export async function generateEmployeeDailyCalendarAction(formData: FormData) {
   if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
-async function assertCompanyAdminAccess(user: { id: number; role: string; companyId: number | null }, companyId: number) {
-  if (user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
-  const companyIds = await getAccessibleCompanyIds(user);
-  if (!companyIds?.includes(companyId)) throw new Error("Bu firma icin yetkiniz yok.");
-}
-
 export async function approvePayrollPeriodAction(formData: FormData) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.PAYROLL_APPROVE);
   const companyId = getId(formData, "companyId");
   const monthKey = getString(formData, "month");
   const approvalNote = getString(formData, "approvalNote") || null;
   if (!PAYROLL_MONTH_PATTERN.test(monthKey)) throw new Error("Puantaj donemi gecersiz.");
   if (monthKey > getDefaultPayrollMonth()) throw new Error("Gelecek donem onaylanamaz.");
-  await assertCompanyAdminAccess(user, companyId);
+  if (authorization.companyId !== companyId) throw new Error("Bu firma icin yetkiniz yok.");
+  if (!authorization.isPlatformAdmin && authorization.scopeMode !== DataScopeMode.COMPANY) throw new Error("Puantaj dönemi yalnız firma genelinde yetkili kullanıcı tarafından onaylanabilir.");
   const { year, month } = getPayrollMonthRange(monthKey);
   const current = await prisma.payrollPeriod.findUnique({
     where: { companyId_year_month: { companyId, year, month } },
@@ -2396,12 +2241,13 @@ export async function approvePayrollPeriodAction(formData: FormData) {
 }
 
 export async function reopenPayrollPeriodAction(formData: FormData) {
-  const { user } = await requireSessionUser();
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.PAYROLL_APPROVE);
   const companyId = getId(formData, "companyId");
   const monthKey = getString(formData, "month");
   if (!PAYROLL_MONTH_PATTERN.test(monthKey)) throw new Error("Puantaj donemi gecersiz.");
   if (monthKey > getDefaultPayrollMonth()) throw new Error("Gelecek donem acilamaz.");
-  await assertCompanyAdminAccess(user, companyId);
+  if (authorization.companyId !== companyId) throw new Error("Bu firma icin yetkiniz yok.");
+  if (!authorization.isPlatformAdmin && authorization.scopeMode !== DataScopeMode.COMPANY) throw new Error("Puantaj dönemi yalnız firma genelinde yetkili kullanıcı tarafından yeniden açılabilir.");
   const { year, month } = getPayrollMonthRange(monthKey);
   const period = await prisma.payrollPeriod.findUnique({
     where: { companyId_year_month: { companyId, year, month } },
@@ -2425,12 +2271,13 @@ export async function reopenPayrollPeriodAction(formData: FormData) {
 }
 
 export async function lockPayrollPeriodAction(formData: FormData) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.PAYROLL_APPROVE);
   const companyId = getId(formData, "companyId");
   const monthKey = getString(formData, "month");
   if (!PAYROLL_MONTH_PATTERN.test(monthKey)) throw new Error("Puantaj donemi gecersiz.");
   if (monthKey > getDefaultPayrollMonth()) throw new Error("Gelecek donem kilitlenemez.");
-  await assertCompanyAdminAccess(user, companyId);
+  if (authorization.companyId !== companyId) throw new Error("Bu firma icin yetkiniz yok.");
+  if (!authorization.isPlatformAdmin && authorization.scopeMode !== DataScopeMode.COMPANY) throw new Error("Puantaj dönemi yalnız firma genelinde yetkili kullanıcı tarafından kilitlenebilir.");
   const { year, month } = getPayrollMonthRange(monthKey);
   const period = await prisma.payrollPeriod.findUnique({
     where: { companyId_year_month: { companyId, year, month } },
@@ -2447,8 +2294,7 @@ export async function lockPayrollPeriodAction(formData: FormData) {
 }
 
 export async function resolveAttendanceReviewAction(formData: FormData) {
-  const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN") throw new Error("Bu islem icin yetkiniz yok.");
+  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.MOVEMENT_UPDATE);
   const employeeId = getId(formData, "employeeId");
   const dayKey = getString(formData, "dayKey");
   const fingerprint = getString(formData, "fingerprint");
@@ -2456,9 +2302,8 @@ export async function resolveAttendanceReviewAction(formData: FormData) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey) || !/^[a-f0-9]{64}$/.test(fingerprint) || !resolutionNote) {
     throw new Error("Inceleme sonucu bilgileri eksik.");
   }
-  const companyIds = await getAccessibleCompanyIds(user);
   const employee = await prisma.employee.findFirst({
-    where: { id: employeeId, companyId: { in: companyIds ?? [] } },
+    where: { id: employeeId, ...employeeScopeWhere(authorization) },
     select: { id: true },
   });
   if (!employee) throw new Error("Personel bulunamadi veya yetkiniz yok.");

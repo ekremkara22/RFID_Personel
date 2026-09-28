@@ -133,6 +133,27 @@ enum CalendarApprovalStatus {
   REJECTED
 }
 
+enum CompanyMembershipStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum DataScopeMode {
+  COMPANY
+  RESTRICTED
+  OWN
+  NONE
+}
+
+enum CompanyInvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 model Company {
   id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
   name                String
@@ -158,6 +179,11 @@ model Company {
   calendarSpecialDays CalendarSpecialDay[]
   dailyExceptions     CalendarDailyException[]
   payrollPeriods      PayrollPeriod[]
+  companyRoles        CompanyRole[]
+  memberships         CompanyMembership[]
+  invitations         CompanyInvitation[]
+  accessAudits        CompanyAccessAudit[]
+  teams               CompanyTeam[]
 }
 
 model CompanyCategory {
@@ -197,6 +223,10 @@ model User {
   attendanceReviewResolutions AttendanceReviewResolution[]
   approvedPayrollPeriods      PayrollPeriod[]              @relation("PayrollApprovedBy")
   lockedPayrollPeriods        PayrollPeriod[]              @relation("PayrollLockedBy")
+  memberships                 CompanyMembership[]
+  sentCompanyInvitations      CompanyInvitation[]          @relation("InvitationCreatedBy")
+  accessAuditActions          CompanyAccessAudit[]         @relation("AccessAuditActor")
+  accessAuditTargets          CompanyAccessAudit[]         @relation("AccessAuditTarget")
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
 }
@@ -210,6 +240,162 @@ model UserCompanyAccess {
   createdAt DateTime @default(now())
 
   @@unique([userId, companyId])
+}
+
+model CompanyRole {
+  id          Int                     @id @default(autoincrement()) @db.UnsignedInt
+  companyId   Int                     @db.UnsignedInt
+  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  key         String                  @db.VarChar(64)
+  name        String
+  description String?                 @db.Text
+  isSystem    Boolean                 @default(false)
+  isActive    Boolean                 @default(true)
+  permissions CompanyRolePermission[]
+  memberships CompanyMembership[]
+  invitations CompanyInvitation[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([companyId, key])
+}
+
+model CompanyRolePermission {
+  id         Int         @id @default(autoincrement()) @db.UnsignedInt
+  roleId     Int         @db.UnsignedInt
+  role       CompanyRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission String      @db.VarChar(96)
+
+  @@unique([roleId, permission])
+}
+
+model CompanyMembership {
+  id               Int                         @id @default(autoincrement()) @db.UnsignedInt
+  userId           Int                         @db.UnsignedInt
+  user             User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId        Int                         @db.UnsignedInt
+  company          Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  roleId           Int                         @db.UnsignedInt
+  role             CompanyRole                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  employeeId       Int?                        @unique @db.UnsignedInt
+  employee         Employee?                   @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  status           CompanyMembershipStatus     @default(PENDING)
+  scopeMode        DataScopeMode               @default(NONE)
+  sessionVersion   Int                         @default(1) @db.UnsignedInt
+  branchScopes     MembershipBranchScope[]
+  departmentScopes MembershipDepartmentScope[]
+  employeeScopes   MembershipEmployeeScope[]
+  deviceScopes     MembershipDeviceScope[]
+  teamScopes       MembershipTeamScope[]
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+
+  @@unique([userId, companyId])
+  @@index([companyId, status])
+}
+
+model MembershipBranchScope {
+  membershipId Int               @db.UnsignedInt
+  membership   CompanyMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  branchId     Int               @db.UnsignedInt
+  branch       Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, branchId])
+}
+
+model MembershipDepartmentScope {
+  membershipId Int               @db.UnsignedInt
+  membership   CompanyMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  departmentId Int               @db.UnsignedInt
+  department   Department        @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, departmentId])
+}
+
+model MembershipEmployeeScope {
+  membershipId Int               @db.UnsignedInt
+  membership   CompanyMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  employeeId   Int               @db.UnsignedInt
+  employee     Employee          @relation("ExplicitEmployeeScope", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, employeeId])
+}
+
+model MembershipDeviceScope {
+  membershipId Int               @db.UnsignedInt
+  membership   CompanyMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  deviceId     Int               @db.UnsignedInt
+  device       Device            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, deviceId])
+}
+
+model MembershipTeamScope {
+  membershipId Int               @db.UnsignedInt
+  membership   CompanyMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  teamId       Int               @db.UnsignedInt
+  team         CompanyTeam       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, teamId])
+}
+
+model CompanyTeam {
+  id        Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId Int                   @db.UnsignedInt
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  isActive  Boolean               @default(true)
+  members   CompanyTeamEmployee[]
+  scopes    MembershipTeamScope[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@unique([companyId, name])
+}
+
+model CompanyTeamEmployee {
+  teamId     Int         @db.UnsignedInt
+  team       CompanyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  employeeId Int         @db.UnsignedInt
+  employee   Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, employeeId])
+}
+
+model CompanyInvitation {
+  id          Int                     @id @default(autoincrement()) @db.UnsignedInt
+  companyId   Int                     @db.UnsignedInt
+  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email       String
+  roleId      Int                     @db.UnsignedInt
+  role        CompanyRole             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  tokenHash   String                  @unique @db.Char(64)
+  status      CompanyInvitationStatus @default(PENDING)
+  scopeMode   DataScopeMode           @default(NONE)
+  scopeJson   String?                 @db.Text
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdById Int                     @db.UnsignedInt
+  createdBy   User                    @relation("InvitationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime                @default(now())
+
+  @@index([companyId, email, status])
+}
+
+model CompanyAccessAudit {
+  id           Int      @id @default(autoincrement()) @db.UnsignedInt
+  companyId    Int      @db.UnsignedInt
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actorUserId  Int      @db.UnsignedInt
+  actorUser    User     @relation("AccessAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  targetUserId Int?     @db.UnsignedInt
+  targetUser   User?    @relation("AccessAuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  action       String   @db.VarChar(96)
+  summary      String   @db.Text
+  metadataJson String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  @@index([companyId, createdAt])
 }
 
 model Employee {
@@ -238,6 +424,13 @@ model Employee {
   dailyCalendars              EmployeeDailyCalendar[]
   attendanceAudits            AttendanceMovementAudit[]
   attendanceReviewResolutions AttendanceReviewResolution[]
+  branchId                    Int?                         @db.UnsignedInt
+  branchRef                   Branch?                      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  departmentId                Int?                         @db.UnsignedInt
+  departmentRef               Department?                  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  linkedMembership            CompanyMembership?
+  explicitMembershipScopes    MembershipEmployeeScope[]    @relation("ExplicitEmployeeScope")
+  teamMemberships             CompanyTeamEmployee[]
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
 
@@ -245,16 +438,18 @@ model Employee {
 }
 
 model Department {
-  id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
+  id                  Int                         @id @default(autoincrement()) @db.UnsignedInt
   name                String
-  isActive            Boolean                  @default(true)
-  companyId           Int                      @db.UnsignedInt
-  company             Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  isActive            Boolean                     @default(true)
+  companyId           Int                         @db.UnsignedInt
+  company             Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
   dailyExceptions     CalendarDailyException[]
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  employees           Employee[]
+  membershipScopes    MembershipDepartmentScope[]
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
 
   @@unique([companyId, name])
 }
@@ -269,6 +464,8 @@ model Branch {
   calendarAssignments CalendarAssignment[]
   calendarSpecialDays CalendarSpecialDay[]
   dailyExceptions     CalendarDailyException[]
+  employees           Employee[]
+  membershipScopes    MembershipBranchScope[]
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
 
@@ -289,33 +486,34 @@ model Manager {
 }
 
 model Device {
-  id                   Int                  @id @default(autoincrement()) @db.UnsignedInt
+  id                   Int                     @id @default(autoincrement()) @db.UnsignedInt
   code                 String?
   name                 String
-  macAddress           String?              @unique
+  macAddress           String?                 @unique
   ipAddress            String?
   branchLocation       String?
-  purpose              DevicePurpose        @default(BIDIRECTIONAL)
-  secretKey            String               @default(uuid())
+  purpose              DevicePurpose           @default(BIDIRECTIONAL)
+  secretKey            String                  @default(uuid())
   lastSeenAt           DateTime?
   lastDataTransferAt   DateTime?
   clockOffsetMinutes   Int?
   firmwareVersion      String?
   lastFirmwareCheckAt  DateTime?
   lastFirmwareUpdateAt DateTime?
-  firmwareLastError    String?              @db.Text
-  pendingQueueCount    Int?                 @db.UnsignedInt
+  firmwareLastError    String?                 @db.Text
+  pendingQueueCount    Int?                    @db.UnsignedInt
   oldestQueuedAt       DateTime?
   clockSynchronized    Boolean?
-  lastSendError        String?              @db.Text
+  lastSendError        String?                 @db.Text
   healthReportedAt     DateTime?
-  companyId            Int?                 @db.UnsignedInt
-  company              Company?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId            Int?                    @db.UnsignedInt
+  company              Company?                @relation(fields: [companyId], references: [id], onDelete: SetNull)
   userAccess           UserDeviceAccess[]
   logs                 AttendanceLog[]
   firmwareDeployments  FirmwareDeployment[]
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  membershipScopes     MembershipDeviceScope[]
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
 
   @@unique([companyId, code])
 }

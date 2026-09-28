@@ -5,7 +5,7 @@ import { AttendanceType } from "@/generated/prisma/client";
 import { deleteAttendanceLogAction, resolveAttendanceReviewAction, updateAttendanceLogAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { buildAttendanceReviewCases } from "@/lib/attendance-review";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { employeeScopeWhere } from "@/lib/authorization";
 import { getAppDayRange, getAppDayKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -22,10 +22,9 @@ function formatDate(date?: Date | null) {
 }
 
 export default async function MovementReviewsPage(props: { searchParams: Promise<{ from?: string; to?: string; companyId?: string; branch?: string; department?: string; status?: string }> }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
-  const accessibleCompanyIds = await getAccessibleCompanyIds(user);
-  if (!accessibleCompanyIds?.length) redirect("/dashboard");
+  if (!authorization.companyId) redirect("/dashboard");
   const params = await props.searchParams;
   const todayKey = getAppDayKey(new Date());
   const defaultFrom = new Date(getAppDayRange(todayKey).start.getTime() - 13 * 86400000);
@@ -33,24 +32,22 @@ export default async function MovementReviewsPage(props: { searchParams: Promise
   const toKey = /^\d{4}-\d{2}-\d{2}$/.test(params.to ?? "") ? params.to! : todayKey;
   const from = getAppDayRange(fromKey).start;
   const to = getAppDayRange(toKey).end;
-  const requestedCompanyId = Number(params.companyId);
-  const companyIds = Number.isSafeInteger(requestedCompanyId) && accessibleCompanyIds.includes(requestedCompanyId) ? [requestedCompanyId] : accessibleCompanyIds;
   const branch = params.branch?.trim() ?? "";
   const department = params.department?.trim() ?? "";
   const status = ["open", "resolved", "all"].includes(params.status ?? "") ? params.status! : "open";
 
   const [companies, branches, departments, logs, resolutions] = await Promise.all([
-    prisma.company.findMany({ where: { id: { in: accessibleCompanyIds } }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: { in: companyIds }, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: { in: companyIds }, isActive: true }, orderBy: { name: "asc" } }),
+    prisma.company.findMany({ where: { id: authorization.companyId }, orderBy: { name: "asc" } }),
+    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
     prisma.attendanceLog.findMany({
-      where: { scannedAt: { gte: from, lt: to }, employee: { companyId: { in: companyIds }, ...(branch ? { branch } : {}), ...(department ? { department } : {}) } },
+      where: { scannedAt: { gte: from, lt: to }, employee: { ...employeeScopeWhere(authorization), ...(branch ? { branch } : {}), ...(department ? { department } : {}) } },
       include: { employee: true },
       orderBy: [{ scannedAt: "asc" }, { id: "asc" }],
       take: 5000,
     }),
     prisma.attendanceReviewResolution.findMany({
-      where: { workDate: { gte: from, lt: to }, employee: { companyId: { in: companyIds }, ...(branch ? { branch } : {}), ...(department ? { department } : {}) } },
+      where: { workDate: { gte: from, lt: to }, employee: { ...employeeScopeWhere(authorization), ...(branch ? { branch } : {}), ...(department ? { department } : {}) } },
       include: { resolvedBy: true },
     }),
   ]);

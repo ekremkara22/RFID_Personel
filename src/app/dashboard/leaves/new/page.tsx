@@ -5,6 +5,8 @@ import { createLeaveRequestAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../../page.module.css";
 
 const leaveTypeLabels = {
@@ -15,9 +17,10 @@ const durationLabels = { FULL_DAY: "Tam gun", HALF_DAY: "Yarim gun", HOURLY: "Sa
 const statusLabels = { PENDING: "Bekliyor", APPROVED: "Onaylandi", REJECTED: "Reddedildi" } as const;
 
 export default async function NewLeavePage() {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
-  const employees = await prisma.employee.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] });
+  assertPermission(authorization, PERMISSIONS.LEAVE_CREATE);
+  const employees = await prisma.employee.findMany({ where: { ...employeeScopeWhere(authorization), isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] });
 
   return (
     <div className={styles.page}>
@@ -31,7 +34,9 @@ export default async function NewLeavePage() {
           <label className={styles.field}><span>Personel</span><select name="employeeId" required defaultValue=""><option value="" disabled>Personel sec</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.firstName} {e.lastName} - {e.department}</option>)}</select></label>
           <label className={styles.field}><span>Izin Turu</span><select name="type" defaultValue={LeaveType.ANNUAL}>{Object.values(LeaveType).map((t) => <option key={t} value={t}>{leaveTypeLabels[t]}</option>)}</select></label>
           <label className={styles.field}><span>Kapsam</span><select name="durationType" defaultValue={LeaveDurationType.FULL_DAY}>{Object.values(LeaveDurationType).map((t) => <option key={t} value={t}>{durationLabels[t]}</option>)}</select></label>
-          <label className={styles.field}><span>Onay Durumu</span><select name="approvalStatus" defaultValue={LeaveApprovalStatus.APPROVED}>{Object.values(LeaveApprovalStatus).map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}</select></label>
+          {can(authorization, PERMISSIONS.LEAVE_APPROVE) ? <label className={styles.field}><span>Onay Durumu</span><select name="approvalStatus" defaultValue={LeaveApprovalStatus.PENDING}>{Object.values(LeaveApprovalStatus).map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}</select></label> : (
+            <input type="hidden" name="approvalStatus" value={LeaveApprovalStatus.PENDING}/>
+          )}
           <label className={styles.field}><span>Baslangic Tarihi</span><input name="startDate" type="date" required /></label>
           <label className={styles.field}><span>Bitis Tarihi</span><input name="endDate" type="date" required /></label>
           <label className={styles.field}><span>Baslangic Saati</span><input name="startTime" type="time" /></label>

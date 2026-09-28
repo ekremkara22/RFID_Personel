@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { Filter, History } from "lucide-react";
 import { AttendanceAuditOperation, AttendanceType } from "@/generated/prisma/client";
 import { ExportButton } from "@/app/dashboard/export-button";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayRange, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -52,18 +53,12 @@ function userName(user: { firstName: string | null; lastName: string | null; nam
 }
 
 export default async function AuditReportPage(props: { searchParams?: Promise<SearchParams> }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
-
-  const accessibleCompanyIds = await getAccessibleCompanyIds(user);
-  if (!accessibleCompanyIds || accessibleCompanyIds.length === 0) redirect("/dashboard");
+  assertPermission(authorization, PERMISSIONS.AUDIT_VIEW);
+  if (!authorization.companyId) redirect("/dashboard");
 
   const params = (await props.searchParams) ?? {};
-  const requestedCompanyId = Number(params.companyId);
-  const selectedCompanyId = Number.isSafeInteger(requestedCompanyId) && accessibleCompanyIds.includes(requestedCompanyId)
-    ? requestedCompanyId
-    : null;
-  const companyIds = selectedCompanyId ? [selectedCompanyId] : accessibleCompanyIds;
   const query = typeof params.q === "string" ? params.q.trim() : "";
   const branch = typeof params.branch === "string" ? params.branch.trim() : "";
   const department = typeof params.department === "string" ? params.department.trim() : "";
@@ -80,16 +75,16 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
   toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
 
   const employeeWhere = {
-    companyId: { in: companyIds },
+    ...employeeScopeWhere(authorization),
     ...(branch ? { branch } : {}),
     ...(department ? { department } : {}),
     ...(query ? { OR: [{ firstName: { contains: query } }, { lastName: { contains: query } }] } : {}),
   };
 
   const [companies, branches, departments, audits] = await Promise.all([
-    prisma.company.findMany({ where: { id: { in: accessibleCompanyIds } }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: { in: companyIds }, isActive: true }, include: { company: true }, orderBy: [{ companyId: "asc" }, { name: "asc" }] }),
-    prisma.department.findMany({ where: { companyId: { in: companyIds }, isActive: true }, orderBy: [{ companyId: "asc" }, { name: "asc" }] }),
+    prisma.company.findMany({ where: { id: authorization.companyId }, orderBy: { name: "asc" } }),
+    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
     prisma.attendanceMovementAudit.findMany({
       where: {
         createdAt: { gte: getAppDayRange(getDateOnlyKey(fromDate)).start, lt: getAppDayRange(getDateOnlyKey(toExclusive)).start },
@@ -125,7 +120,7 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
           <p className={styles.subtitle}>Manuel ekleme, düzenleme ve silme işlemlerini kullanıcı, tarih ve değişen değerleriyle inceleyin.</p>
         </div>
         <div className={styles.heroMeta}>
-          <ExportButton
+          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
             rows={exportRows}
             columns={[
               { key: "operation", label: "İşlem" }, { key: "employee", label: "Personel" },
@@ -137,14 +132,14 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
             ]}
             filename="hareket-audit-raporu"
             className={styles.primaryLinkButton}
-          />
+          /> : null}
         </div>
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form className={styles.filterGrid}>
           <label className={styles.field}><span>Personel</span><input name="q" defaultValue={query} placeholder="Ad veya soyad" /></label>
-          <label className={styles.field}><span>Firma</span><select name="companyId" defaultValue={selectedCompanyId ?? ""}><option value="">Tüm Firmalar</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
+          <label className={styles.field}><span>Firma</span><input value={companies[0]?.name ?? ""} readOnly /></label>
           <label className={styles.field}><span>Şube</span><select name="branch" defaultValue={branch}><option value="">Tüm Şubeler</option>{branches.map((item) => <option key={item.id} value={item.name}>{item.company.name} / {item.name}</option>)}</select></label>
           <label className={styles.field}><span>Departman</span><select name="department" defaultValue={department}><option value="">Tüm Departmanlar</option>{departments.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
           <label className={styles.field}><span>İşlem Türü</span><select name="operation" defaultValue={operation ?? ""}><option value="">Tüm İşlemler</option>{Object.values(AttendanceAuditOperation).map((item) => <option key={item} value={item}>{operationLabels[item]}</option>)}</select></label>

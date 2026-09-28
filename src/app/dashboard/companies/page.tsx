@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CirclePlus, Pencil, Search } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { assertPermission, can } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
@@ -19,13 +20,13 @@ function getUserFullName(user: {
 export default async function CompaniesPage(props: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
-  const companyIds = await getAccessibleCompanyIds(user);
+  if (user.role !== "SUPERADMIN") assertPermission(authorization, PERMISSIONS.COMPANY_VIEW);
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const queryId = Number(query);
@@ -33,7 +34,7 @@ export default async function CompaniesPage(props: {
 
   const companies = await prisma.company.findMany({
     where: {
-      ...(companyIds ? { id: { in: companyIds } } : {}),
+      ...(user.role === "SUPERADMIN" ? {} : { id: authorization.companyId ?? -1 }),
       ...(query
         ? {
           OR: [
@@ -91,7 +92,7 @@ export default async function CompaniesPage(props: {
             <button type="submit">Search</button>
           </form>
           <div className={styles.tableActionRow}>
-            <ExportButton
+            {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
               rows={companies.map((company) => ({
                 id: company.id,
                 name: company.name,
@@ -112,7 +113,7 @@ export default async function CompaniesPage(props: {
               ]}
               filename="firmalar"
               className={styles.inlineAction}
-            />
+            /> : null}
           </div>
         </div>
 

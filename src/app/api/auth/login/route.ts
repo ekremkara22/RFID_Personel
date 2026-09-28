@@ -26,6 +26,11 @@ export async function POST(request: Request) {
             isActive: true,
           },
         },
+        memberships: {
+          where: { status: "ACTIVE", company: { isActive: true }, role: { isActive: true } },
+          include: { company: true },
+          orderBy: { id: "asc" },
+        },
       },
     });
 
@@ -36,9 +41,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.company && !user.company.isActive) {
+    if (user.role !== "SUPERADMIN" && user.memberships.length === 0) {
       return NextResponse.json(
-        { error: "Sirket hesabi pasif durumda oldugu icin giris yapilamiyor." },
+        { error: "Aktif firma üyeliğiniz bulunmuyor. Firma yöneticinizle görüşün." },
         { status: 403 },
       );
     }
@@ -62,7 +67,7 @@ export async function POST(request: Request) {
       email: user.email,
       name: fullName,
       role: user.role,
-      companyId: user.companyId,
+      companyId: user.memberships[0]?.companyId ?? user.companyId,
     });
 
     const response = NextResponse.json({
@@ -73,8 +78,8 @@ export async function POST(request: Request) {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        companyId: user.companyId,
-        companyName: user.company?.name ?? null,
+        companyId: user.memberships[0]?.companyId ?? user.companyId,
+        companyName: user.memberships[0]?.company.name ?? user.company?.name ?? null,
       },
     });
 

@@ -6,6 +6,8 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { can, deviceScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../page.module.css";
 
 function formatDate(date: Date) {
@@ -32,18 +34,13 @@ function buildDeviceUrl(deviceQ: string, deviceId?: number) {
 export default async function DevicesPage(props: {
   searchParams: Promise<{ q?: string; deviceId?: string }>;
 }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
   const companyIds = await getAccessibleCompanyIds(user);
-  const assignedDeviceIds = await prisma.userDeviceAccess.findMany({
-    where: { userId: user.id },
-    select: { deviceId: true },
-  });
-  const deviceIds = assignedDeviceIds.map((access) => access.deviceId);
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const selectedDeviceIdValue = Number(searchParams.deviceId);
@@ -53,13 +50,13 @@ export default async function DevicesPage(props: {
 
   const devices = await prisma.device.findMany({
     where: {
-      ...(deviceIds.length > 0 ? { id: { in: deviceIds } } : { id: -1 }),
+      ...deviceScopeWhere(authorization),
       ...(query
         ? {
             OR: [
               { name: { contains: query } },
               { macAddress: { contains: query } },
-              { secretKey: { contains: query } },
+              ...(can(authorization, PERMISSIONS.DEVICE_SECRET_VIEW) ? [{ secretKey: { contains: query } }] : []),
             ],
           }
         : {}),
@@ -144,7 +141,7 @@ export default async function DevicesPage(props: {
                     <td>{device.company?.name ?? "Firma atanmadi"}</td>
                     <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
                     <td>{device.branchLocation ?? "-"}</td>
-                    <td className={styles.monoCell}>{device.secretKey}</td>
+                    <td className={styles.monoCell}>{can(authorization, PERMISSIONS.DEVICE_SECRET_VIEW) ? device.secretKey : "••••••••"}</td>
                     <td>{device.lastSeenAt ? formatDate(device.lastSeenAt) : "Henuz yok"}</td>
                     <td>
                       <Link href={buildDeviceUrl(query, device.id)} className={styles.inlineAction}>
@@ -211,7 +208,7 @@ export default async function DevicesPage(props: {
 
             <label className={styles.field}>
               <span>Secret Key</span>
-              <input value={selectedDevice.secretKey} readOnly />
+              <input value={can(authorization, PERMISSIONS.DEVICE_SECRET_VIEW) ? selectedDevice.secretKey : "Gizli alan için yetkiniz yok"} readOnly />
             </label>
 
             <label className={styles.field}>

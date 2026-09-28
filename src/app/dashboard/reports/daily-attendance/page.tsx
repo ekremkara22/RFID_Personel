@@ -1,9 +1,11 @@
 import { AlertTriangle, Clock3, Coffee, LogIn } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ExportButton } from "@/app/dashboard/export-button";
+import { can, employeeScopeWhere } from "@/lib/authorization";
 import { calculateBreakMinutes } from "@/lib/attendance-sequence";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import styles from "../../page.module.css";
@@ -39,8 +41,8 @@ function initials(firstName: string, lastName: string) {
 }
 
 export default async function DailyAttendanceReportPage(props: { searchParams?: Promise<SearchParams> }) {
-  const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
+  const { authorization } = await requireSessionUser();
+  if (!authorization.companyId) redirect("/dashboard");
 
   const searchParams = (await props.searchParams) ?? {};
   const now = new Date();
@@ -52,20 +54,20 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
 
   const [employees, branches, calendars, logs] = await Promise.all([
     prisma.employee.findMany({
-      where: { companyId: user.companyId, ...(selectedBranch ? { branch: selectedBranch } : {}) },
+      where: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
       orderBy: [{ department: "asc" }, { firstName: "asc" }, { lastName: "asc" }],
     }),
-    prisma.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) }, orderBy: { name: "asc" } }),
     prisma.employeeDailyCalendar.findMany({
       where: {
         workDate: { gte: selectedDate, lt: endExclusive },
-        employee: { companyId: user.companyId, ...(selectedBranch ? { branch: selectedBranch } : {}) },
+        employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
       },
     }),
     prisma.attendanceLog.findMany({
       where: {
         scannedAt: { gte: attendanceRange.start, lt: attendanceRange.end },
-        employee: { companyId: user.companyId, ...(selectedBranch ? { branch: selectedBranch } : {}) },
+        employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
       },
       orderBy: { scannedAt: "asc" },
     }),
@@ -150,7 +152,7 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
           <h1 className={styles.title}>Mola ve Mesai Raporu</h1>
           <p className={styles.subtitle}>Her personelin ilk girişi, gerçek mola süresi, son çıkışı ve mesai uygunluğu tek satırda.</p>
         </div>
-        <ExportButton
+        {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
           rows={exportRows}
           columns={[
             { key: "personel", label: "Personel" }, { key: "sicilNo", label: "Sicil No" },
@@ -162,7 +164,7 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
           ]}
           filename={`gunluk-mola-mesai-${getDateOnlyKey(selectedDate)}`}
           className={styles.primaryLinkButton}
-        />
+        /> : null}
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

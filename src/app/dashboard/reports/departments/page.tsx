@@ -3,15 +3,17 @@ import { ExportButton } from "@/app/dashboard/export-button";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { getPdksReportData } from "../report-data";
+import { can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 
 export default async function DepartmentReportPage() {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 
-  const { departmentRows } = await getPdksReportData(user.companyId);
+  const { departmentRows } = await getPdksReportData(user.companyId, employeeScopeWhere(authorization));
 
   return (
     <div className={styles.page}>
@@ -23,7 +25,7 @@ export default async function DepartmentReportPage() {
             Departman bazli giris, izin, hareket yok ve gec kalma oranlarini gor.
           </p>
         </div>
-        <ExportButton
+        {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
           rows={departmentRows}
           columns={[
             { key: "department", label: "Departman" },
@@ -35,7 +37,7 @@ export default async function DepartmentReportPage() {
           ]}
           filename="departman-pdks-raporu"
           className={styles.primaryLinkButton}
-        />
+        /> : null}
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>

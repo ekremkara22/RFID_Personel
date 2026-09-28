@@ -4,6 +4,8 @@ import { WorkDayType } from "@/generated/prisma/client";
 import { generateEmployeeDailyCalendarAction } from "@/app/dashboard/actions";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
@@ -30,7 +32,7 @@ function formatInputDate(date: Date) {
 export default async function CalendarOverviewPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
@@ -50,7 +52,7 @@ export default async function CalendarOverviewPage(props: {
 
   const [employees, departments, templates, dailyCalendars] = await Promise.all([
     prisma.employee.findMany({
-      where: { companyId: user.companyId },
+      where: employeeScopeWhere(authorization),
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
@@ -61,7 +63,7 @@ export default async function CalendarOverviewPage(props: {
     prisma.employeeDailyCalendar.findMany({
       where: {
         employee: {
-          companyId: user.companyId,
+          ...employeeScopeWhere(authorization),
           ...(department ? { department } : {}),
           ...(employeeId !== null ? { id: employeeId } : {}),
         },
@@ -117,12 +119,12 @@ export default async function CalendarOverviewPage(props: {
             Personel ve tarih bazinda planlanan calisma durumunu, izin etkisini, kural kaynagini ve cakismalari izleyin.
           </p>
         </div>
-        <ExportButton
+        {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
           filename="calisma-takvimi.csv"
           rows={exportRows}
           columns={exportColumns}
           className={styles.inlineAction}
-        />
+        /> : null}
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
@@ -252,7 +254,7 @@ export default async function CalendarOverviewPage(props: {
         </div>
 
         <aside className={styles.sideColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
+          {can(authorization, PERMISSIONS.CALENDAR_MANAGE) ? <section className={`glass-panel ${styles.sectionCard}`}>
             <div className={styles.sectionHeader}>
               <div>
                 <p className={styles.sectionEyebrow}>Takvim Uret</p>
@@ -291,7 +293,7 @@ export default async function CalendarOverviewPage(props: {
               </label>
               <SubmitButton idleLabel="Hesapla" pendingLabel="Hesaplaniyor..." className={styles.primaryButton} />
             </form>
-          </section>
+          </section> : null}
 
           <section className={`glass-panel ${styles.sectionCard}`}>
             <div className={styles.sectionHeader}>
@@ -316,7 +318,7 @@ export default async function CalendarOverviewPage(props: {
             )}
           </section>
 
-          <section className={`glass-panel ${styles.sectionCard}`}>
+          {can(authorization, PERMISSIONS.CALENDAR_MANAGE) ? <section className={`glass-panel ${styles.sectionCard}`}>
             <p className={styles.sectionEyebrow}>Sablonlar</p>
             <h2 className={styles.sectionTitle}>Aktif Takvimler</h2>
             <div className={styles.logList}>
@@ -326,7 +328,7 @@ export default async function CalendarOverviewPage(props: {
                 </p>
               ))}
             </div>
-          </section>
+          </section> : null}
         </aside>
       </section>
     </div>

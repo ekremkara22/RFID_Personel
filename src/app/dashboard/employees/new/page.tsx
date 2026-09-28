@@ -3,30 +3,31 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { assertPermission } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
 export default async function NewEmployeePage() {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
-  const companyIds = await getAccessibleCompanyIds(user);
-  const scopedCompanyIds = companyIds ?? [];
-  if (scopedCompanyIds.length === 0) redirect("/dashboard/companies/new");
+  assertPermission(authorization, PERMISSIONS.PERSONNEL_CREATE);
+  if (!authorization.companyId) redirect("/dashboard");
 
   const [companies, departments, branches, managers] = await Promise.all([
     prisma.company.findMany({
-      where: { id: { in: scopedCompanyIds }, isActive: true },
+      where: { id: authorization.companyId, isActive: true },
       orderBy: { name: "asc" },
     }),
     prisma.department.findMany({
       where: {
-        companyId: { in: scopedCompanyIds },
+        companyId: authorization.companyId,
+        ...(authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length ? { id: { in: authorization.departmentIds } } : {}),
         isActive: true,
       },
       include: { company: true },
@@ -34,7 +35,8 @@ export default async function NewEmployeePage() {
     }),
     prisma.branch.findMany({
       where: {
-        companyId: { in: scopedCompanyIds },
+        companyId: authorization.companyId,
+        ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}),
         isActive: true,
       },
       include: { company: true },
@@ -42,7 +44,7 @@ export default async function NewEmployeePage() {
     }),
     prisma.manager.findMany({
       where: {
-        companyId: { in: scopedCompanyIds },
+        companyId: authorization.companyId,
         isActive: true,
       },
       include: { company: true },
@@ -113,7 +115,7 @@ export default async function NewEmployeePage() {
 
             <label className={styles.field}>
               <span>Firma</span>
-              <select name="companyId" required defaultValue={user.companyId ?? scopedCompanyIds[0]}>
+              <select name="companyId" required defaultValue={authorization.companyId}>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
                     {company.name}

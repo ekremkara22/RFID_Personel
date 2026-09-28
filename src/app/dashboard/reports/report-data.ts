@@ -1,4 +1,4 @@
-import { LeaveApprovalStatus } from "@/generated/prisma/client";
+import { LeaveApprovalStatus, type Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { collectCursorPages } from "@/lib/cursor-pagination";
@@ -18,18 +18,18 @@ function formatPercent(value: number, total: number) {
   return `%${Math.round((value / total) * 100)}`;
 }
 
-export async function getPdksReportData(companyId: number) {
+export async function getPdksReportData(companyId: number, employeeScope: Prisma.EmployeeWhereInput = { companyId }) {
   const monthStart = getMonthStart();
   const [employees, logs, leaves, dailyCalendars] = await Promise.all([
     prisma.employee.findMany({
-      where: { companyId },
+      where: employeeScope,
       orderBy: [{ department: "asc" }, { firstName: "asc" }],
     }),
     collectCursorPages((afterId, pageSize) =>
       prisma.attendanceLog.findMany({
         where: {
           scannedAt: { gte: monthStart },
-          employee: { companyId },
+          employee: employeeScope,
           ...(afterId === undefined ? {} : { id: { gt: afterId } }),
         },
         include: { employee: true },
@@ -39,6 +39,7 @@ export async function getPdksReportData(companyId: number) {
     prisma.leaveRequest.findMany({
       where: {
         companyId,
+        employee: employeeScope,
         approvalStatus: LeaveApprovalStatus.APPROVED,
         endDate: { gte: monthStart },
       },
@@ -48,7 +49,7 @@ export async function getPdksReportData(companyId: number) {
       prisma.employeeDailyCalendar.findMany({
         where: {
           workDate: { gte: monthStart },
-          employee: { companyId },
+          employee: employeeScope,
           ...(afterId === undefined ? {} : { id: { gt: afterId } }),
         },
         include: { employee: true },

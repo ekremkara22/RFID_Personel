@@ -7,7 +7,7 @@ import styles from "../../../page.module.css";
 
 export default async function NewCompanyCategoryPage() {
   const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
+  if (user.role !== "SUPERADMIN") redirect("/dashboard");
 
   return (
     <div className={styles.page}>
