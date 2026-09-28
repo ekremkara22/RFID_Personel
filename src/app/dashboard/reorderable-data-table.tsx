@@ -130,7 +130,7 @@ export function ReorderableDataTable({
         {canExport ? <button type="button" className={ui.secondaryAction} onClick={exportRows}><Download size={15} />Excel&apos;e Aktar</button> : null}
       </div>
       <div className={ui.tableViewport}>
-        <table className={ui.dataTable} style={{ minWidth }}>
+        <table className={`${ui.dataTable} ${ui.reorderableTable}`} style={{ minWidth }}>
           <thead><tr>{orderedColumns.map((column) => <th
             key={column.id}
             draggable

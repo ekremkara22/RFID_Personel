@@ -505,6 +505,13 @@
 .tableHint { display: inline-flex; align-items: center; gap: 5px; }
 .draggableColumn { cursor: grab; user-select: none; }
 .draggedColumn { cursor: grabbing; opacity: 0.5; }
+.reorderableTable { table-layout: auto; }
+.reorderableTable th,
+.reorderableTable td { min-width: 108px; }
+.reorderableTable th:first-child,
+.reorderableTable td:first-child { min-width: 190px; }
+.reorderableTable th:last-child,
+.reorderableTable td:last-child { min-width: 86px; }
 
 .statusDanger,
 .statusNeutral { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 8px; font-size: 12px; font-weight: 650; white-space: nowrap; }
