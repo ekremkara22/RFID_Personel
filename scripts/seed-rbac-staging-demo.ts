@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
 import { CompanyMembershipStatus, CompanyInvitationStatus, DataScopeMode, Role } from "../src/generated/prisma/client";
+import { READY_COMPANY_ROLES } from "../src/lib/permission-catalog";
 import { prisma } from "../src/lib/prisma";
 
 function assertStagingDatabase() {
@@ -13,6 +14,18 @@ function assertStagingDatabase() {
 
 async function companyByName(name: string) {
   return (await prisma.company.findFirst({ where: { name } })) ?? prisma.company.create({ data: { name, category: "RBAC sentetik test", isActive: true } });
+}
+
+async function ensureReadyRoles(companyId: number) {
+  for (const definition of READY_COMPANY_ROLES) {
+    const role = await prisma.companyRole.upsert({
+      where: { companyId_key: { companyId, key: definition.key } },
+      create: { companyId, key: definition.key, name: definition.name, description: definition.description, isSystem: true, isActive: true },
+      update: { name: definition.name, description: definition.description, isSystem: true, isActive: true },
+    });
+    await prisma.companyRolePermission.deleteMany({ where: { roleId: role.id } });
+    await prisma.companyRolePermission.createMany({ data: definition.permissions.map((permission) => ({ roleId: role.id, permission })) });
+  }
 }
 
 async function employee(companyId: number, branchId: number, departmentId: number, suffix: string, firstName: string) {
@@ -48,6 +61,8 @@ async function main() {
   const passwordHash = await bcrypt.hash(password, 12);
   const companyA = await companyByName("[STAGING RBAC] Atlas Demo");
   const companyB = await companyByName("[STAGING RBAC] Bora Demo");
+  await ensureReadyRoles(companyA.id);
+  await ensureReadyRoles(companyB.id);
   const [branchA1, branchA2, branchB1] = await Promise.all([
     prisma.branch.upsert({ where: { companyId_name: { companyId: companyA.id, name: "Şube 1" } }, create: { companyId: companyA.id, name: "Şube 1" }, update: { isActive: true } }),
     prisma.branch.upsert({ where: { companyId_name: { companyId: companyA.id, name: "Şube 2" } }, create: { companyId: companyA.id, name: "Şube 2" }, update: { isActive: true } }),
