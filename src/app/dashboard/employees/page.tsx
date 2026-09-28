@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CirclePlus, Filter, Search } from "lucide-react";
+import { Building2, CirclePlus, Filter, Search } from "lucide-react";
 import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { EmployeesTable } from "./employees-table";
 import styles from "../page.module.css";
+import ui from "../management.module.css";
 
 export default async function EmployeesPage(props: {
   searchParams: Promise<{ q?: string; branchId?: string; departmentId?: string }>;
@@ -50,31 +51,27 @@ export default async function EmployeesPage(props: {
   });
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>Personeller</p>
-          <h1 className={styles.title}>Personel Yonetimi</h1>
-          <p className={styles.subtitle}>
-            Personel kayitlarini tam sayfa tabloda arayabilir, kart ID ve departman bilgilerini
-            hizlica kontrol edebilirsin.
-          </p>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}>
+        <div className={ui.headerCopy}>
+          <p className={ui.kicker}>Personel yönetimi</p>
+          <h1 className={ui.pageTitle}>Personel Kayıtları</h1>
+          <p className={ui.pageDescription}>Çalışanların kimlik, organizasyon ve RFID bilgilerini sade bir listede yönetin.</p>
         </div>
-        {can(authorization, PERMISSIONS.PERSONNEL_CREATE) ? <Link href="/dashboard/employees/new" className={styles.primaryLinkButton}>
-          <CirclePlus size={18} />
-          <span>Yeni Personel</span>
-        </Link> : null}
+        {can(authorization, PERMISSIONS.PERSONNEL_CREATE) ? <div className={ui.headerActions}><Link href="/dashboard/employees/new" className={ui.primaryAction}><CirclePlus size={16} />Yeni Personel</Link></div> : null}
+      </header>
+
+      <section className={ui.surface} aria-label="Personel filtreleri">
+        <form className={ui.filterBar}>
+          <label className={ui.field}><span className={ui.fieldLabel}>Personel veya RFID ara</span><span className={ui.controlWrap}><Search className={ui.controlIcon} size={16} /><input className={`${ui.control} ${ui.controlWithIcon}`} name="q" defaultValue={query} placeholder="Ad, soyad, e-posta veya kart numarası" /></span></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Şube</span><select className={ui.control} name="branchId" defaultValue={branchId ?? ""}><option value="">Tüm şubeler</option>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Departman</span><select className={ui.control} name="departmentId" defaultValue={departmentId ?? ""}><option value="">Tüm departmanlar</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <button type="submit" className={ui.filterButton}><Filter size={15} />Filtrele</button>
+        </form>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <form className={styles.filterGrid}>
-          <label className={styles.field}><span>Personel / RFID</span><span className={styles.searchForm}><Search size={18} /><input name="q" defaultValue={query} placeholder="Ad, soyad, e-posta veya kart" /></span></label>
-          <label className={styles.field}><span>Firma</span><input value={company.name} readOnly /></label>
-          <label className={styles.field}><span>Şube</span><select name="branchId" defaultValue={branchId ?? ""}><option value="">Tüm Şubeler</option>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label className={styles.field}><span>Departman</span><select name="departmentId" defaultValue={departmentId ?? ""}><option value="">Tüm Departmanlar</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <button type="submit" className={styles.primaryButton}><Filter size={16} /><span>Filtrele</span></button>
-        </form>
-
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}><div><h2>Personel listesi</h2><p><Building2 size={14} /> {company.name}</p></div><span className={ui.countBadge}>{employees.length} kayıt</span></div>
         <EmployeesTable
           employees={employees.map((employee) => ({
             id: employee.id,
@@ -92,6 +89,7 @@ export default async function EmployeesPage(props: {
             email: employee.email ?? "-",
             status: employee.isActive ? "Aktif" : "Pasif",
           }))}
+          canExport={can(authorization, PERMISSIONS.REPORT_EXPORT)}
         />
       </section>
     </div>

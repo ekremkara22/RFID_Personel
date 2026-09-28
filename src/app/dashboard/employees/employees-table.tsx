@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { Eye, GripVertical } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
-import styles from "../page.module.css";
+import ui from "../management.module.css";
 
 type EmployeeRow = {
   id: number;
@@ -24,232 +22,77 @@ type EmployeeRow = {
   status: string;
 };
 
-type ColumnKey =
-  | "fullName"
-  | "registrationNumber"
-  | "rfidCardId"
-  | "branch"
-  | "department"
-  | "hireDate"
-  | "terminationDate"
-  | "managerName"
-  | "email"
-  | "status";
-
-const storageKey = "rfid-personel-employees-column-order";
-const defaultOrder: ColumnKey[] = [
-  "fullName",
-  "registrationNumber",
-  "rfidCardId",
-  "branch",
-  "department",
-  "hireDate",
-  "terminationDate",
-  "managerName",
-  "status",
-];
-
-const columnMap: Record<
-  ColumnKey,
-  {
-    label: string;
-    render: (employee: EmployeeRow) => ReactNode;
-    exportValue: (employee: EmployeeRow) => string | number;
-  }
-> = {
-  fullName: {
-    label: "Ad Soyad",
-    render: (employee) => (
-      <div className={styles.personCell}>
-        {employee.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={employee.photoUrl} alt={employee.fullName} />
-        ) : (
-          <span>{employee.fullName.slice(0, 1)}</span>
-        )}
-        <div>
-          <strong>{employee.fullName}</strong>
-          <p className={styles.tableSubText}>{employee.age} yas</p>
-        </div>
-      </div>
-    ),
-    exportValue: (employee) => employee.fullName,
-  },
-  registrationNumber: {
-    label: "Sicil No",
-    render: (employee) => employee.registrationNumber,
-    exportValue: (employee) => employee.registrationNumber,
-  },
-  department: {
-    label: "Departman",
-    render: (employee) => employee.department,
-    exportValue: (employee) => employee.department,
-  },
-  branch: {
-    label: "Sirket/Sube",
-    render: (employee) => `${employee.companyName} / ${employee.branch}`,
-    exportValue: (employee) => `${employee.companyName} / ${employee.branch}`,
-  },
-  hireDate: {
-    label: "Ise Giris",
-    render: (employee) => employee.hireDate,
-    exportValue: (employee) => employee.hireDate,
-  },
-  terminationDate: {
-    label: "Ayrilis",
-    render: (employee) => employee.terminationDate,
-    exportValue: (employee) => employee.terminationDate,
-  },
-  managerName: {
-    label: "Bagli Yonetici",
-    render: (employee) => employee.managerName,
-    exportValue: (employee) => employee.managerName,
-  },
-  rfidCardId: {
-    label: "RFID Kart ID",
-    render: (employee) => <span className={styles.monoCell}>{employee.rfidCardId}</span>,
-    exportValue: (employee) => employee.rfidCardId,
-  },
-  email: {
-    label: "E-posta",
-    render: (employee) => employee.email,
-    exportValue: (employee) => employee.email,
-  },
-  status: {
-    label: "Statu",
-    render: (employee) => (
-      <span className={employee.status === "Aktif" ? styles.statusActive : styles.statusPassive}>
-        {employee.status}
-      </span>
-    ),
-    exportValue: (employee) => employee.status,
-  },
-};
-
-function getSavedOrder() {
-  if (typeof window === "undefined") return defaultOrder;
-
-  const savedValue = window.localStorage.getItem(storageKey);
-  if (!savedValue) return defaultOrder;
-
-  try {
-    const savedOrder = JSON.parse(savedValue) as ColumnKey[];
-    const cleanOrder = savedOrder.filter((key): key is ColumnKey => defaultOrder.includes(key));
-    const missingColumns = defaultOrder.filter((key) => !cleanOrder.includes(key));
-    return [...cleanOrder, ...missingColumns];
-  } catch {
-    return defaultOrder;
-  }
-}
-
-export function EmployeesTable({ employees }: { employees: EmployeeRow[] }) {
-  const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(defaultOrder);
-  const [draggedColumn, setDraggedColumn] = useState<ColumnKey | null>(null);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setColumnOrder(getSavedOrder()));
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(columnOrder));
-  }, [columnOrder]);
-
-  const exportColumns = useMemo(
-    () =>
-      columnOrder.map((key) => ({
-        key,
-        label: columnMap[key].label,
-      })),
-    [columnOrder],
-  );
-  const exportRows = useMemo(
-    () =>
-      employees.map((employee) => ({
-        fullName: columnMap.fullName.exportValue(employee),
-        registrationNumber: columnMap.registrationNumber.exportValue(employee),
-        rfidCardId: columnMap.rfidCardId.exportValue(employee),
-        branch: columnMap.branch.exportValue(employee),
-        department: columnMap.department.exportValue(employee),
-        hireDate: columnMap.hireDate.exportValue(employee),
-        terminationDate: columnMap.terminationDate.exportValue(employee),
-        managerName: columnMap.managerName.exportValue(employee),
-        email: columnMap.email.exportValue(employee),
-        status: columnMap.status.exportValue(employee),
-      })),
-    [employees],
-  );
-
-  const moveColumn = (targetColumn: ColumnKey) => {
-    if (!draggedColumn || draggedColumn === targetColumn) return;
-
-    setColumnOrder((currentOrder) => {
-      const nextOrder = currentOrder.filter((key) => key !== draggedColumn);
-      const targetIndex = nextOrder.indexOf(targetColumn);
-      nextOrder.splice(targetIndex, 0, draggedColumn);
-      return nextOrder;
-    });
-    setDraggedColumn(null);
-  };
+export function EmployeesTable({ employees, canExport }: { employees: EmployeeRow[]; canExport: boolean }) {
+  const exportRows = employees.map((employee) => ({
+    fullName: employee.fullName,
+    registrationNumber: employee.registrationNumber,
+    rfidCardId: employee.rfidCardId,
+    companyName: employee.companyName,
+    branch: employee.branch,
+    department: employee.department,
+    hireDate: employee.hireDate,
+    terminationDate: employee.terminationDate,
+    managerName: employee.managerName,
+    email: employee.email,
+    status: employee.status,
+  }));
 
   return (
     <>
-      <div className={styles.tableActionRow}>
-        <p className={styles.emptyState}>
-          Sütun başlıklarını sürükleyerek sırayı değiştirebilirsin. Sıralama bu tarayıcıda hatırlanır.
-        </p>
-        <ExportButton
-          rows={exportRows}
-          columns={exportColumns}
-          filename="personeller"
-          className={styles.inlineAction}
-        />
+      <div className={ui.tableToolbar}>
+        <p className={ui.tableHint}>Temel bilgiler tek bakışta okunacak şekilde gruplandı.</p>
+        {canExport ? (
+          <ExportButton
+            rows={exportRows}
+            columns={[
+              { key: "fullName", label: "Ad Soyad" },
+              { key: "registrationNumber", label: "Sicil No" },
+              { key: "rfidCardId", label: "RFID Kart ID" },
+              { key: "companyName", label: "Firma" },
+              { key: "branch", label: "Şube" },
+              { key: "department", label: "Departman" },
+              { key: "hireDate", label: "İşe Giriş" },
+              { key: "terminationDate", label: "Ayrılış" },
+              { key: "managerName", label: "Bağlı Yönetici" },
+              { key: "email", label: "E-posta" },
+              { key: "status", label: "Durum" },
+            ]}
+            filename="personeller"
+            className={ui.secondaryAction}
+            label="Excel'e Aktar"
+          />
+        ) : null}
       </div>
 
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              {columnOrder.map((columnKey) => (
-                <th
-                  key={columnKey}
-                  draggable
-                  onDragStart={() => setDraggedColumn(columnKey)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => moveColumn(columnKey)}
-                  className={styles.draggableTh}
-                >
-                  <span>
-                    <GripVertical size={14} />
-                    {columnMap[columnKey].label}
-                  </span>
-                </th>
-              ))}
-              <th>Islem</th>
-            </tr>
-          </thead>
+      <div className={ui.tableViewport}>
+        <table className={ui.dataTable}>
+          <colgroup><col style={{ width: "23%" }} /><col style={{ width: "14%" }} /><col style={{ width: "18%" }} /><col style={{ width: "15%" }} /><col style={{ width: "12%" }} /><col style={{ width: "9%" }} /><col style={{ width: "9%" }} /></colgroup>
+          <thead><tr><th>Personel</th><th>Sicil / RFID</th><th>Organizasyon</th><th>İstihdam</th><th>Yönetici</th><th>Durum</th><th>İşlem</th></tr></thead>
           <tbody>
-            {employees.length === 0 ? (
-              <tr>
-                <td colSpan={columnOrder.length + 1} className={styles.emptyCell}>
-                  Aramana uygun personel bulunamadi.
+            {employees.length === 0 ? <tr><td colSpan={7} className={ui.emptyCell}>Filtrelere uygun personel bulunamadı.</td></tr> : employees.map((employee) => (
+              <tr key={employee.id}>
+                <td>
+                  <div className={ui.identity}>
+                    <span className={ui.avatar}>
+                      {employee.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={employee.photoUrl} alt="" />
+                      ) : employee.fullName.slice(0, 1).toLocaleUpperCase("tr-TR")}
+                    </span>
+                    <span>
+                      <strong className={ui.primaryText}>{employee.fullName}</strong>
+                      <span className={ui.secondaryText}>{employee.email} · {employee.age} yaş</span>
+                    </span>
+                  </div>
                 </td>
+                <td><strong className={ui.primaryText}>{employee.registrationNumber}</strong><span className={ui.secondaryText}><span className={ui.monoText}>{employee.rfidCardId}</span></span></td>
+                <td><strong className={ui.primaryText}>{employee.department}</strong><span className={ui.secondaryText}>{employee.branch}</span></td>
+                <td><strong className={ui.primaryText}>{employee.hireDate}</strong><span className={ui.secondaryText}>Ayrılış: {employee.terminationDate}</span></td>
+                <td>{employee.managerName}</td>
+                <td><span className={employee.status === "Aktif" ? ui.statusBadge : ui.statusWarning}><span className={ui.statusDot} />{employee.status}</span></td>
+                <td><Link href={`/dashboard/employees/${employee.id}`} className={ui.rowAction} aria-label={`${employee.fullName} kaydını incele`}>İncele <ArrowUpRight size={14} /></Link></td>
               </tr>
-            ) : (
-              employees.map((employee) => (
-                <tr key={employee.id}>
-                  {columnOrder.map((columnKey) => (
-                    <td key={`${employee.id}-${columnKey}`}>{columnMap[columnKey].render(employee)}</td>
-                  ))}
-                  <td>
-                    <Link href={`/dashboard/employees/${employee.id}`} className={styles.inlineAction}>
-                      <Eye size={16} />
-                      <span>Incele</span>
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>

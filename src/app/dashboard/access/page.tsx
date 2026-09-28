@@ -1,31 +1,156 @@
 import Link from "next/link";
-import { Copy, KeyRound, Search, UserPlus } from "lucide-react";
-import { CompanyMembershipStatus } from "@/generated/prisma/client";
+import { ArrowUpRight, Clock3, Filter, History, Search, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
+import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/client";
 import { assertPermission, scopeSummary } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
+import ui from "../management.module.css";
 
-const statusLabels: Record<CompanyMembershipStatus, string> = { PENDING: "Bekleyen", ACTIVE: "Aktif", SUSPENDED: "Askıya alınmış", REVOKED: "Erişimi kaldırılmış" };
-function fullName(item: { user: { firstName: string | null; lastName: string | null; name: string | null; email: string } }) { return `${item.user.firstName ?? ""} ${item.user.lastName ?? ""}`.trim() || item.user.name || item.user.email; }
+const statusLabels: Record<CompanyMembershipStatus, string> = {
+  PENDING: "Bekleyen",
+  ACTIVE: "Aktif",
+  SUSPENDED: "Askıya alınmış",
+  REVOKED: "Erişimi kaldırılmış",
+};
+
+const scopeLabels: Record<DataScopeMode, string> = {
+  COMPANY: "Firmanın tamamı",
+  RESTRICTED: "Seçili kapsamlar",
+  OWN: "Yalnız kendi kaydı",
+  NONE: "Veri erişimi yok",
+};
+
+function fullName(item: { user: { firstName: string | null; lastName: string | null; name: string | null; email: string } }) {
+  return `${item.user.firstName ?? ""} ${item.user.lastName ?? ""}`.trim() || item.user.name || item.user.email;
+}
 
 export default async function AccessPage(props: { searchParams: Promise<{ q?: string; status?: string; invite?: string }> }) {
-  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_VIEW);
+  const { authorization } = await requireSessionUser();
+  assertPermission(authorization, PERMISSIONS.ACCESS_VIEW);
   if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
-  const params = await props.searchParams; const q = params.q?.trim() ?? ""; const status = Object.values(CompanyMembershipStatus).includes(params.status as CompanyMembershipStatus) ? params.status as CompanyMembershipStatus : undefined;
-  const memberships = await prisma.companyMembership.findMany({
-    where: { companyId: authorization.companyId, ...(status ? { status } : {}), ...(q ? { user: { OR: [{ email: { contains: q } }, { firstName: { contains: q } }, { lastName: { contains: q } }] } } : {}) },
-    include: { user: true, role: { include: { permissions: true } }, branchScopes: true, departmentScopes: true, employeeScopes: true, deviceScopes: true, teamScopes: { include: { team: { include: { members: true } } } } }, orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-  });
-  const pendingInvites = await prisma.companyInvitation.findMany({ where: { companyId: authorization.companyId, status: "PENDING", expiresAt: { gt: new Date() } }, include: { role: true }, orderBy: { createdAt: "desc" } });
-  const inviteLink = params.invite?.startsWith("https://test.flodeska.com/activate/") ? params.invite : "";
+
+  const params = await props.searchParams;
+  const q = params.q?.trim() ?? "";
+  const status = Object.values(CompanyMembershipStatus).includes(params.status as CompanyMembershipStatus)
+    ? params.status as CompanyMembershipStatus
+    : undefined;
   const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE);
-  return <div className={styles.page}>
-    <section className={`glass-panel ${styles.heroCard}`}><div><p className={styles.eyebrow}>Firma erişim yönetimi</p><h1 className={styles.title}>Kullanıcılar ve Yetkiler</h1><p className={styles.subtitle}>Üyelik, işlem yetkisi ve veri kapsamını firma bazında yönetin. Başka firmadaki roller bu firmaya taşınmaz.</p></div><div className={styles.heroMeta}>{canManage ? <Link href="/dashboard/access/invite" className={styles.primaryLinkButton}><UserPlus size={17} /> Kullanıcı Davet Et</Link> : null}<Link href="/dashboard/access/roles" className={styles.secondaryLinkButton}><KeyRound size={17} /> Firma Rolleri</Link>{canManage ? <Link href="/dashboard/access/teams" className={styles.secondaryLinkButton}>Ekipler</Link> : null}<Link href="/dashboard/access/audit" className={styles.secondaryLinkButton}>Yetki Geçmişi</Link></div></section>
-    {inviteLink ? <section className={`glass-panel ${styles.sectionCard}`}><p className={styles.sectionEyebrow}>Tek kullanımlık staging daveti</p><h2 className={styles.sectionTitle}>Bağlantı oluşturuldu</h2><p className={styles.helperText}>E-posta gönderimi yapılmadı. Bu bağlantıyı güvenli kanaldan kullanıcıya iletin; 72 saat geçerlidir.</p><div className={styles.inviteLinkBox}><Copy size={16} /><code>{inviteLink}</code></div></section> : null}
-    <section className={`glass-panel ${styles.sectionCard}`}><form className={styles.filterGrid}><label className={styles.field}><span>Kullanıcı</span><span className={styles.searchForm}><Search size={16}/><input name="q" defaultValue={q} placeholder="Ad veya e-posta" /></span></label><label className={styles.field}><span>Durum</span><select name="status" defaultValue={status ?? ""}><option value="">Tümü</option>{Object.entries(statusLabels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><button className={styles.primaryButton}>Filtrele</button></form></section>
-    <section className={`glass-panel ${styles.sectionCard}`}><div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Firma üyelikleri</p><h2 className={styles.sectionTitle}>Kullanıcı Listesi</h2></div><span className={styles.countPill}>{memberships.length}</span></div><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Kullanıcı</th><th>Rol</th><th>Durum</th><th>Veri kapsamı</th><th>Efektif izin</th><th>İşlem</th></tr></thead><tbody>{memberships.length ? memberships.map((item) => { const context = { ...authorization, companyId: item.companyId, membershipId: item.id, membershipStatus: item.status, roleKey: item.role.key, roleName: item.role.name, permissions: new Set(item.role.permissions.map((permission)=>permission.permission)), scopeMode: item.scopeMode, employeeId: item.employeeId, branchIds: item.branchScopes.map((scope)=>scope.branchId), departmentIds: item.departmentScopes.map((scope)=>scope.departmentId), employeeIds: item.employeeScopes.map((scope)=>scope.employeeId), deviceIds: item.deviceScopes.map((scope)=>scope.deviceId), teamEmployeeIds: item.teamScopes.flatMap((scope)=>scope.team.members.map((member)=>member.employeeId)), isPlatformAdmin:false, userId:item.userId, sessionVersion:item.sessionVersion }; return <tr key={item.id}><td><strong>{fullName(item)}</strong><p className={styles.tableSubText}>{item.user.email}</p></td><td>{item.role.name}</td><td><span className={item.status === "ACTIVE" ? styles.reportBadgeSuccess : styles.reportBadgeWarning}>{statusLabels[item.status]}</span></td><td>{scopeSummary(context)}</td><td>{item.role.permissions.length} işlem</td><td><Link href={`/dashboard/access/members/${item.id}`} className={styles.inlineAction}>Rol ve kapsam</Link></td></tr>; }) : <tr><td colSpan={6} className={styles.emptyCell}>Üyelik bulunamadı.</td></tr>}</tbody></table></div></section>
-    <section className={`glass-panel ${styles.sectionCard}`}><div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Henüz kabul edilmemiş</p><h2 className={styles.sectionTitle}>Bekleyen Davetler</h2></div></div><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>E-posta</th><th>Rol</th><th>Kapsam</th><th>Son kullanma</th></tr></thead><tbody>{pendingInvites.length ? pendingInvites.map((item)=><tr key={item.id}><td>{item.email}</td><td>{item.role.name}</td><td>{item.scopeMode}</td><td>{item.expiresAt.toLocaleString("tr-TR")}</td></tr>) : <tr><td colSpan={4} className={styles.emptyCell}>Bekleyen davet yok.</td></tr>}</tbody></table></div></section>
-  </div>;
+
+  const [company, memberships, pendingInvites] = await Promise.all([
+    prisma.company.findUniqueOrThrow({ where: { id: authorization.companyId }, select: { name: true } }),
+    prisma.companyMembership.findMany({
+      where: {
+        companyId: authorization.companyId,
+        ...(status ? { status } : {}),
+        ...(q ? { user: { OR: [{ email: { contains: q } }, { firstName: { contains: q } }, { lastName: { contains: q } }] } } : {}),
+      },
+      include: {
+        user: true,
+        role: { include: { permissions: true } },
+        branchScopes: true,
+        departmentScopes: true,
+        employeeScopes: true,
+        deviceScopes: true,
+        teamScopes: { include: { team: { include: { members: true } } } },
+      },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.companyInvitation.findMany({
+      where: { companyId: authorization.companyId, status: "PENDING", expiresAt: { gt: new Date() } },
+      include: { role: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const inviteLink = params.invite?.startsWith("https://test.flodeska.com/activate/") ? params.invite : "";
+
+  return (
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}>
+        <div className={ui.headerCopy}>
+          <p className={ui.kicker}>Firma erişim yönetimi</p>
+          <h1 className={ui.pageTitle}>Kullanıcılar ve Yetkiler</h1>
+          <p className={ui.pageDescription}>{company.name} için kullanıcı üyeliklerini, rolleri ve veri kapsamlarını yönetin.</p>
+        </div>
+        <div className={ui.headerActions}>
+          {canManage ? <Link href="/dashboard/access/invite" className={ui.primaryAction}><UserPlus size={16} />Kullanıcı Davet Et</Link> : null}
+          <Link href="/dashboard/access/roles" className={ui.secondaryAction}><ShieldCheck size={16} />Roller</Link>
+          {canManage ? <Link href="/dashboard/access/teams" className={ui.secondaryAction}><UsersRound size={16} />Ekipler</Link> : null}
+          <Link href="/dashboard/access/audit" className={ui.secondaryAction}><History size={16} />Geçmiş</Link>
+        </div>
+      </header>
+
+      {inviteLink ? (
+        <section className={ui.notice}>
+          <h2>Davet bağlantısı hazır</h2>
+          <p>Bağlantı tek kullanımlıdır ve 72 saat geçerlidir. E-posta gönderimi yapılmadı.</p>
+          <code className={ui.inviteCode}>{inviteLink}</code>
+        </section>
+      ) : null}
+
+      <section className={ui.surface} aria-label="Kullanıcı filtreleri">
+        <form className={`${ui.filterBar} ${ui.filterBarWide}`}>
+          <label className={ui.field}><span className={ui.fieldLabel}>Kullanıcı ara</span><span className={ui.controlWrap}><Search className={ui.controlIcon} size={16} /><input className={`${ui.control} ${ui.controlWithIcon}`} name="q" defaultValue={q} placeholder="Ad, soyad veya e-posta" /></span></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Üyelik durumu</span><select className={ui.control} name="status" defaultValue={status ?? ""}><option value="">Tüm durumlar</option>{Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+          <button className={ui.filterButton}><Filter size={15} />Filtrele</button>
+        </form>
+      </section>
+
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}><div><h2>Firma kullanıcıları</h2><p>Rol, durum ve efektif veri kapsamı</p></div><span className={ui.countBadge}>{memberships.length} kullanıcı</span></div>
+        <div className={ui.tableViewport}>
+          <table className={ui.dataTable}>
+            <colgroup><col style={{ width: "25%" }} /><col style={{ width: "18%" }} /><col style={{ width: "13%" }} /><col style={{ width: "25%" }} /><col style={{ width: "9%" }} /><col style={{ width: "10%" }} /></colgroup>
+            <thead><tr><th>Kullanıcı</th><th>Rol</th><th>Durum</th><th>Veri kapsamı</th><th>İzin</th><th>İşlem</th></tr></thead>
+            <tbody>
+              {memberships.length ? memberships.map((item) => {
+                const context = {
+                  ...authorization,
+                  companyId: item.companyId,
+                  membershipId: item.id,
+                  membershipStatus: item.status,
+                  roleKey: item.role.key,
+                  roleName: item.role.name,
+                  permissions: new Set(item.role.permissions.map((permission) => permission.permission)),
+                  scopeMode: item.scopeMode,
+                  employeeId: item.employeeId,
+                  branchIds: item.branchScopes.map((scope) => scope.branchId),
+                  departmentIds: item.departmentScopes.map((scope) => scope.departmentId),
+                  employeeIds: item.employeeScopes.map((scope) => scope.employeeId),
+                  deviceIds: item.deviceScopes.map((scope) => scope.deviceId),
+                  teamEmployeeIds: item.teamScopes.flatMap((scope) => scope.team.members.map((member) => member.employeeId)),
+                  isPlatformAdmin: false,
+                  userId: item.userId,
+                  sessionVersion: item.sessionVersion,
+                };
+                const name = fullName(item);
+                return (
+                  <tr key={item.id}>
+                    <td><strong className={ui.primaryText}>{name}</strong><span className={ui.secondaryText}>{item.user.email}</span></td>
+                    <td><strong className={ui.primaryText}>{item.role.name}</strong></td>
+                    <td><span className={item.status === "ACTIVE" ? ui.statusBadge : ui.statusWarning}><span className={ui.statusDot} />{statusLabels[item.status]}</span></td>
+                    <td>{scopeSummary(context)}</td>
+                    <td><strong className={ui.primaryText}>{item.role.permissions.length}</strong><span className={ui.secondaryText}>işlem</span></td>
+                    <td><Link href={`/dashboard/access/members/${item.id}`} className={ui.rowAction} aria-label={`${name} rol ve kapsamını incele`}>Yönet <ArrowUpRight size={14} /></Link></td>
+                  </tr>
+                );
+              }) : <tr><td colSpan={6} className={ui.emptyCell}>Filtrelere uygun kullanıcı bulunamadı.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}><div><h2>Bekleyen davetler</h2><p>Henüz üyeliğini etkinleştirmemiş kullanıcılar</p></div><span className={ui.countBadge}>{pendingInvites.length} davet</span></div>
+        <div className={ui.tableViewport}>
+          <table className={ui.dataTable}>
+            <thead><tr><th>E-posta</th><th>Rol</th><th>Kapsam</th><th>Son kullanma</th></tr></thead>
+            <tbody>{pendingInvites.length ? pendingInvites.map((item) => <tr key={item.id}><td><strong className={ui.primaryText}>{item.email}</strong></td><td>{item.role.name}</td><td>{scopeLabels[item.scopeMode]}</td><td><span className={ui.primaryText}><Clock3 size={14} /> {item.expiresAt.toLocaleString("tr-TR")}</span></td></tr>) : <tr><td colSpan={4} className={ui.emptyCell}>Bekleyen davet bulunmuyor.</td></tr>}</tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
 }
