@@ -1,14 +1,14 @@
 import { createCompanyInvitationAction } from "@/app/dashboard/access-actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { DataScopeMode } from "@/generated/prisma/client";
-import { assertPermission } from "@/lib/authorization";
+import { redirect } from "next/navigation";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
 export default async function InvitePage() {
-  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_MANAGE); if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
+  const { authorization } = await requireSessionUser(); if (!authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE)) redirect("/dashboard/access"); if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
   const [roles, branches, departments, employees, devices, teams] = await Promise.all([
     prisma.companyRole.findMany({ where: { companyId: authorization.companyId, isActive: true, key: { not: "OWNER" } }, include: { permissions: true }, orderBy: { name: "asc" } }),
     prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }), prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }), prisma.employee.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }), prisma.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }), prisma.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
