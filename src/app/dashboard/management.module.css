@@ -508,6 +508,7 @@
 .reorderableTable { table-layout: auto; }
 .reorderableTable th,
 .reorderableTable td { min-width: 108px; }
+.reorderableTable th { white-space: nowrap; }
 .reorderableTable th:first-child,
 .reorderableTable td:first-child { min-width: 190px; }
 .reorderableTable th:last-child,
