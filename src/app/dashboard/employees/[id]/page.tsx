@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { deleteEmployeeAction, updateEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { employeeScopeWhere } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
@@ -11,29 +11,27 @@ import styles from "../../page.module.css";
 export default async function EmployeeDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) {
     redirect("/dashboard");
   }
 
   const id = parseRouteId((await props.params).id);
-  const companyIds = await getAccessibleCompanyIds(user);
-  const scopedCompanyIds = companyIds ?? [user.companyId];
   const [employee, companies, departments, branches, managers] = await Promise.all([
     prisma.employee.findFirst({
       where: {
         id,
-        companyId: { in: scopedCompanyIds },
+        ...employeeScopeWhere(authorization),
       },
     }),
     prisma.company.findMany({
-      where: { id: { in: scopedCompanyIds }, isActive: true },
+      where: { id: authorization.companyId!, isActive: true },
       orderBy: { name: "asc" },
     }),
     prisma.department.findMany({
       where: {
-        companyId: { in: scopedCompanyIds },
+        companyId: authorization.companyId!,
         isActive: true,
       },
       include: { company: true },
@@ -41,7 +39,7 @@ export default async function EmployeeDetailPage(props: {
     }),
     prisma.branch.findMany({
       where: {
-        companyId: { in: scopedCompanyIds },
+        companyId: authorization.companyId!,
         isActive: true,
       },
       include: { company: true },
@@ -49,7 +47,7 @@ export default async function EmployeeDetailPage(props: {
     }),
     prisma.manager.findMany({
       where: {
-        companyId: { in: scopedCompanyIds },
+        companyId: authorization.companyId!,
         isActive: true,
       },
       include: { company: true },

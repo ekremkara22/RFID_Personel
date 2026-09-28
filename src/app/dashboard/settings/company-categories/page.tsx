@@ -6,7 +6,7 @@ import styles from "../../page.module.css";
 
 export default async function CompanyCategoriesPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
+  if (user.role !== "SUPERADMIN") redirect("/dashboard");
 
   const params = (await props.searchParams) ?? {};
   const query = typeof params.q === "string" ? params.q.trim() : "";

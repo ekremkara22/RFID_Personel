@@ -5,6 +5,8 @@ import { deleteLeaveRequestAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../page.module.css";
 
 const leaveTypeLabels: Record<LeaveType, string> = {
@@ -31,7 +33,7 @@ function formatDate(date: Date) {
 }
 
 export default async function LeavesPage(props: { searchParams?: Promise<{ q?: string }> }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
 
   const searchParams = (await props.searchParams) ?? {};
@@ -39,6 +41,7 @@ export default async function LeavesPage(props: { searchParams?: Promise<{ q?: s
   const leaves = await prisma.leaveRequest.findMany({
     where: {
       companyId: user.companyId,
+      employee: employeeScopeWhere(authorization),
     },
     include: { employee: true },
     orderBy: { startDate: "desc" },
@@ -59,7 +62,7 @@ export default async function LeavesPage(props: { searchParams?: Promise<{ q?: s
           <h1 className={styles.title}>Personel Izinleri</h1>
           <p className={styles.subtitle}>Izinleri tablo olarak listele, ara, yeni kayit ekle ve detay sayfasinda incele.</p>
         </div>
-        <Link href="/dashboard/leaves/new" className={styles.primaryLinkButton}>Izin Ekle</Link>
+        {can(authorization, PERMISSIONS.LEAVE_CREATE) ? <Link href="/dashboard/leaves/new" className={styles.primaryLinkButton}>Izin Ekle</Link> : null}
       </section>
       <section className={`glass-panel ${styles.sectionCard}`}>
         <div className={styles.listToolbar}>
@@ -85,11 +88,11 @@ export default async function LeavesPage(props: { searchParams?: Promise<{ q?: s
                   <td>{statusLabels[leave.approvalStatus]}</td>
                   <td><Link href={`/dashboard/leaves/${leave.id}`} className={styles.inlineAction}>Incele</Link></td>
                   <td>
-                    <form action={deleteLeaveRequestAction}>
+                    {can(authorization, PERMISSIONS.LEAVE_DELETE) ? <form action={deleteLeaveRequestAction}>
                       <input type="hidden" name="returnTo" value="/dashboard/leaves" />
                       <input type="hidden" name="leaveId" value={leave.id} />
                       <SubmitButton idleLabel="Sil" pendingLabel="..." className={styles.dangerMiniButton} />
-                    </form>
+                    </form> : "—"}
                   </td>
                 </tr>
               ))}

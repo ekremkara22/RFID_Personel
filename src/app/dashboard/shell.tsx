@@ -24,10 +24,13 @@ import {
   SlidersHorizontal,
   Tags,
   Users,
+  KeyRound,
   X,
 } from "lucide-react";
 import { logoutAction } from "./actions";
+import { setActiveCompanyAction } from "./access-actions";
 import { SubmitButton } from "./submit-button";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "./shell.module.css";
 
 type DashboardShellProps = {
@@ -39,16 +42,19 @@ type DashboardShellProps = {
     name: string | null;
     email: string;
     company?: {
+      id: number;
       name: string;
     } | null;
   };
+  authorization: { isPlatformAdmin: boolean; roleName: string | null; permissions: string[] };
+  memberships: Array<{ companyId: number; companyName: string; roleName: string }>;
 };
 
 function getUserFullName(user: DashboardShellProps["user"]) {
   return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.name || user.email;
 }
 
-export function DashboardShell({ children, user }: DashboardShellProps) {
+export function DashboardShell({ children, user, authorization, memberships }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [definitionsOpen, setDefinitionsOpen] = useState(
@@ -56,6 +62,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   );
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
+  const allowed = (permission: string) => authorization.isPlatformAdmin || authorization.permissions.includes(permission);
 
   const items = [
     { href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard },
@@ -65,44 +72,42 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           { href: "/dashboard/firmware-updates", label: "Cihaz Yazılım Güncellemeleri", icon: CloudDownload },
         ]
       : [
-          { href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users },
-          { href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList },
-          { href: "/dashboard/movement-reviews", label: "İncelenecek Hareketler", icon: ListChecks },
-          { href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane },
-          { href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone },
-          { href: "/dashboard/device-health", label: "Cihaz Sağlığı", icon: HeartPulse },
+          ...(allowed(PERMISSIONS.PERSONNEL_VIEW) ? [{ href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users }] : []),
+          ...(allowed(PERMISSIONS.MOVEMENT_VIEW) ? [{ href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList }, { href: "/dashboard/movement-reviews", label: "İncelenecek Hareketler", icon: ListChecks }] : []),
+          ...(allowed(PERMISSIONS.LEAVE_VIEW) ? [{ href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane }] : []),
+          ...(allowed(PERMISSIONS.DEVICE_VIEW) ? [{ href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone }, { href: "/dashboard/device-health", label: "Cihaz Sağlığı", icon: HeartPulse }] : []),
+          ...(allowed(PERMISSIONS.ACCESS_VIEW) ? [{ href: "/dashboard/access", label: "Kullanıcılar ve Yetkiler", icon: KeyRound }] : []),
         ]),
   ];
-  const reportItems = [
+  const reportItems = allowed(PERMISSIONS.REPORT_VIEW) ? [
     { href: "/dashboard/reports", label: "Rapor Merkezi", icon: FileBarChart },
     { href: "/dashboard/reports/personnel", label: "Personel PDKS", icon: Users },
     { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: FileBarChart },
     { href: "/dashboard/reports/late-arrivals", label: "Geç Kalma Raporu", icon: Timer },
     { href: "/dashboard/reports/daily-attendance", label: "Günlük Mola ve Mesai", icon: Clock3 },
-    { href: "/dashboard/reports/audit", label: "Audit Raporu", icon: History },
+    ...(allowed(PERMISSIONS.AUDIT_VIEW) ? [{ href: "/dashboard/reports/audit", label: "Audit Raporu", icon: History }] : []),
     { href: "/dashboard/reports/payroll", label: "Aylık Puantaj Onayı", icon: FileLock2 },
-  ];
-  const calendarItems = [
+  ] : [];
+  const calendarItems = allowed(PERMISSIONS.CALENDAR_VIEW) ? [
     { href: "/dashboard/calendar", label: "Takvim Görünümü", icon: CalendarDays },
-    { href: "/dashboard/calendar/templates", label: "Takvim Şablonları", icon: CalendarDays },
-    { href: "/dashboard/calendar/official-holidays", label: "Resmî Tatiller", icon: CalendarDays },
-    { href: "/dashboard/calendar/special-days", label: "Şirket Özel Günleri", icon: CalendarDays },
-    { href: "/dashboard/calendar/assignments", label: "Takvim Atamaları", icon: CalendarDays },
-    { href: "/dashboard/calendar/exceptions", label: "Günlük İstisnalar", icon: CalendarDays },
-    { href: "/dashboard/calendar/conflicts", label: "Takvim Çakışmaları", icon: CalendarDays },
-    { href: "/dashboard/calendar/change-logs", label: "Değişiklik Geçmişi", icon: CalendarDays },
-  ];
+    ...(allowed(PERMISSIONS.CALENDAR_MANAGE) ? [
+      { href: "/dashboard/calendar/templates", label: "Takvim Şablonları", icon: CalendarDays },
+      { href: "/dashboard/calendar/official-holidays", label: "Resmî Tatiller", icon: CalendarDays },
+      { href: "/dashboard/calendar/special-days", label: "Şirket Özel Günleri", icon: CalendarDays },
+      { href: "/dashboard/calendar/assignments", label: "Takvim Atamaları", icon: CalendarDays },
+      { href: "/dashboard/calendar/exceptions", label: "Günlük İstisnalar", icon: CalendarDays },
+      { href: "/dashboard/calendar/conflicts", label: "Takvim Çakışmaları", icon: CalendarDays },
+      { href: "/dashboard/calendar/change-logs", label: "Değişiklik Geçmişi", icon: CalendarDays },
+    ] : []),
+  ] : [];
   const definitionItems = [
     ...(user.role === "SUPERADMIN"
       ? [
           { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: Tags },
         ]
       : [
-          { href: "/dashboard/companies", label: "Firma Tanım", icon: Building2 },
-          { href: "/dashboard/settings/company-categories", label: "Firma Kategorileri", icon: Tags },
-          { href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags },
-          { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 },
-          { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users },
+          ...(allowed(PERMISSIONS.COMPANY_VIEW) ? [{ href: "/dashboard/companies", label: "Firma Tanım", icon: Building2 }] : []),
+          ...(allowed(PERMISSIONS.SETTINGS_MANAGE) ? [{ href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags }, { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 }, { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users }] : []),
         ]),
   ];
 
@@ -127,8 +132,9 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
         <div className={`glass-panel ${styles.profileCard}`}>
           <p className={styles.profileName}>{getUserFullName(user)}</p>
           <p className={styles.profileMeta}>
-            {user.role === "SUPERADMIN" ? "Super Admin" : user.company?.name ?? "Firma Admin"}
+            {user.role === "SUPERADMIN" ? "Super Admin" : `${user.company?.name ?? "Firma"} · ${authorization.roleName ?? "Üyelik"}`}
           </p>
+          {memberships.length > 1 ? <form action={setActiveCompanyAction} className={styles.companySwitcher}><select name="companyId" defaultValue={user.company?.id}>{memberships.map((item) => <option key={item.companyId} value={item.companyId}>{item.companyName} · {item.roleName}</option>)}</select><button type="submit">Geç</button></form> : null}
         </div>
 
         <nav className={styles.nav}>
@@ -150,7 +156,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             );
           })}
 
-          {user.role !== "SUPERADMIN" ? (
+          {user.role !== "SUPERADMIN" && calendarItems.length ? (
             <div className={styles.navGroup}>
               <button
                 type="button"
@@ -188,7 +194,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             </div>
           ) : null}
 
-          {user.role !== "SUPERADMIN" ? (
+          {user.role !== "SUPERADMIN" && reportItems.length ? (
             <div className={styles.navGroup}>
               <button
                 type="button"

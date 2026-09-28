@@ -1,47 +1,38 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CirclePlus, Filter, Search } from "lucide-react";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { EmployeesTable } from "./employees-table";
 import styles from "../page.module.css";
 
 export default async function EmployeesPage(props: {
-  searchParams: Promise<{ q?: string; companyId?: string; branch?: string; department?: string }>;
+  searchParams: Promise<{ q?: string; branchId?: string; departmentId?: string }>;
 }) {
-  const { user } = await requireSessionUser();
-
-  if (user.role !== "COMPANY_ADMIN") {
-    redirect("/dashboard");
-  }
+  const { authorization } = await requireSessionUser();
+  assertPermission(authorization, PERMISSIONS.PERSONNEL_VIEW);
+  if (!authorization.companyId) redirect("/dashboard");
 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const companyIds = await getAccessibleCompanyIds(user);
-  const scopedCompanyIds = companyIds ?? [];
-  if (scopedCompanyIds.length === 0) redirect("/dashboard/companies/new");
-  const requestedCompanyId = Number(searchParams.companyId);
-  const selectedCompanyId = Number.isSafeInteger(requestedCompanyId) && scopedCompanyIds.includes(requestedCompanyId)
-    ? requestedCompanyId
-    : null;
-  const filteredCompanyIds = selectedCompanyId ? [selectedCompanyId] : scopedCompanyIds;
-  const requestedBranch = typeof searchParams.branch === "string" ? searchParams.branch.trim() : "";
-  const requestedDepartment = typeof searchParams.department === "string" ? searchParams.department.trim() : "";
+  const requestedBranchId = Number(searchParams.branchId);
+  const requestedDepartmentId = Number(searchParams.departmentId);
 
-  const [companies, branches, departments] = await Promise.all([
-    prisma.company.findMany({ where: { id: { in: scopedCompanyIds } }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: { in: filteredCompanyIds }, isActive: true }, include: { company: true }, orderBy: [{ companyId: "asc" }, { name: "asc" }] }),
-    prisma.department.findMany({ where: { companyId: { in: filteredCompanyIds }, isActive: true }, orderBy: [{ companyId: "asc" }, { name: "asc" }] }),
+  const [company, branches, departments] = await Promise.all([
+    prisma.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
+    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length ? { id: { in: authorization.departmentIds } } : {}) }, orderBy: { name: "asc" } }),
   ]);
-  const branch = requestedBranch && branches.some((item) => item.name === requestedBranch) ? requestedBranch : "";
-  const department = requestedDepartment && departments.some((item) => item.name === requestedDepartment) ? requestedDepartment : "";
+  const branchId = branches.some((item) => item.id === requestedBranchId) ? requestedBranchId : null;
+  const departmentId = departments.some((item) => item.id === requestedDepartmentId) ? requestedDepartmentId : null;
 
   const employees = await prisma.employee.findMany({
     where: {
-      companyId: { in: filteredCompanyIds },
-      ...(branch ? { branch } : {}),
-      ...(department ? { department } : {}),
+      ...employeeScopeWhere(authorization),
+      ...(branchId ? { branchId } : {}),
+      ...(departmentId ? { departmentId } : {}),
       ...(query
         ? {
             OR: [
@@ -69,18 +60,18 @@ export default async function EmployeesPage(props: {
             hizlica kontrol edebilirsin.
           </p>
         </div>
-        <Link href="/dashboard/employees/new" className={styles.primaryLinkButton}>
+        {can(authorization, PERMISSIONS.PERSONNEL_CREATE) ? <Link href="/dashboard/employees/new" className={styles.primaryLinkButton}>
           <CirclePlus size={18} />
           <span>Yeni Personel</span>
-        </Link>
+        </Link> : null}
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
         <form className={styles.filterGrid}>
           <label className={styles.field}><span>Personel / RFID</span><span className={styles.searchForm}><Search size={18} /><input name="q" defaultValue={query} placeholder="Ad, soyad, e-posta veya kart" /></span></label>
-          <label className={styles.field}><span>Firma</span><select name="companyId" defaultValue={selectedCompanyId ?? ""}><option value="">Tüm Firmalar</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
-          <label className={styles.field}><span>Şube</span><select name="branch" defaultValue={branch}><option value="">Tüm Şubeler</option>{branches.map((item) => <option key={item.id} value={item.name}>{companies.length > 1 ? `${item.company.name} / ` : ""}{item.name}</option>)}</select></label>
-          <label className={styles.field}><span>Departman</span><select name="department" defaultValue={department}><option value="">Tüm Departmanlar</option>{departments.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
+          <label className={styles.field}><span>Firma</span><input value={company.name} readOnly /></label>
+          <label className={styles.field}><span>Şube</span><select name="branchId" defaultValue={branchId ?? ""}><option value="">Tüm Şubeler</option>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label className={styles.field}><span>Departman</span><select name="departmentId" defaultValue={departmentId ?? ""}><option value="">Tüm Departmanlar</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           <button type="submit" className={styles.primaryButton}><Filter size={16} /><span>Filtrele</span></button>
         </form>
 

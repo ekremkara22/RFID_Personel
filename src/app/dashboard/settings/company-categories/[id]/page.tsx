@@ -9,7 +9,7 @@ import styles from "../../../page.module.css";
 
 export default async function CompanyCategoryDetailPage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
+  if (user.role !== "SUPERADMIN") redirect("/dashboard");
 
   const id = parseRouteId((await props.params).id);
   const category = await prisma.companyCategory.findUnique({ where: { id } });

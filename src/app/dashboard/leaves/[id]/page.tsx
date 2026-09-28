@@ -6,6 +6,8 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
+import { can, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../../page.module.css";
 
 const leaveTypeLabels = {
@@ -25,12 +27,12 @@ function formatDateInput(date: Date) {
 }
 
 export default async function LeaveDetailPage(props: { params: Promise<{ id: string }> }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   const id = parseRouteId((await props.params).id);
   const [leave, employees] = await Promise.all([
-    prisma.leaveRequest.findFirst({ where: { id, companyId: user.companyId }, include: { employee: true } }),
-    prisma.employee.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    prisma.leaveRequest.findFirst({ where: { id, companyId: user.companyId, employee: employeeScopeWhere(authorization) }, include: { employee: true } }),
+    prisma.employee.findMany({ where: { ...employeeScopeWhere(authorization), isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
   ]);
   if (!leave) notFound();
 
@@ -48,7 +50,7 @@ export default async function LeaveDetailPage(props: { params: Promise<{ id: str
         <form action={updateLeaveRequestAction} className={styles.formGrid}>
           <input type="hidden" name="returnTo" value="/dashboard/leaves" />
           <input type="hidden" name="leaveId" value={leave.id} />
-          <label className={styles.field}>
+          {can(authorization, PERMISSIONS.LEAVE_APPROVE) ? <label className={styles.field}>
             <span>Personel</span>
             <select name="employeeId" required defaultValue={leave.employeeId}>
               {employees.some((employee) => employee.id === leave.employeeId) ? null : (
@@ -58,7 +60,9 @@ export default async function LeaveDetailPage(props: { params: Promise<{ id: str
                 <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName} - {employee.department}</option>
               ))}
             </select>
-          </label>
+          </label> : (
+            <input type="hidden" name="approvalStatus" value={leave.approvalStatus}/>
+          )}
           <label className={styles.field}>
             <span>Izin Turu</span>
             <select name="type" defaultValue={leave.type}>

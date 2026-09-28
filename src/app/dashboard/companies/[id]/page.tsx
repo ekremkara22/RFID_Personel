@@ -8,7 +8,8 @@ import {
   updateCompanyAction,
 } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { getAccessibleCompanyIds } from "@/lib/access";
+import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
@@ -48,15 +49,15 @@ export default async function CompanyDetailPage(props: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string; employeeQ?: string; employeeId?: string; deviceId?: string }>;
 }) {
-  const { user } = await requireSessionUser();
+  const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     redirect("/dashboard");
   }
 
   const id = parseRouteId((await props.params).id);
-  const companyIds = await getAccessibleCompanyIds(user);
-  if (companyIds && !companyIds.includes(id)) {
+  if (user.role !== "SUPERADMIN") assertPermission(authorization, PERMISSIONS.COMPANY_VIEW);
+  if (user.role !== "SUPERADMIN" && authorization.companyId !== id) {
     redirect("/dashboard/companies");
   }
   const searchParams = await props.searchParams;
@@ -78,8 +79,9 @@ export default async function CompanyDetailPage(props: {
           orderBy: { createdAt: "asc" },
         },
         employees: {
-          where: employeeQuery
-            ? {
+          where: {
+            ...(user.role === "SUPERADMIN" ? {} : employeeScopeWhere(authorization)),
+            ...(employeeQuery ? {
                 OR: [
                   { firstName: { contains: employeeQuery } },
                   { lastName: { contains: employeeQuery } },
@@ -87,11 +89,12 @@ export default async function CompanyDetailPage(props: {
                   { department: { contains: employeeQuery } },
                   { rfidCardId: { contains: employeeQuery } },
                 ],
-              }
-            : undefined,
+              } : {}),
+          },
           orderBy: { createdAt: "desc" },
         },
         devices: {
+          where: user.role === "SUPERADMIN" ? undefined : deviceScopeWhere(authorization),
           orderBy: { createdAt: "desc" },
         },
         _count: {
