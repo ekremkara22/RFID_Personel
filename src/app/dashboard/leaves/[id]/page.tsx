@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { LeaveApprovalStatus, LeaveDurationType, LeaveType } from "@/generated/prisma/client";
-import { updateLeaveRequestAction } from "@/app/dashboard/actions";
+import { deleteLeaveRequestAction, updateLeaveRequestAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/ids";
@@ -9,6 +9,7 @@ import { requireSessionUser } from "@/lib/session";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../../page.module.css";
+import ui from "../../management.module.css";
 
 const leaveTypeLabels = {
   ANNUAL: "Yillik izin",
@@ -37,7 +38,7 @@ export default async function LeaveDetailPage(props: { params: Promise<{ id: str
   if (!leave) notFound();
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${ui.managementPage}`}>
       <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Izin Detay</p>
@@ -89,6 +90,7 @@ export default async function LeaveDetailPage(props: { params: Promise<{ id: str
           <div className={styles.fullWidthActionRow}><SubmitButton idleLabel="Izin Talebini Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} /></div>
         </form>
       </section>
+      {can(authorization, PERMISSIONS.LEAVE_DELETE) ? <section className={ui.dangerZone}><div><h3>İzin kaydını sil</h3><p>Bu işlem izin kaydını kaldırır; devam etmeden önce tarihleri kontrol edin.</p></div><form action={deleteLeaveRequestAction}><input type="hidden" name="returnTo" value="/dashboard/leaves" /><input type="hidden" name="leaveId" value={leave.id} /><SubmitButton idleLabel="İzin Kaydını Sil" pendingLabel="Siliniyor..." className={ui.dangerAction} /></form></section> : null}
     </div>
   );
 }

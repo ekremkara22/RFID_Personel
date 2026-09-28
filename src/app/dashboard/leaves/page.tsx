@@ -1,105 +1,57 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CalendarPlus, Search } from "lucide-react";
+import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reorderable-data-table";
 import { LeaveApprovalStatus, LeaveDurationType, LeaveType } from "@/generated/prisma/client";
-import { deleteLeaveRequestAction } from "@/app/dashboard/actions";
-import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
-import { requireSessionUser } from "@/lib/session";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
+import { prisma } from "@/lib/prisma";
+import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
+import ui from "../management.module.css";
 
-const leaveTypeLabels: Record<LeaveType, string> = {
-  ANNUAL: "Yillik izin",
-  EXCUSE: "Mazeret izni",
-  UNPAID: "Ucretsiz izin",
-  MEDICAL: "Saglik raporu",
-  ADMINISTRATIVE: "Idari izin",
-  HOURLY: "Saatlik izin",
-  HALF_DAY: "Yarim gun izin",
-};
-const durationLabels: Record<LeaveDurationType, string> = {
-  FULL_DAY: "Tam gun",
-  HALF_DAY: "Yarim gun",
-  HOURLY: "Saatlik",
-};
-const statusLabels: Record<LeaveApprovalStatus, string> = {
-  PENDING: "Bekliyor",
-  APPROVED: "Onaylandi",
-  REJECTED: "Reddedildi",
-};
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("tr-TR", { dateStyle: "short" }).format(date);
-}
+const leaveTypeLabels: Record<LeaveType, string> = { ANNUAL: "Yıllık izin", EXCUSE: "Mazeret izni", UNPAID: "Ücretsiz izin", MEDICAL: "Sağlık raporu", ADMINISTRATIVE: "İdari izin", HOURLY: "Saatlik izin", HALF_DAY: "Yarım gün izin" };
+const durationLabels: Record<LeaveDurationType, string> = { FULL_DAY: "Tam gün", HALF_DAY: "Yarım gün", HOURLY: "Saatlik" };
+const statusLabels: Record<LeaveApprovalStatus, string> = { PENDING: "Bekliyor", APPROVED: "Onaylandı", REJECTED: "Reddedildi" };
+function formatDate(date: Date) { return new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeZone: "Europe/Istanbul" }).format(date); }
+
+const columns: DataTableColumn[] = [
+  { id: "employee", label: "Personel", valueKey: "employee", secondaryKey: "department", kind: "stack" },
+  { id: "type", label: "İzin türü", valueKey: "type", secondaryKey: "duration", kind: "stack" },
+  { id: "date", label: "Tarih", valueKey: "dateRange", kind: "text" },
+  { id: "time", label: "Saat", valueKey: "timeRange", kind: "text" },
+  { id: "status", label: "Durum", valueKey: "status", toneKey: "statusTone", kind: "status" },
+  { id: "description", label: "Açıklama", valueKey: "description", kind: "text" },
+  { id: "action", label: "İşlem", valueKey: "actionLabel", hrefKey: "actionHref", kind: "link", exportable: false },
+];
 
 export default async function LeavesPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
-
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const leaves = await prisma.leaveRequest.findMany({
-    where: {
-      companyId: user.companyId,
-      employee: employeeScopeWhere(authorization),
-    },
-    include: { employee: true },
-    orderBy: { startDate: "desc" },
-    take: 300,
-  });
-  const visibleLeaves = query
-    ? leaves.filter((leave) => {
-        const haystack = `${leave.employee.firstName} ${leave.employee.lastName} ${leave.description ?? ""}`.toLowerCase();
-        return haystack.includes(query.toLowerCase());
-      })
-    : leaves;
+  const leaves = await prisma.leaveRequest.findMany({ where: { companyId: user.companyId, employee: employeeScopeWhere(authorization) }, include: { employee: true }, orderBy: { startDate: "desc" }, take: 300 });
+  const visibleLeaves = query ? leaves.filter((leave) => `${leave.employee.firstName} ${leave.employee.lastName} ${leave.description ?? ""}`.toLocaleLowerCase("tr-TR").includes(query.toLocaleLowerCase("tr-TR"))) : leaves;
+  const rows = visibleLeaves.map((leave) => ({
+    id: leave.id,
+    employee: `${leave.employee.firstName} ${leave.employee.lastName}`.trim(),
+    department: leave.employee.department,
+    type: leaveTypeLabels[leave.type],
+    duration: durationLabels[leave.durationType],
+    dateRange: `${formatDate(leave.startDate)} – ${formatDate(leave.endDate)}`,
+    timeRange: leave.startTime || leave.endTime ? `${leave.startTime ?? "—"} / ${leave.endTime ?? "—"}` : "—",
+    status: statusLabels[leave.approvalStatus],
+    statusTone: leave.approvalStatus === "APPROVED" ? "success" : leave.approvalStatus === "REJECTED" ? "danger" : "warning",
+    description: leave.description ?? "—",
+    actionLabel: "İncele",
+    actionHref: `/dashboard/leaves/${leave.id}`,
+  }));
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>Izin ve Rapor Yonetimi</p>
-          <h1 className={styles.title}>Personel Izinleri</h1>
-          <p className={styles.subtitle}>Izinleri tablo olarak listele, ara, yeni kayit ekle ve detay sayfasinda incele.</p>
-        </div>
-        {can(authorization, PERMISSIONS.LEAVE_CREATE) ? <Link href="/dashboard/leaves/new" className={styles.primaryLinkButton}>Izin Ekle</Link> : null}
-      </section>
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.listToolbar}>
-          <form className={styles.searchForm}>
-            <input name="q" defaultValue={query} placeholder="Personel veya aciklama ara" />
-            <button type="submit">Ara</button>
-          </form>
-        </div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr><th>Personel</th><th>Izin Turu</th><th>Tarih</th><th>Saat</th><th>Durum</th><th>Islem</th><th>Sil</th></tr>
-            </thead>
-            <tbody>
-              {visibleLeaves.length === 0 ? (
-                <tr><td colSpan={7} className={styles.emptyCell}>Kayit bulunamadi.</td></tr>
-              ) : visibleLeaves.map((leave) => (
-                <tr key={leave.id}>
-                  <td>{leave.employee.firstName} {leave.employee.lastName}<p className={styles.tableSubText}>{leave.employee.department}</p></td>
-                  <td>{leaveTypeLabels[leave.type]}</td>
-                  <td>{formatDate(leave.startDate)} - {formatDate(leave.endDate)}<p className={styles.tableSubText}>{durationLabels[leave.durationType]}</p></td>
-                  <td>{leave.startTime || leave.endTime ? `${leave.startTime ?? "-"} / ${leave.endTime ?? "-"}` : "-"}</td>
-                  <td>{statusLabels[leave.approvalStatus]}</td>
-                  <td><Link href={`/dashboard/leaves/${leave.id}`} className={styles.inlineAction}>Incele</Link></td>
-                  <td>
-                    {can(authorization, PERMISSIONS.LEAVE_DELETE) ? <form action={deleteLeaveRequestAction}>
-                      <input type="hidden" name="returnTo" value="/dashboard/leaves" />
-                      <input type="hidden" name="leaveId" value={leave.id} />
-                      <SubmitButton idleLabel="Sil" pendingLabel="..." className={styles.dangerMiniButton} />
-                    </form> : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}><div className={ui.headerCopy}><p className={ui.kicker}>İzin ve rapor yönetimi</p><h1 className={ui.pageTitle}>Personel İzinleri</h1><p className={ui.pageDescription}>İzin ve rapor kayıtlarını arayın, durumlarını inceleyin ve dışa aktarın.</p></div>{can(authorization, PERMISSIONS.LEAVE_CREATE) ? <div className={ui.headerActions}><Link href="/dashboard/leaves/new" className={ui.primaryAction}><CalendarPlus size={16} />İzin Ekle</Link></div> : null}</header>
+      <section className={ui.surface}><form className={ui.filterBarWide}><label className={ui.field}><span className={ui.fieldLabel}>Personel veya açıklama ara</span><span className={ui.controlWrap}><Search className={ui.controlIcon} size={16} /><input className={`${ui.control} ${ui.controlWithIcon}`} name="q" defaultValue={query} placeholder="Ad, soyad veya açıklama" /></span></label><button type="submit" className={ui.filterButton}>Ara</button></form></section>
+      <section className={ui.surface}><div className={ui.sectionHeading}><div><h2>İzin kayıtları</h2><p>Başlangıç tarihine göre en yeni kayıtlar</p></div><span className={ui.countBadge}>{visibleLeaves.length} kayıt</span></div><ReorderableDataTable rows={rows} columns={columns} storageKey="rfid-personel-columns-leaves-v2" filename="personel-izinleri" emptyMessage="Arama kriterlerine uygun izin kaydı bulunamadı." canExport={can(authorization, PERMISSIONS.REPORT_EXPORT)} minWidth={920} /></section>
     </div>
   );
 }

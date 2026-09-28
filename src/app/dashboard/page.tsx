@@ -30,6 +30,7 @@ import { OperationFilters } from "./operation-filters";
 import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
 import { can, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
+import ui from "./management.module.css";
 
 const attendanceLabels = {
   ENTRY: "Giriş",
@@ -424,9 +425,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         second.lateMinutes + second.breakOverMinutes - (first.lateMinutes + first.breakOverMinutes),
     );
   const selectedLateTotalMinutes = selectedLateEmployees.reduce((sum, row) => sum + row.lateMinutes, 0);
-  const selectedLateAverageMinutes = selectedLateEmployees.length > 0
-    ? Math.round(selectedLateTotalMinutes / selectedLateEmployees.length)
-    : 0;
   const selectedBreakTotalMinutes = selectedOperationalRows.reduce((sum, row) => sum + row.breakMinutes, 0);
   const selectedBreakOverRows = selectedOperationalRows.filter((row) => row.breakOverMinutes > 0);
   const selectedAttentionRows = selectedOperationalRows.filter((row) => row.movementStatus.includes("HATALI"));
@@ -479,6 +477,16 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   const selectedLeaveEmployees = Array.from(
     new Map(selectedApprovedLeaves.map((leave) => [leave.employeeId, leave.employee])).values(),
   );
+  const selectedAbsentEmployees = selectedDailyCalendarsForCritical
+    .filter((day) => {
+      if (!day.employee.isActive || selectedLeaveEmployeeIds.has(day.employeeId)) return false;
+      if (!day.checkAbsence || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
+      if ((selectedLogsByEmployee.get(day.employeeId) ?? []).some((log) => log.type === "ENTRY")) return false;
+      const plannedStartMinutes = timeToMinutes(day.plannedStart);
+      if (plannedStartMinutes === null) return false;
+      return !isSelectedToday || getAppMinutes(new Date()) >= plannedStartMinutes;
+    })
+    .map((day) => day.employee);
   const onTimeTodayCount = todayDailyCalendarsForDashboard.filter((day) => {
     if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return false;
 
@@ -516,12 +524,13 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     reviewStatus: selectedOperationalRows.find((row) => row.employeeId === log.employeeId)?.movementStatus ?? "NORMAL",
   }));
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${ui.managementPage}`}>
       {!isSuperadmin ? (
-        <section className={styles.operationTopbar}>
-          <div>
-            <h1 className={styles.dashboardTitle}>Giris-Cikis Dashboard</h1>
-            <p className={styles.dashboardDate}>
+        <header className={ui.pageHeader}>
+          <div className={ui.headerCopy}>
+            <p className={ui.kicker}>Günlük operasyon</p>
+            <h1 className={ui.pageTitle}>Operasyon Özeti</h1>
+            <p className={ui.pageDescription}>
               {new Intl.DateTimeFormat("tr-TR", {
                 weekday: "long",
                 day: "2-digit",
@@ -530,7 +539,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               }).format(new Date())}
             </p>
           </div>
-          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <div className={styles.quickActions}>
+          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <div className={ui.headerActions}>
             <ExportButton
               rows={dashboardExportRows}
               columns={[
@@ -543,11 +552,11 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                 { key: "reviewStatus", label: "Hareket Kontrol Durumu" },
               ]}
               filename={`${getDateOnlyKey(selectedDate)}-personel-hareketleri`}
-              className={styles.quickButton}
-              label="Rapor Indir"
+              className={ui.secondaryAction}
+              label="Rapor İndir"
             />
           </div> : null}
-        </section>
+        </header>
       ) : null}
 
       {isSuperadmin ? (
@@ -584,7 +593,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
 
       {!isSuperadmin ? (
         <>
-          <section className={`${styles.operationReportPanel} ${styles.filterPanel}`}>
+          <section className={ui.surface}>
             <OperationFilters
               todayKey={currentDayRange.dayKey}
               selectedDate={getDateOnlyKey(selectedDate)}
@@ -593,11 +602,11 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
               selectedDepartment={selectedDepartment}
               companies={filterCompanies}
               scopes={filterScopes}
-              className={styles.operationFilterForm}
+              className={ui.filterBarDashboard}
             />
           </section>
           <section className={styles.operationKpiGrid}>
-            <article className={`${styles.operationReportPanel} ${styles.distributionCard}`}>
+            <article className={`${styles.operationReportPanel} ${styles.distributionCard} ${ui.modernReportSurface}`}>
               <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Günlük dağılım</p><h2 className={styles.sectionTitle}>Personel Durumu</h2></div></div>
               <div className={styles.donutSummary}>
                 <div className={styles.donutCircle}><strong>{employeeCount}</strong><span>Toplam</span></div>
@@ -608,17 +617,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
                 </div>
               </div>
             </article>
-            <article className={`${styles.operationKpiCard} ${styles.operationKpiLate}`}>
+            <article className={`${styles.operationKpiCard} ${styles.operationKpiLate} ${ui.modernKpi}`}>
               <div className={styles.kpiHeader}><span>Geç kalan personel</span><div className={styles.kpiIcon}><Users size={21} aria-hidden="true" /></div></div>
               <div className={styles.kpiValue}><strong>{selectedLateEmployees.length}</strong><span>kişi</span></div>
               <small>Seçili günde geç giriş yapanlar</small>
             </article>
-            <article className={`${styles.operationKpiCard} ${styles.operationKpiDelay}`}>
-              <div className={styles.kpiHeader}><span>Ortalama gecikme</span><div className={styles.kpiIcon}><Clock3 size={21} aria-hidden="true" /></div></div>
-              <div className={styles.kpiValue}><strong>{selectedLateAverageMinutes}</strong><span>dk</span></div>
-              <small>Seçili gündeki kişi başı ortalama</small>
+            <article className={`${styles.operationKpiCard} ${styles.operationKpiDelay} ${ui.modernKpi}`}>
+              <div className={styles.kpiHeader}><span>Toplam gecikme</span><div className={styles.kpiIcon}><Clock3 size={21} aria-hidden="true" /></div></div>
+              <div className={styles.kpiValue}><strong>{selectedLateTotalMinutes}</strong><span>dk</span></div>
+              <small>Seçili gündeki gecikmelerin toplamı</small>
             </article>
-            <article className={`${styles.operationKpiCard} ${styles.operationKpiBreak}`}>
+            <article className={`${styles.operationKpiCard} ${styles.operationKpiBreak} ${ui.modernKpi}`}>
               <div className={styles.kpiHeader}><span>Toplam mola</span><div className={styles.kpiIcon}><Coffee size={21} aria-hidden="true" /></div></div>
               <div className={styles.kpiValue}><strong>{selectedBreakTotalMinutes}</strong><span>dk</span></div>
               <small>Seçili gün · Mola ve yemek süreleri</small>
@@ -626,7 +635,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
           </section>
 
           <section className={styles.operationReportGrid}>
-            <article className={styles.operationReportPanel}>
+            <article className={`${styles.operationReportPanel} ${ui.modernReportSurface}`}>
               <div className={styles.operationReportHeader}>
                 <div>
                   <p className={styles.sectionEyebrow}>Operasyon özeti</p>
@@ -650,12 +659,13 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
             </article>
           </section>
 
-          <section className={`${styles.operationReportPanel} ${styles.staffStatusPanel}`}>
+          <section className={`${styles.operationReportPanel} ${styles.staffStatusPanel} ${ui.modernReportSurface}`}>
             <div className={styles.operationReportHeader}><div><p className={styles.sectionEyebrow}>Anlık durum</p><h2 className={styles.sectionTitle}>Personel Durum Özeti</h2></div></div>
             <div className={styles.staffStatusGrid}>
               {[
                 { title: "Çalışıyor", employees: selectedWorkingEmployees, tone: "working" },
                 { title: "Molada", employees: selectedOnBreakEmployees, tone: "break" },
+                { title: "İşe Gelmeyen", employees: selectedAbsentEmployees, tone: "absent" },
                 { title: "İzinli", employees: selectedLeaveEmployees, tone: "leave" },
               ].map((group) => (
                 <section key={group.title} className={`${styles.staffStatusColumn} ${styles[`staffStatus${group.tone}`]}`}>

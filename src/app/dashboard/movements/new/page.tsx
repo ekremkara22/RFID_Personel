@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { BackLink } from "@/app/dashboard/back-link";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { createAttendanceLogAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { AttendanceType } from "@/generated/prisma/client";
@@ -8,6 +9,7 @@ import { requireSessionUser } from "@/lib/session";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../../page.module.css";
+import ui from "../../management.module.css";
 
 const attendanceLabels = {
   ENTRY: "Giris",
@@ -50,30 +52,20 @@ export default async function NewMovementPage(props: {
   ]);
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
-        <div>
-          <p className={styles.eyebrow}>Test Kaydi</p>
-          <h1 className={styles.title}>Hareket Ekle</h1>
-          <p className={styles.subtitle}>
-            Canli RFID okuyucu devreye alinana kadar personel hareketlerini manuel ekleyerek dashboard
-            ve raporlari test edebilirsin.
-          </p>
-        </div>
-        <BackLink href={returnTo} />
-      </section>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}><div className={ui.headerCopy}><p className={ui.kicker}>Manuel hareket</p><h1 className={ui.pageTitle}>Hareket Ekle</h1><p className={ui.pageDescription}>Eksik veya test amaçlı hareketi açıklamasıyla birlikte oluşturun. İşlem audit geçmişine kaydedilir.</p></div><div className={ui.headerActions}><Link href={returnTo} className={ui.secondaryAction}><ArrowLeft size={16} />Geri dön</Link></div></header>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
+      <section className={ui.surface}>
         {employees.length === 0 ? (
           <div className={styles.emptyPanel}>
             <h2 className={styles.sectionTitle}>Aktif personel bulunamadi</h2>
             <p className={styles.emptyState}>Hareket kaydi eklemek icin once aktif personel tanimla.</p>
           </div>
         ) : (
-          <form action={createAttendanceLogAction} className={styles.formGrid}>
+          <form action={createAttendanceLogAction} className={ui.formGrid}>
             <input type="hidden" name="returnTo" value={returnTo} />
 
-            <label className={styles.field}>
+            <label className={ui.formField}>
               <span>Personel</span>
               <select name="employeeId" required defaultValue={employees.some((employee) => employee.id === requestedEmployeeId) ? requestedEmployeeId : ""}>
                 <option value="" disabled>
@@ -87,7 +79,7 @@ export default async function NewMovementPage(props: {
               </select>
             </label>
 
-            <label className={styles.field}>
+            <label className={ui.formField}>
               <span>Hareket Tipi</span>
               <select name="type" required defaultValue={AttendanceType.ENTRY}>
                 {Object.values(AttendanceType).map((item) => (
@@ -98,12 +90,12 @@ export default async function NewMovementPage(props: {
               </select>
             </label>
 
-            <label className={styles.field}>
+            <label className={ui.formField}>
               <span>Hareket Tarihi</span>
               <input name="scannedAt" type="datetime-local" required defaultValue={formatInputDate(new Date())} />
             </label>
 
-            <label className={styles.field}>
+            <label className={ui.formField}>
               <span>Cihaz</span>
               <select name="deviceId" defaultValue="">
                 <option value="">Cihaz secilmedi</option>
@@ -115,21 +107,21 @@ export default async function NewMovementPage(props: {
               </select>
             </label>
 
-            <label className={`${styles.field} ${styles.fullWidth}`}>
+            <label className={`${ui.formField} ${ui.formFullWidth}`}>
               <span>RFID Kart Numarasi</span>
               <input name="rfidCardId" placeholder="Bos birakilirsa personelin kart numarasi kullanilir" />
             </label>
 
-            <label className={`${styles.field} ${styles.fullWidth}`}>
+            <label className={`${ui.formField} ${ui.formFullWidth}`}>
               <span>Düzeltme Açıklaması</span>
               <textarea name="correctionReason" required placeholder="Bu manuel hareketin eklenme nedenini yazın" />
             </label>
 
-            <div className={styles.fullWidthActionRow}>
+            <div className={`${ui.formActions} ${ui.formFullWidth}`}>
               <SubmitButton
                 idleLabel="Hareketi Kaydet"
                 pendingLabel="Kaydediliyor..."
-                className={styles.primaryButton}
+                className={ui.primaryAction}
               />
             </div>
           </form>

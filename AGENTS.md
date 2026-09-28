@@ -20,5 +20,9 @@ Bu proje veri girişi, listeleme ve inceleme ağırlıklı bir PDKS yönetim pan
 - Boş durum, yüklenme, hata ve yetki reddi ekranları aynı görsel dilde ve anlaşılır Türkçe metinlerle hazırlanmalı.
 - Mobil erişilebilirlik zorunludur: dokunma hedefleri en az 40px, görünür odak stili, yeterli kontrast ve anlamlı erişilebilir adlar kullanılmalı.
 - Ortak tasarım desenlerini sayfaya özel tekrarlar yerine paylaşılan sınıf/bileşenlerde tut. Yeni ekran, mevcut standart sınıfları kullanmalı; istisna gerekiyorsa nedenini kod yapısında açık tut.
+- Liste ve rapor tablolarında sütun başlıkları kullanıcı tarafından sürüklenerek sıralanabilir olmalı. Tercih tarayıcıda sayfa/tablo bazlı saklanmalı ve dışa aktarma işlemi ekrandaki güncel sütun sırasını aynen kullanmalı.
+- Proje genelinde buton hiyerarşisi `management.module.css` üzerinden kurulmalı: birincil işlem mavi, ikincil işlem nötr, tehlikeli işlem kırmızı çerçeveli ve satır içi işlemler kompakt olmalı. Sayfaya özel büyük veya farklı ölçekli buton üretme.
+- Veri giriş sayfaları aynı form şablonunu kullanmalı: sayfa başlığı, anlamlı form bölümleri, 40px kontroller, sağa hizalı işlem alanı ve gerekiyorsa ayrı bir tehlikeli işlem bölgesi.
+- Personel fotoğrafı gibi görsel alanlar sabit ölçülü, `object-fit: cover` kullanan ve görsel olmadığında kısa bir yer tutucu gösteren kart yapısında olmalı.
 - Sayfa tamamlanmadan önce 1440px masaüstü ve dar mobil görünümde başlık, filtre, tablo/kart taşması ve metin çakışması görsel olarak doğrulanmalı.
 <!-- END:product-ui-rules -->

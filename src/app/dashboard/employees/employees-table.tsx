@@ -1,9 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
-import { ExportButton } from "@/app/dashboard/export-button";
-import ui from "../management.module.css";
+import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reorderable-data-table";
 
 type EmployeeRow = {
   id: number;
@@ -22,80 +19,33 @@ type EmployeeRow = {
   status: string;
 };
 
+const columns: DataTableColumn[] = [
+  { id: "employee", label: "Personel", valueKey: "fullName", secondaryKey: "employeeDetail", imageKey: "photoUrl", kind: "person" },
+  { id: "identity", label: "Sicil / RFID", valueKey: "registrationNumber", secondaryKey: "rfidCardId", kind: "stack" },
+  { id: "organization", label: "Organizasyon", valueKey: "department", secondaryKey: "branch", kind: "stack" },
+  { id: "employment", label: "İstihdam", valueKey: "hireDate", secondaryKey: "terminationText", kind: "stack" },
+  { id: "manager", label: "Yönetici", valueKey: "managerName" },
+  { id: "status", label: "Durum", valueKey: "status", toneKey: "statusTone", kind: "status" },
+  { id: "action", label: "İşlem", valueKey: "actionLabel", hrefKey: "actionHref", kind: "link", exportable: false },
+];
+
 export function EmployeesTable({ employees, canExport }: { employees: EmployeeRow[]; canExport: boolean }) {
-  const exportRows = employees.map((employee) => ({
-    fullName: employee.fullName,
-    registrationNumber: employee.registrationNumber,
-    rfidCardId: employee.rfidCardId,
-    companyName: employee.companyName,
-    branch: employee.branch,
-    department: employee.department,
-    hireDate: employee.hireDate,
-    terminationDate: employee.terminationDate,
-    managerName: employee.managerName,
-    email: employee.email,
-    status: employee.status,
+  const rows = employees.map((employee) => ({
+    ...employee,
+    employeeDetail: `${employee.email} · ${employee.age} yaş`,
+    terminationText: `Ayrılış: ${employee.terminationDate}`,
+    statusTone: employee.status === "Aktif" ? "success" : "warning",
+    actionLabel: "İncele",
+    actionHref: `/dashboard/employees/${employee.id}`,
   }));
 
-  return (
-    <>
-      <div className={ui.tableToolbar}>
-        <p className={ui.tableHint}>Temel bilgiler tek bakışta okunacak şekilde gruplandı.</p>
-        {canExport ? (
-          <ExportButton
-            rows={exportRows}
-            columns={[
-              { key: "fullName", label: "Ad Soyad" },
-              { key: "registrationNumber", label: "Sicil No" },
-              { key: "rfidCardId", label: "RFID Kart ID" },
-              { key: "companyName", label: "Firma" },
-              { key: "branch", label: "Şube" },
-              { key: "department", label: "Departman" },
-              { key: "hireDate", label: "İşe Giriş" },
-              { key: "terminationDate", label: "Ayrılış" },
-              { key: "managerName", label: "Bağlı Yönetici" },
-              { key: "email", label: "E-posta" },
-              { key: "status", label: "Durum" },
-            ]}
-            filename="personeller"
-            className={ui.secondaryAction}
-            label="Excel'e Aktar"
-          />
-        ) : null}
-      </div>
-
-      <div className={ui.tableViewport}>
-        <table className={ui.dataTable}>
-          <colgroup><col style={{ width: "23%" }} /><col style={{ width: "14%" }} /><col style={{ width: "18%" }} /><col style={{ width: "15%" }} /><col style={{ width: "12%" }} /><col style={{ width: "9%" }} /><col style={{ width: "9%" }} /></colgroup>
-          <thead><tr><th>Personel</th><th>Sicil / RFID</th><th>Organizasyon</th><th>İstihdam</th><th>Yönetici</th><th>Durum</th><th>İşlem</th></tr></thead>
-          <tbody>
-            {employees.length === 0 ? <tr><td colSpan={7} className={ui.emptyCell}>Filtrelere uygun personel bulunamadı.</td></tr> : employees.map((employee) => (
-              <tr key={employee.id}>
-                <td>
-                  <div className={ui.identity}>
-                    <span className={ui.avatar}>
-                      {employee.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={employee.photoUrl} alt="" />
-                      ) : employee.fullName.slice(0, 1).toLocaleUpperCase("tr-TR")}
-                    </span>
-                    <span>
-                      <strong className={ui.primaryText}>{employee.fullName}</strong>
-                      <span className={ui.secondaryText}>{employee.email} · {employee.age} yaş</span>
-                    </span>
-                  </div>
-                </td>
-                <td><strong className={ui.primaryText}>{employee.registrationNumber}</strong><span className={ui.secondaryText}><span className={ui.monoText}>{employee.rfidCardId}</span></span></td>
-                <td><strong className={ui.primaryText}>{employee.department}</strong><span className={ui.secondaryText}>{employee.branch}</span></td>
-                <td><strong className={ui.primaryText}>{employee.hireDate}</strong><span className={ui.secondaryText}>Ayrılış: {employee.terminationDate}</span></td>
-                <td>{employee.managerName}</td>
-                <td><span className={employee.status === "Aktif" ? ui.statusBadge : ui.statusWarning}><span className={ui.statusDot} />{employee.status}</span></td>
-                <td><Link href={`/dashboard/employees/${employee.id}`} className={ui.rowAction} aria-label={`${employee.fullName} kaydını incele`}>İncele <ArrowUpRight size={14} /></Link></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
+  return <ReorderableDataTable
+    rows={rows}
+    columns={columns}
+    storageKey="rfid-personel-columns-employees-v2"
+    filename="personeller"
+    emptyMessage="Filtrelere uygun personel bulunamadı."
+    canExport={canExport}
+    minWidth={900}
+  />;
 }

@@ -1054,7 +1054,7 @@
 
 .staffStatusGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -1081,6 +1081,7 @@
 .staffStatusHeading span { display: grid; place-items: center; min-width: 1.6rem; height: 1.6rem; padding: 0 0.35rem; border-radius: 999px; background: #e2e8f0; color: #334155; font-size: 0.72rem; font-weight: 850; }
 .staffStatusworking .staffStatusHeading { background: #ecfdf5; border-color: #bbf7d0; }
 .staffStatusbreak .staffStatusHeading { background: #fffbeb; border-color: #fde68a; }
+.staffStatusabsent .staffStatusHeading { background: #fff1f2; border-color: #fecdd3; }
 .staffStatusleave .staffStatusHeading { background: #eff6ff; border-color: #bfdbfe; }
 
 .staffNameList { display: grid; gap: 0; padding: 0.35rem 0.8rem 0.65rem; }
@@ -1735,6 +1736,7 @@
   .operationKpiGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .operationReportGrid { grid-template-columns: 1fr; }
   .departmentChartGrid { grid-template-columns: 1fr; }
+  .staffStatusGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
