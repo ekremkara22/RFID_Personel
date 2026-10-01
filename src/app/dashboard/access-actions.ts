@@ -185,15 +185,15 @@ export async function updateCompanyMembershipAction(formData: FormData) {
   validateModuleSelection(selectedModuleKeys);
   validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
   if (!Object.values(CompanyMembershipStatus).includes(status) || !Object.values(DataScopeMode).includes(scopeMode)) throw new Error("Üyelik bilgileri geçersiz.");
-  const firstName = value(formData, "firstName"); const lastName = value(formData, "lastName"); const username = normalizeUsername(value(formData, "username")); const email = normalizeEmail(value(formData, "email")); const phone = value(formData, "phone"); const password = value(formData, "password");
-  if (!firstName || !lastName || !email.includes("@") || !/^[a-z0-9._-]{3,64}$/.test(username) || (password && password.length < 10)) throw new Error("Kullanıcı bilgileri geçersiz. Yeni şifre girilirse en az 10 karakter olmalıdır.");
+  const firstName = value(formData, "firstName"); const lastName = value(formData, "lastName"); const usernameInput = value(formData, "username"); const username = usernameInput ? normalizeUsername(usernameInput) : null; const email = normalizeEmail(value(formData, "email")); const phone = value(formData, "phone"); const password = value(formData, "password");
+  if (!firstName || !lastName || !email.includes("@") || (username !== null && !/^[a-z0-9._-]{3,64}$/.test(username)) || (password && password.length < 10)) throw new Error("Kullanıcı bilgileri geçersiz. Kullanıcı adı girilirse en az 3 karakter, yeni şifre girilirse en az 10 karakter olmalıdır.");
   const [target, role] = await Promise.all([prisma.companyMembership.findFirst({ where: { id: membershipId, companyId: authorization.companyId }, include: { role: { include: { permissions: true } }, user: true } }), prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId, isActive: true }, include: { permissions: true, modules: true } })]);
   if (!target || !role) throw new Error("Üyelik veya rol bulunamadı.");
   validateRoleModules(selectedModuleKeys, role.modules);
   if (target.role.key === "OWNER" || role.key === "OWNER") throw new Error("Firma sahibi değişikliği yalnız sahiplik devriyle yapılabilir.");
   if (role.permissions.some((item) => !authorization.permissions.has(item.permission))) throw new Error("Sahip olmadığınız bir yetkiyi devredemezsiniz.");
   if (target.userId === user.id) throw new Error("Kendi rolünüzü, durumunuzu veya veri kapsamınızı değiştiremezsiniz. Bu değişikliği başka bir firma yöneticisi yapmalıdır.");
-  const duplicate = await prisma.user.findFirst({ where: { id: { not: target.userId }, OR: [{ email }, { username }] }, select: { id: true } });
+  const duplicate = await prisma.user.findFirst({ where: { id: { not: target.userId }, OR: [{ email }, ...(username ? [{ username }] : [])] }, select: { id: true } });
   if (duplicate) throw new Error("Kullanıcı adı veya e-posta başka bir kullanıcı tarafından kullanılıyor.");
   const branchIds = ids(formData, "branchIds"); const departmentIds = ids(formData, "departmentIds"); const employeeIds = ids(formData, "employeeIds"); const deviceIds = ids(formData, "deviceIds"); const teamIds = ids(formData, "teamIds");
   await validateScopeIds(authorization.companyId, branchIds, departmentIds, employeeIds, deviceIds, teamIds);
