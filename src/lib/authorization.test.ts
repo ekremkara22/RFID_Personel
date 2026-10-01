@@ -13,6 +13,10 @@ test("İK izni modül erişimi olmadan kullanılamaz", () => {
   assert.equal(can(context({ modules: new Set() }), PERMISSIONS.PERSONNEL_VIEW), false);
 });
 
+test("sabit tanım yetkileri modül erişiminden bağımsızdır", () => {
+  assert.equal(can(context({ modules: new Set(), permissions: new Set([PERMISSIONS.ACCESS_VIEW]) }), PERMISSIONS.ACCESS_VIEW), true);
+});
+
 test("boş kısıtlı kapsam hiçbir zaman sınırsız erişime dönüşmez", () => {
   assert.deepEqual(employeeScopeWhere(context({ scopeMode: DataScopeMode.RESTRICTED })), { id: -1 });
 });

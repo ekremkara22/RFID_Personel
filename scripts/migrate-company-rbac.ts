@@ -48,20 +48,19 @@ async function main() {
       if (user.deviceAccess.length) {
         await prisma.membershipDeviceScope.createMany({ data: user.deviceAccess.map((item) => ({ membershipId: membership.id, deviceId: item.deviceId })), skipDuplicates: true });
       }
-      const role = await prisma.companyRole.findUniqueOrThrow({ where: { id: membership.roleId }, select: { key: true } });
-      const moduleKeys = role.key === "OWNER" || role.key === "ADMIN"
-        ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
-        : [MODULES.HR];
-      await prisma.membershipModule.createMany({
-        data: moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey })),
-        skipDuplicates: true,
-      });
-      report.moduleGrants += moduleKeys.length;
+      if (await prisma.membershipModule.count({ where: { membershipId: membership.id } }) === 0) {
+        const role = await prisma.companyRole.findUniqueOrThrow({ where: { id: membership.roleId }, select: { key: true } });
+        const moduleKeys = role.key === "OWNER" || role.key === "ADMIN"
+          ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
+          : [MODULES.HR];
+        await prisma.membershipModule.createMany({ data: moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey })), skipDuplicates: true });
+        report.moduleGrants += moduleKeys.length;
+      }
       report.memberships += 1;
     }
   }
 
-  const memberships = await prisma.companyMembership.findMany({ select: { id: true, role: { select: { key: true } } } });
+  const memberships = await prisma.companyMembership.findMany({ where: { modules: { none: {} } }, select: { id: true, role: { select: { key: true } } } });
   for (const membership of memberships) {
     const moduleKeys = membership.role.key === "OWNER" || membership.role.key === "ADMIN"
       ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]

@@ -13,6 +13,7 @@ import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
+import { MODULE_CATALOG } from "@/lib/module-catalog";
 import styles from "../../page.module.css";
 
 const tabs = [
@@ -78,6 +79,7 @@ export default async function CompanyDetailPage(props: {
           where: { role: "COMPANY_ADMIN" },
           orderBy: { createdAt: "asc" },
         },
+        memberships: { include: { modules: true }, orderBy: { createdAt: "asc" } },
         employees: {
           where: {
             ...(user.role === "SUPERADMIN" ? {} : employeeScopeWhere(authorization)),
@@ -116,6 +118,7 @@ export default async function CompanyDetailPage(props: {
   }
 
   const companyAdmin = company.users[0] ?? null;
+  const companyAdminMembership = company.memberships.find((membership) => membership.userId === companyAdmin?.id) ?? null;
   const selectedEmployee =
     company.employees.find((employee) => employee.id === selectedEmployeeId) ?? company.employees[0] ?? null;
 
@@ -204,9 +207,21 @@ export default async function CompanyDetailPage(props: {
                 </label>
 
                 <label className={styles.field}>
+                  <span>Admin Kullanıcı Adı</span>
+                  <input name="adminUsername" defaultValue={companyAdmin?.username ?? ""} required minLength={3} />
+                </label>
+
+                <label className={styles.field}>
+                  <span>Admin Telefonu</span>
+                  <input name="adminPhone" type="tel" defaultValue={companyAdmin?.phone ?? ""} />
+                </label>
+
+                <label className={styles.field}>
                   <span>Admin Sifre</span>
                   <input name="adminPassword" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
                 </label>
+
+                <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Firma Admini Modül Yetkileri</legend><div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={companyAdminMembership?.modules.some((entry)=>entry.moduleKey === module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
               </>
             ) : null}
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock3, Filter, History, Search, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
-import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/client";
+import { ArrowUpRight, Filter, History, Search, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
+import { CompanyMembershipStatus } from "@/generated/prisma/client";
 import { assertPermission, scopeSummary } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
@@ -14,13 +14,6 @@ const statusLabels: Record<CompanyMembershipStatus, string> = {
   ACTIVE: "Aktif",
   SUSPENDED: "Askıya alınmış",
   REVOKED: "Erişimi kaldırılmış",
-};
-
-const scopeLabels: Record<DataScopeMode, string> = {
-  COMPANY: "Firmanın tamamı",
-  RESTRICTED: "Seçili kapsamlar",
-  OWN: "Yalnız kendi kaydı",
-  NONE: "Veri erişimi yok",
 };
 
 function fullName(item: { user: { firstName: string | null; lastName: string | null; name: string | null; email: string } }) {
@@ -39,13 +32,13 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
     : undefined;
   const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE);
 
-  const [company, memberships, pendingInvites] = await Promise.all([
+  const [company, memberships] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: authorization.companyId }, select: { name: true } }),
     prisma.companyMembership.findMany({
       where: {
         companyId: authorization.companyId,
         ...(status ? { status } : {}),
-        ...(q ? { user: { OR: [{ email: { contains: q } }, { firstName: { contains: q } }, { lastName: { contains: q } }] } } : {}),
+        ...(q ? { user: { OR: [{ username: { contains: q } }, { email: { contains: q } }, { firstName: { contains: q } }, { lastName: { contains: q } }] } } : {}),
       },
       include: {
         user: true,
@@ -58,11 +51,6 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
         modules: true,
       },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    }),
-    prisma.companyInvitation.findMany({
-      where: { companyId: authorization.companyId, status: "PENDING", expiresAt: { gt: new Date() } },
-      include: { role: true },
-      orderBy: { createdAt: "desc" },
     }),
   ]);
 
@@ -77,7 +65,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
           <p className={ui.pageDescription}>{company.name} için kullanıcı üyeliklerini, rolleri ve veri kapsamlarını yönetin.</p>
         </div>
         <div className={ui.headerActions}>
-          {canManage ? <Link href="/dashboard/access/invite" className={ui.primaryAction}><UserPlus size={16} />Kullanıcı Davet Et</Link> : null}
+          {canManage ? <Link href="/dashboard/access/invite" className={ui.primaryAction}><UserPlus size={16} />Kullanıcı Tanımla</Link> : null}
           <Link href="/dashboard/access/roles" className={ui.secondaryAction}><ShieldCheck size={16} />Roller</Link>
           {canManage ? <Link href="/dashboard/access/teams" className={ui.secondaryAction}><UsersRound size={16} />Ekipler</Link> : null}
           <Link href="/dashboard/access/audit" className={ui.secondaryAction}><History size={16} />Geçmiş</Link>
@@ -131,7 +119,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
                 const name = fullName(item);
                 return (
                   <tr key={item.id}>
-                    <td><strong className={ui.primaryText}>{name}</strong><span className={ui.secondaryText}>{item.user.email}</span></td>
+                    <td><strong className={ui.primaryText}>{name}</strong><span className={ui.secondaryText}>{item.user.username ? `@${item.user.username} · ` : ""}{item.user.email}</span></td>
                     <td><strong className={ui.primaryText}>{item.role.name}</strong></td>
                     <td><span className={item.status === "ACTIVE" ? ui.statusBadge : ui.statusWarning}><span className={ui.statusDot} />{statusLabels[item.status]}</span></td>
                     <td><strong className={ui.primaryText}>{item.modules.map((module) => moduleLabel(module.moduleKey)).join(", ") || "Modül yok"}</strong><span className={ui.secondaryText}>{scopeSummary(context)}</span></td>
@@ -145,15 +133,6 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
         </div>
       </section>
 
-      <section className={ui.surface}>
-        <div className={ui.sectionHeading}><div><h2>Bekleyen davetler</h2><p>Henüz üyeliğini etkinleştirmemiş kullanıcılar</p></div><span className={ui.countBadge}>{pendingInvites.length} davet</span></div>
-        <div className={ui.tableViewport}>
-          <table className={ui.dataTable}>
-            <thead><tr><th>E-posta</th><th>Rol</th><th>Kapsam</th><th>Son kullanma</th></tr></thead>
-            <tbody>{pendingInvites.length ? pendingInvites.map((item) => <tr key={item.id}><td><strong className={ui.primaryText}>{item.email}</strong></td><td>{item.role.name}</td><td>{scopeLabels[item.scopeMode]}</td><td><span className={ui.primaryText}><Clock3 size={14} /> {item.expiresAt.toLocaleString("tr-TR")}</span></td></tr>) : <tr><td colSpan={4} className={ui.emptyCell}>Bekleyen davet bulunmuyor.</td></tr>}</tbody>
-          </table>
-        </div>
-      </section>
     </div>
   );
 }

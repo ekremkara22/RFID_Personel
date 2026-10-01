@@ -4,6 +4,7 @@ import { createCompanyAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
+import { MODULE_CATALOG } from "@/lib/module-catalog";
 import styles from "../../page.module.css";
 
 export default async function NewCompanyPage() {
@@ -124,9 +125,24 @@ export default async function NewCompanyPage() {
               </label>
 
               <label className={styles.field}>
-                <span>Admin Sifresi</span>
-                <input name="adminPassword" type="password" required placeholder="Guclu bir sifre" />
+                <span>Admin Kullanıcı Adı</span>
+                <input name="adminUsername" required minLength={3} pattern="[a-zA-Z0-9._-]+" placeholder="firma.admin" />
               </label>
+
+              <label className={styles.field}>
+                <span>Admin Telefonu</span>
+                <input name="adminPhone" type="tel" placeholder="0555 111 22 33" />
+              </label>
+
+              <label className={styles.field}>
+                <span>Admin Sifresi</span>
+                <input name="adminPassword" type="password" minLength={10} required placeholder="En az 10 karakter" />
+              </label>
+
+              <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}>
+                <legend>Firma Admini Modül Yetkileri</legend>
+                <div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module) => <label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div>
+              </fieldset>
             </>
           ) : null}
 

@@ -24,7 +24,7 @@ import {
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS, READY_COMPANY_ROLES } from "@/lib/permission-catalog";
-import { MODULES } from "@/lib/module-catalog";
+import { ALL_MODULE_KEYS } from "@/lib/module-catalog";
 import { prisma } from "@/lib/prisma";
 import {
   assertPayrollPeriodUnlocked,
@@ -271,11 +271,14 @@ export async function createCompanyAction(formData: FormData) {
   const adminFirstName = getString(formData, "adminFirstName");
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
+  const adminUsername = getString(formData, "adminUsername").toLowerCase();
+  const adminPhone = getString(formData, "adminPhone");
   const adminPassword = getString(formData, "adminPassword");
+  const moduleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
 
   if (
     !companyName ||
-    (!adminFirstName || !adminLastName || !adminEmail || !adminPassword)
+    (!adminFirstName || !adminLastName || !adminEmail || !adminUsername || !adminPassword || !moduleKeys.length)
   ) {
     throw new Error("Sirket ve firma yoneticisi bilgileri eksik.");
   }
@@ -301,7 +304,9 @@ export async function createCompanyAction(formData: FormData) {
           name: `${adminFirstName} ${adminLastName}`.trim(),
           firstName: adminFirstName,
           lastName: adminLastName,
+          username: adminUsername,
           email: adminEmail,
+          phone: adminPhone || null,
           password: passwordHash,
           role: "COMPANY_ADMIN",
           companyId: company.id,
@@ -319,7 +324,7 @@ export async function createCompanyAction(formData: FormData) {
         const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) } } });
         if (definition.key === "OWNER") ownerRoleId = role.id;
       }
-      await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: [{ moduleKey: MODULES.HR }, { moduleKey: MODULES.PRODUCTION_PLANNING }] } } });
+      await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
     }
   });
 
@@ -349,13 +354,16 @@ export async function updateCompanyAction(formData: FormData) {
   const adminFirstName = getString(formData, "adminFirstName");
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
+  const adminUsername = getString(formData, "adminUsername").toLowerCase();
+  const adminPhone = getString(formData, "adminPhone");
   const adminPassword = getString(formData, "adminPassword");
+  const moduleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
   const isActive = user.role === "SUPERADMIN" ? formData.get("isActive") === "on" : true;
 
   if (
     !companyId ||
     !companyName ||
-    (user.role === "SUPERADMIN" && (!adminId || !adminFirstName || !adminLastName || !adminEmail))
+    (user.role === "SUPERADMIN" && (!adminId || !adminFirstName || !adminLastName || !adminEmail || !adminUsername || !moduleKeys.length))
   ) {
     throw new Error("Firma ve admin bilgileri eksik.");
   }
@@ -389,7 +397,9 @@ export async function updateCompanyAction(formData: FormData) {
           name: `${adminFirstName} ${adminLastName}`.trim(),
           firstName: adminFirstName,
           lastName: adminLastName,
+          username: adminUsername,
           email: adminEmail,
+          phone: adminPhone || null,
           ...(adminPassword ? { password: await bcrypt.hash(adminPassword, 10) } : {}),
         },
       });
@@ -407,6 +417,11 @@ export async function updateCompanyAction(formData: FormData) {
         },
         update: {},
       });
+      const adminMembership = await tx.companyMembership.findFirst({ where: { companyId, userId: adminId } });
+      if (!adminMembership) throw new Error("Firma admin üyeliği bulunamadı.");
+      await tx.membershipModule.deleteMany({ where: { membershipId: adminMembership.id } });
+      await tx.membershipModule.createMany({ data: moduleKeys.map((moduleKey) => ({ membershipId: adminMembership.id, moduleKey })) });
+      await tx.companyMembership.update({ where: { id: adminMembership.id }, data: { sessionVersion: { increment: 1 } } });
     }
   });
 

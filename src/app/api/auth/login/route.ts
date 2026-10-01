@@ -6,18 +6,20 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const identifier = typeof body?.identifier === "string"
+      ? body.identifier.trim().toLowerCase()
+      : typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body?.password === "string" ? body.password : "";
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return NextResponse.json(
-        { error: "E-posta ve sifre zorunludur." },
+        { error: "Kullanıcı adı/e-posta ve şifre zorunludur." },
         { status: 400 },
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ email: identifier }, { username: identifier }] },
       include: {
         company: {
           select: {
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Bu e-posta adresiyle kayitli kullanici bulunamadi." },
+        { error: "Bu kullanıcı adı veya e-posta ile kayıtlı kullanıcı bulunamadı." },
         { status: 401 },
       );
     }

@@ -27,7 +27,7 @@ const panelScopes = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -41,7 +41,7 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       const data = await response.json();
@@ -92,15 +92,15 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
-              <label className={styles.label}>E-posta Adresi</label>
+              <label className={styles.label}>Kullanıcı Adı veya E-posta</label>
               <div className={styles.inputWrapper}>
                 <Mail className={styles.inputIcon} size={18} />
                 <input
-                  type="email"
+                  type="text"
                   className={styles.input}
-                  placeholder="admin@firma.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="kullanici.adi veya admin@firma.com"
+                  value={identifier}
+                  onChange={(event) => setIdentifier(event.target.value)}
                   required
                 />
               </div>

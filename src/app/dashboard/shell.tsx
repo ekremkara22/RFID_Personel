@@ -21,6 +21,7 @@ import {
   Menu,
   MonitorSmartphone,
   Plane,
+  ShieldCheck,
   SlidersHorizontal,
   Tags,
   Users,
@@ -59,8 +60,10 @@ export function DashboardShell({ children, user, authorization, memberships }: D
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [definitionsOpen, setDefinitionsOpen] = useState(
-    pathname.startsWith("/dashboard/settings"),
+    pathname.startsWith("/dashboard/settings") || pathname.startsWith("/dashboard/access") || pathname.startsWith("/dashboard/companies"),
   );
+  const [hrOpen, setHrOpen] = useState(!pathname.startsWith("/dashboard/production"));
+  const [productionOpen, setProductionOpen] = useState(pathname.startsWith("/dashboard/production"));
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
   const allowed = (permission: string) => authorization.isPlatformAdmin || authorization.permissions.includes(permission);
@@ -73,7 +76,6 @@ export function DashboardShell({ children, user, authorization, memberships }: D
     ...(hasHr ? [{ href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard }] : []),
     ...(user.role === "SUPERADMIN"
       ? [
-          { href: "/dashboard/users", label: "Kullanıcılar", icon: Users },
           { href: "/dashboard/firmware-updates", label: "Cihaz Yazılım Güncellemeleri", icon: CloudDownload },
         ]
       : hasHr ? [
@@ -81,7 +83,6 @@ export function DashboardShell({ children, user, authorization, memberships }: D
           ...(allowed(PERMISSIONS.MOVEMENT_VIEW) ? [{ href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList }, { href: "/dashboard/movement-reviews", label: "İncelenecek Hareketler", icon: ListChecks }] : []),
           ...(allowed(PERMISSIONS.LEAVE_VIEW) ? [{ href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane }] : []),
           ...(allowed(PERMISSIONS.DEVICE_VIEW) ? [{ href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone }, { href: "/dashboard/device-health", label: "Cihaz Sağlığı", icon: HeartPulse }] : []),
-          ...(allowed(PERMISSIONS.ACCESS_VIEW) ? [{ href: "/dashboard/access", label: "Kullanıcılar ve Yetkiler", icon: KeyRound }] : []),
         ] : []),
   ];
   const reportItems = hasHr && allowed(PERMISSIONS.REPORT_VIEW) ? [
@@ -108,9 +109,12 @@ export function DashboardShell({ children, user, authorization, memberships }: D
   const definitionItems = [
     ...(user.role === "SUPERADMIN"
       ? [
+          { href: "/dashboard/users", label: "Kullanıcı Tanımları", icon: Users },
           { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: Tags },
         ]
       : [
+          ...(allowed(PERMISSIONS.ACCESS_VIEW) ? [{ href: "/dashboard/access", label: "Kullanıcı Tanımlama", icon: KeyRound }, { href: "/dashboard/access/roles", label: "Rol ve Yetki Tanımları", icon: ShieldCheck }] : []),
+          ...(allowed(PERMISSIONS.ACCESS_MANAGE) ? [{ href: "/dashboard/access/teams", label: "Ekip Tanımları", icon: Users }] : []),
           ...(allowed(PERMISSIONS.COMPANY_VIEW) ? [{ href: "/dashboard/companies", label: "Firma Tanım", icon: Building2 }] : []),
           ...(allowed(PERMISSIONS.SETTINGS_MANAGE) ? [{ href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags }, { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 }, { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users }] : []),
         ]),
@@ -149,19 +153,9 @@ export function DashboardShell({ children, user, authorization, memberships }: D
         </div>
 
         <nav className={styles.nav}>
-          <div className={styles.moduleSwitcher} aria-label="Modüller">
-            <p className={styles.moduleSwitcherLabel}>Modüller</p>
-            {hasHr ? <Link href="/dashboard" className={`${styles.moduleLink} ${!productionActive ? styles.moduleLinkActive : ""}`} onClick={() => setIsOpen(false)}>İK</Link> : null}
-            {hasProduction ? <Link href="/dashboard/production" className={`${styles.moduleLink} ${productionActive ? styles.moduleLinkActive : ""}`} onClick={() => setIsOpen(false)}>Üretim Planlama</Link> : null}
-          </div>
-
-          {productionActive && productionItems.length ? productionItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return <Link key={item.href} href={item.href} className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={18}/><span>{item.label}</span></Link>;
-          }) : null}
-
-          {!productionActive ? <>
+          {hasHr ? <div className={styles.navGroup}>
+            <button type="button" className={`${styles.navItem} ${!productionActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>İK Yönetimi</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
+            {hrOpen ? <div className={styles.subNav}>
           {items.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -171,10 +165,10 @@ export function DashboardShell({ children, user, authorization, memberships }: D
               <Link
                 key={item.href}
                 href={item.href}
-                className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+                className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`}
                 onClick={() => setIsOpen(false)}
               >
-                <Icon size={18} />
+                <Icon size={16} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -256,11 +250,19 @@ export function DashboardShell({ children, user, authorization, memberships }: D
             </div>
           ) : null}
 
+            </div> : null}
+          </div> : null}
+
+          {productionItems.length ? <div className={styles.navGroup}>
+            <button type="button" className={`${styles.navItem} ${productionActive ? styles.navItemActive : ""}`} onClick={() => setProductionOpen((value) => !value)}><Building2 size={18}/><span>Üretim Planlama</span><ChevronDown size={16} className={`${styles.navChevron} ${productionOpen ? styles.navChevronOpen : ""}`}/></button>
+            {productionOpen ? <div className={styles.subNav}>{productionItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}</div> : null}
+          </div> : null}
+
           {definitionItems.length > 0 ? (
             <div className={styles.navGroup}>
               <button
                 type="button"
-                className={`${styles.navItem} ${pathname.startsWith("/dashboard/settings") ? styles.navItemActive : ""}`}
+                className={`${styles.navItem} ${pathname.startsWith("/dashboard/settings") || pathname.startsWith("/dashboard/access") || pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`}
                 onClick={() => setDefinitionsOpen((value) => !value)}
               >
                 <SlidersHorizontal size={18} />
@@ -293,7 +295,6 @@ export function DashboardShell({ children, user, authorization, memberships }: D
               ) : null}
             </div>
           ) : null}
-          </> : null}
         </nav>
 
         <form action={logoutAction} className={styles.logoutForm}>
