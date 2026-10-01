@@ -1592,6 +1592,16 @@
   accent-color: #0284c7;
 }
 
+.moduleCheckCopy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+  line-height: 1.35;
+}
+
+.moduleCheckCopy strong { color: #0f172a; font-size: 0.9rem; }
+.moduleCheckCopy small { color: #64748b; font-size: 0.78rem; font-weight: 500; }
+
 .tabBar {
   margin-bottom: 1rem;
   padding: 0.35rem;
