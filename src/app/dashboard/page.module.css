@@ -1592,6 +1592,13 @@
   accent-color: #0284c7;
 }
 
+.scopeHint {
+  margin: 0 0 0.75rem;
+  color: #667085;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .moduleCheckCopy {
   display: grid;
   min-width: 0;

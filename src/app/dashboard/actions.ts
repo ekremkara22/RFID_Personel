@@ -525,16 +525,31 @@ export async function createDashboardUserAction(formData: FormData) {
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
   const role = await getAssignableRole(formData);
-  if (role !== Role.SUPERADMIN) throw new Error("Firma kullanıcıları yalnız ilgili firma admini tarafından oluşturulabilir.");
+  const companyIds = [...new Set(getIdList(formData, "companyIds"))];
+  const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
 
   if (!firstName || !lastName || !email || !password || !username || !/^[a-z0-9._-]{3,64}$/.test(username)) {
     throw new Error("Kullanici bilgileri eksik.");
   }
   if (password.length < 10) throw new Error("Şifre en az 10 karakter olmalıdır.");
+  if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new Error("Bu ekrandan yalnız süper admin veya firma admini oluşturulabilir.");
+  if (role === Role.COMPANY_ADMIN && (companyIds.length !== 1 || !moduleKeys.length)) throw new Error("Firma admini için bir firma ve en az bir başlangıç modülü seçilmelidir.");
+
+  const company = role === Role.COMPANY_ADMIN
+    ? await prisma.company.findFirst({ where: { id: companyIds[0], isActive: true }, select: { id: true } })
+    : null;
+  const ownerRole = company
+    ? await prisma.companyRole.findUnique({ where: { companyId_key: { companyId: company.id, key: "OWNER" } }, select: { id: true } })
+    : null;
+  if (role === Role.COMPANY_ADMIN && (!company || !ownerRole)) throw new Error("Seçilen firma veya firma sahibi rolü bulunamadı.");
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.$transaction(async (tx) => {
-    await tx.user.create({ data: { firstName, lastName, name: `${firstName} ${lastName}`.trim(), username, email, phone: phone || null, password: passwordHash, role, companyId: null } });
+    const created = await tx.user.create({ data: { firstName, lastName, name: `${firstName} ${lastName}`.trim(), username, email, phone: phone || null, password: passwordHash, role, companyId: company?.id ?? null } });
+    if (company && ownerRole) {
+      await tx.userCompanyAccess.create({ data: { userId: created.id, companyId: company.id } });
+      await tx.companyMembership.create({ data: { userId: created.id, companyId: company.id, roleId: ownerRole.id, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
+    }
   });
 
   revalidatePath("/dashboard/users");
@@ -551,7 +566,8 @@ export async function updateDashboardUserAction(formData: FormData) {
   const username = getString(formData, "username").toLowerCase();
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
-  const companyIds = getIdList(formData, "companyIds");
+  const companyIds = [...new Set(getIdList(formData, "companyIds"))];
+  const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
   const deviceIds = getIdList(formData, "deviceIds");
   const targetUser = userId
     ? await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
@@ -565,20 +581,26 @@ export async function updateDashboardUserAction(formData: FormData) {
   if (userId === currentUser.id && role !== Role.SUPERADMIN) {
     throw new Error("Kendi super admin rolunuzu degistiremezsiniz.");
   }
+  if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new Error("Bu ekrandan yalnız süper admin veya firma admini yönetilebilir.");
+  if (role === Role.COMPANY_ADMIN && (companyIds.length !== 1 || !moduleKeys.length)) throw new Error("Firma admini için bir firma ve en az bir başlangıç modülü seçilmelidir.");
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      firstName,
-      lastName,
-      username,
-      name: `${firstName} ${lastName}`.trim(),
-      email,
-      phone: phone || null,
-      role,
-      companyId: role === Role.COMPANY_ADMIN ? companyIds[0] ?? null : null,
-      ...(password ? { password: await bcrypt.hash(password, 10) } : {}),
-    },
+  const company = role === Role.COMPANY_ADMIN
+    ? await prisma.company.findFirst({ where: { id: companyIds[0], isActive: true }, select: { id: true } })
+    : null;
+  const ownerRole = company
+    ? await prisma.companyRole.findUnique({ where: { companyId_key: { companyId: company.id, key: "OWNER" } }, select: { id: true } })
+    : null;
+  if (role === Role.COMPANY_ADMIN && (!company || !ownerRole)) throw new Error("Seçilen firma veya firma sahibi rolü bulunamadı.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: { firstName, lastName, username, name: `${firstName} ${lastName}`.trim(), email, phone: phone || null, role, companyId: company?.id ?? null, ...(password ? { password: await bcrypt.hash(password, 10) } : {}) },
+    });
+    await tx.companyMembership.deleteMany({ where: { userId } });
+    if (company && ownerRole) {
+      await tx.companyMembership.create({ data: { userId, companyId: company.id, roleId: ownerRole.id, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
+    }
   });
 
   if (role === Role.COMPANY_ADMIN) {

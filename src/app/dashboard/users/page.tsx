@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CirclePlus, Search } from "lucide-react";
 import { Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { moduleLabel } from "@/lib/module-catalog";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 
@@ -21,9 +22,8 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const users = await prisma.user.findMany({
     where: {
-      role: Role.SUPERADMIN,
-      ...(query
-      ? {
+      role: { in: [Role.SUPERADMIN, Role.COMPANY_ADMIN] },
+      ...(query ? {
           OR: [
             { firstName: { contains: query } },
             { lastName: { contains: query } },
@@ -31,13 +31,13 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
             { email: { contains: query } },
             { companyAccess: { some: { company: { name: { contains: query } } } } },
           ],
-        }
-      : {}),
+        } : {}),
     },
     include: {
       company: true,
       companyAccess: { include: { company: true }, orderBy: { createdAt: "asc" } },
       deviceAccess: { include: { device: { include: { company: true } } }, orderBy: { createdAt: "asc" } },
+      memberships: { include: { company: true, modules: true }, orderBy: { createdAt: "asc" } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -49,7 +49,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
           <p className={styles.eyebrow}>Sistem Yetkilileri</p>
           <h1 className={styles.title}>Kullanici Tanimlari</h1>
           <p className={styles.subtitle}>
-            Platform süper admin hesaplarını buradan yönetin. Firma kullanıcılarını kendi firma adminleri tanımlar.
+            Süper adminleri ve müşterilerin ilk firma adminlerini yönetin; firma adminlerine başlangıç modüllerini buradan atayın.
           </p>
         </div>
         <Link href="/dashboard/users/new" className={styles.primaryLinkButton}>
@@ -62,7 +62,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
         <div className={styles.listToolbar}>
           <form className={styles.searchForm}>
             <Search size={18} />
-            <input name="q" defaultValue={query} placeholder="Ad veya e-posta ile ara" />
+            <input name="q" defaultValue={query} placeholder="Ad, e-posta veya firma ile ara" />
             <button type="submit">Ara</button>
           </form>
         </div>
@@ -84,12 +84,13 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
               ) : users.map((item) => {
                 const companyNames = item.companyAccess.length > 0
                   ? item.companyAccess.map((access) => access.company.name).join(", ")
-                  : item.company?.name ?? "-";
+                  : item.memberships.map((membership) => membership.company.name).join(", ") || item.company?.name || "-";
+                const moduleNames = [...new Set(item.memberships.flatMap((membership) => membership.modules.map((module) => moduleLabel(module.moduleKey))))].join(", ");
                 return (
                   <tr key={item.id}>
                     <td><strong>{fullName(item)}</strong><p className={styles.tableSubText}>{item.email}</p></td>
                     <td>{item.role === Role.SUPERADMIN ? "Super Admin" : "Firma Admin"}</td>
-                    <td>{companyNames}</td>
+                    <td>{companyNames}{moduleNames ? <p className={styles.tableSubText}>{moduleNames}</p> : null}</td>
                     <td>{item.deviceAccess.length} cihaz</td>
                     <td><Link href={`/dashboard/users/${item.id}`} className={styles.inlineAction}>Incele</Link></td>
                   </tr>
