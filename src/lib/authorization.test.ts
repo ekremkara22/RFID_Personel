@@ -17,6 +17,12 @@ test("sabit tanım yetkileri modül erişiminden bağımsızdır", () => {
   assert.equal(can(context({ modules: new Set(), permissions: new Set([PERMISSIONS.ACCESS_VIEW]) }), PERMISSIONS.ACCESS_VIEW), true);
 });
 
+test("üretim ekranı yetkisi yalnız üretim modülü açıkken kullanılabilir", () => {
+  const productionViewer = context({ permissions: new Set([PERMISSIONS.WORK_CENTER_VIEW]) });
+  assert.equal(can(productionViewer, PERMISSIONS.WORK_CENTER_VIEW), false);
+  assert.equal(can(context({ permissions: new Set([PERMISSIONS.WORK_CENTER_VIEW]), modules: new Set([MODULES.PRODUCTION_PLANNING]) }), PERMISSIONS.WORK_CENTER_VIEW), true);
+});
+
 test("boş kısıtlı kapsam hiçbir zaman sınırsız erişime dönüşmez", () => {
   assert.deepEqual(employeeScopeWhere(context({ scopeMode: DataScopeMode.RESTRICTED })), { id: -1 });
 });

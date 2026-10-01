@@ -525,25 +525,16 @@ export async function createDashboardUserAction(formData: FormData) {
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
   const role = await getAssignableRole(formData);
-  const companyIds = getIdList(formData, "companyIds");
-  const moduleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
+  if (role !== Role.SUPERADMIN) throw new Error("Firma kullanıcıları yalnız ilgili firma admini tarafından oluşturulabilir.");
 
   if (!firstName || !lastName || !email || !password || !username || !/^[a-z0-9._-]{3,64}$/.test(username)) {
     throw new Error("Kullanici bilgileri eksik.");
   }
   if (password.length < 10) throw new Error("Şifre en az 10 karakter olmalıdır.");
-  if (role === Role.COMPANY_ADMIN && (!companyIds[0] || !moduleKeys.length)) throw new Error("Firma admini için firma ve en az bir modül seçilmelidir.");
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.$transaction(async (tx) => {
-    const newUser = await tx.user.create({ data: { firstName, lastName, name: `${firstName} ${lastName}`.trim(), username, email, phone: phone || null, password: passwordHash, role, companyId: role === Role.COMPANY_ADMIN ? companyIds[0] : null } });
-    if (role === Role.COMPANY_ADMIN) {
-      const companyId = companyIds[0];
-      const ownerRole = await tx.companyRole.findUnique({ where: { companyId_key: { companyId, key: "OWNER" } } });
-      if (!ownerRole) throw new Error("Firma sahibi rolü bulunamadı.");
-      await tx.userCompanyAccess.create({ data: { userId: newUser.id, companyId } });
-      await tx.companyMembership.create({ data: { userId: newUser.id, companyId, roleId: ownerRole.id, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
-    }
+    await tx.user.create({ data: { firstName, lastName, name: `${firstName} ${lastName}`.trim(), username, email, phone: phone || null, password: passwordHash, role, companyId: null } });
   });
 
   revalidatePath("/dashboard/users");

@@ -120,10 +120,10 @@ export function DashboardShell({ children, user, authorization, memberships }: D
         ]),
   ];
   const productionItems = hasProduction ? [
-    { href: "/dashboard/production/work-centers", label: "İş Merkezleri", icon: Building2 },
-    { href: "/dashboard/production/capacity-planning", label: "Kapasite Planlama", icon: Timer },
-    { href: "/dashboard/production/calendar", label: "Üretim Takvimi", icon: CalendarDays },
-    { href: "/dashboard/production/reports", label: "Üretim Raporları", icon: FileBarChart },
+    ...(allowed(PERMISSIONS.WORK_CENTER_VIEW) ? [{ href: "/dashboard/production/work-centers", label: "İş Merkezleri", icon: Building2 }] : []),
+    ...(allowed(PERMISSIONS.CAPACITY_VIEW) ? [{ href: "/dashboard/production/capacity-planning", label: "Kapasite Planlama", icon: Timer }] : []),
+    ...(allowed(PERMISSIONS.PRODUCTION_CALENDAR_VIEW) ? [{ href: "/dashboard/production/calendar", label: "Üretim Takvimi", icon: CalendarDays }] : []),
+    ...(allowed(PERMISSIONS.PRODUCTION_REPORT_VIEW) ? [{ href: "/dashboard/production/reports", label: "Üretim Raporları", icon: FileBarChart }] : []),
   ] : [];
 
   return (

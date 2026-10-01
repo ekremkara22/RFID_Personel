@@ -1,3 +1,5 @@
+import { MODULES, type ModuleKey } from "@/lib/module-catalog";
+
 export const PERMISSIONS = {
   PERSONNEL_VIEW: "personnel.view",
   PERSONNEL_CREATE: "personnel.create",
@@ -26,6 +28,14 @@ export const PERMISSIONS = {
   DEVICE_MANAGE: "device.manage",
   DEVICE_SECRET_VIEW: "device.secret.view",
   AUDIT_VIEW: "audit.view",
+  WORK_CENTER_VIEW: "production.work_center.view",
+  WORK_CENTER_MANAGE: "production.work_center.manage",
+  CAPACITY_VIEW: "production.capacity.view",
+  CAPACITY_MANAGE: "production.capacity.manage",
+  PRODUCTION_CALENDAR_VIEW: "production.calendar.view",
+  PRODUCTION_CALENDAR_MANAGE: "production.calendar.manage",
+  PRODUCTION_REPORT_VIEW: "production.report.view",
+  PRODUCTION_REPORT_EXPORT: "production.report.export",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -42,7 +52,24 @@ export const PERMISSION_GROUPS = [
   { label: "İşlem geçmişi", items: [[PERMISSIONS.AUDIT_VIEW, "Audit görüntüleme"]] },
 ] as const;
 
-export const ALL_PERMISSIONS = PERMISSION_GROUPS.flatMap((group) => group.items.map(([code]) => code));
+export const MODULE_PERMISSION_SECTIONS: Record<ModuleKey, Array<{ label: string; items: ReadonlyArray<readonly [PermissionCode, string]> }>> = {
+  [MODULES.HR]: PERMISSION_GROUPS.map((group) => ({ label: group.label, items: group.items })),
+  [MODULES.PRODUCTION_PLANNING]: [
+    { label: "İş Merkezleri", items: [[PERMISSIONS.WORK_CENTER_VIEW, "Görüntüleme"], [PERMISSIONS.WORK_CENTER_MANAGE, "Yeni / düzelt / sil"]] },
+    { label: "Kapasite Planlama", items: [[PERMISSIONS.CAPACITY_VIEW, "Görüntüleme"], [PERMISSIONS.CAPACITY_MANAGE, "Plan oluşturma ve düzenleme"]] },
+    { label: "Üretim Takvimi", items: [[PERMISSIONS.PRODUCTION_CALENDAR_VIEW, "Görüntüleme"], [PERMISSIONS.PRODUCTION_CALENDAR_MANAGE, "Yeni / düzelt / sil"]] },
+    { label: "Üretim Raporları", items: [[PERMISSIONS.PRODUCTION_REPORT_VIEW, "Görüntüleme"], [PERMISSIONS.PRODUCTION_REPORT_EXPORT, "Dışa aktarma"]] },
+  ],
+};
+
+export function permissionModule(permission: string): ModuleKey | null {
+  for (const [moduleKey, sections] of Object.entries(MODULE_PERMISSION_SECTIONS)) {
+    if (sections.some((section) => section.items.some(([code]) => code === permission))) return moduleKey as ModuleKey;
+  }
+  return null;
+}
+
+export const ALL_PERMISSIONS = Object.values(MODULE_PERMISSION_SECTIONS).flatMap((sections) => sections.flatMap((group) => group.items.map(([code]) => code)));
 
 const commonRead = [PERMISSIONS.PERSONNEL_VIEW, PERMISSIONS.MOVEMENT_VIEW, PERMISSIONS.LEAVE_VIEW, PERMISSIONS.CALENDAR_VIEW, PERMISSIONS.REPORT_VIEW];
 
@@ -58,9 +85,11 @@ export const READY_COMPANY_ROLES = [
 ] as const;
 
 export function permissionLabel(code: string) {
-  for (const group of PERMISSION_GROUPS) {
-    const item = group.items.find(([itemCode]) => itemCode === code);
-    if (item) return `${group.label}: ${item[1]}`;
+  for (const sections of Object.values(MODULE_PERMISSION_SECTIONS)) {
+    for (const group of sections) {
+      const item = group.items.find(([itemCode]) => itemCode === code);
+      if (item) return `${group.label}: ${item[1]}`;
+    }
   }
   return code;
 }

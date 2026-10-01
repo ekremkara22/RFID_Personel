@@ -20,7 +20,9 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const users = await prisma.user.findMany({
-    where: query
+    where: {
+      role: Role.SUPERADMIN,
+      ...(query
       ? {
           OR: [
             { firstName: { contains: query } },
@@ -30,7 +32,8 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
             { companyAccess: { some: { company: { name: { contains: query } } } } },
           ],
         }
-      : undefined,
+      : {}),
+    },
     include: {
       company: true,
       companyAccess: { include: { company: true }, orderBy: { createdAt: "asc" } },
@@ -46,7 +49,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
           <p className={styles.eyebrow}>Sistem Yetkilileri</p>
           <h1 className={styles.title}>Kullanici Tanimlari</h1>
           <p className={styles.subtitle}>
-            Firma adminlerini buradan olustur, kullaniciya firma ve RFID cihaz yetkilerini ata.
+            Platform süper admin hesaplarını buradan yönetin. Firma kullanıcılarını kendi firma adminleri tanımlar.
           </p>
         </div>
         <Link href="/dashboard/users/new" className={styles.primaryLinkButton}>
@@ -59,7 +62,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
         <div className={styles.listToolbar}>
           <form className={styles.searchForm}>
             <Search size={18} />
-            <input name="q" defaultValue={query} placeholder="Ad, e-posta veya firma ile ara" />
+            <input name="q" defaultValue={query} placeholder="Ad veya e-posta ile ara" />
             <button type="submit">Ara</button>
           </form>
         </div>
