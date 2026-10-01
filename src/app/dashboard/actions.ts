@@ -24,7 +24,7 @@ import {
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS, READY_COMPANY_ROLES } from "@/lib/permission-catalog";
-import { ALL_MODULE_KEYS } from "@/lib/module-catalog";
+import { ALL_MODULE_KEYS, defaultRoleModules } from "@/lib/module-catalog";
 import { prisma } from "@/lib/prisma";
 import {
   assertPayrollPeriodUnlocked,
@@ -321,7 +321,8 @@ export async function createCompanyAction(formData: FormData) {
       });
       let ownerRoleId = 0;
       for (const definition of READY_COMPANY_ROLES) {
-        const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) } } });
+        const roleModuleKeys = defaultRoleModules(definition.key).filter((moduleKey) => moduleKeys.includes(moduleKey));
+        const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) }, modules: { create: roleModuleKeys.map((moduleKey) => ({ moduleKey })) } } });
         if (definition.key === "OWNER") ownerRoleId = role.id;
       }
       await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });

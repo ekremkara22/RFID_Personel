@@ -254,12 +254,24 @@ model CompanyRole {
   isSystem    Boolean                 @default(false)
   isActive    Boolean                 @default(true)
   permissions CompanyRolePermission[]
+  modules     CompanyRoleModule[]
   memberships CompanyMembership[]
   invitations CompanyInvitation[]
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
 
   @@unique([companyId, key])
+}
+
+model CompanyRoleModule {
+  id        Int         @id @default(autoincrement()) @db.UnsignedInt
+  roleId    Int         @db.UnsignedInt
+  role      CompanyRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  moduleKey String      @db.VarChar(64)
+  createdAt DateTime    @default(now())
+
+  @@unique([roleId, moduleKey])
+  @@index([moduleKey])
 }
 
 model CompanyRolePermission {

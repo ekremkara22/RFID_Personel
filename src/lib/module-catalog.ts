@@ -25,3 +25,9 @@ export const ALL_MODULE_KEYS = MODULE_CATALOG.map((item) => item.key);
 export function moduleLabel(key: string) {
   return MODULE_CATALOG.find((item) => item.key === key)?.name ?? key;
 }
+
+export function defaultRoleModules(roleKey: string): ModuleKey[] {
+  return roleKey === "OWNER" || roleKey === "ADMIN"
+    ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
+    : [MODULES.HR];
+}

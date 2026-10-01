@@ -2,7 +2,7 @@ import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient, DataScopeMode, CompanyMembershipStatus } from "../src/generated/prisma/client";
 import { READY_COMPANY_ROLES } from "../src/lib/permission-catalog";
-import { MODULES } from "../src/lib/module-catalog";
+import { MODULES, defaultRoleModules } from "../src/lib/module-catalog";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is not configured.");
@@ -57,6 +57,13 @@ async function main() {
         report.moduleGrants += moduleKeys.length;
       }
       report.memberships += 1;
+    }
+    const availableModules = [...new Set((await prisma.membershipModule.findMany({ where: { membership: { companyId: company.id } }, select: { moduleKey: true } })).map((item) => item.moduleKey))];
+    const companyRoles = await prisma.companyRole.findMany({ where: { companyId: company.id, modules: { none: {} } }, select: { id: true, key: true } });
+    for (const role of companyRoles) {
+      const preferred = defaultRoleModules(role.key).filter((moduleKey) => availableModules.includes(moduleKey));
+      const roleModules = preferred.length ? preferred : availableModules;
+      if (roleModules.length) await prisma.companyRoleModule.createMany({ data: roleModules.map((moduleKey) => ({ roleId: role.id, moduleKey })), skipDuplicates: true });
     }
   }
 
