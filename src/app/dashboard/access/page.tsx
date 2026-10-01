@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
+import { moduleLabel } from "@/lib/module-catalog";
 
 const statusLabels: Record<CompanyMembershipStatus, string> = {
   PENDING: "Bekleyen",
@@ -54,6 +55,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
         employeeScopes: true,
         deviceScopes: true,
         teamScopes: { include: { team: { include: { members: true } } } },
+        modules: true,
       },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
@@ -103,7 +105,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
         <div className={ui.tableViewport}>
           <table className={ui.dataTable}>
             <colgroup><col style={{ width: "25%" }} /><col style={{ width: "18%" }} /><col style={{ width: "13%" }} /><col style={{ width: "25%" }} /><col style={{ width: "9%" }} /><col style={{ width: "10%" }} /></colgroup>
-            <thead><tr><th>Kullanıcı</th><th>Rol</th><th>Durum</th><th>Veri kapsamı</th><th>İzin</th><th>İşlem</th></tr></thead>
+            <thead><tr><th>Kullanıcı</th><th>Rol</th><th>Durum</th><th>Modül / veri kapsamı</th><th>İzin</th><th>İşlem</th></tr></thead>
             <tbody>
               {memberships.length ? memberships.map((item) => {
                 const context = {
@@ -114,6 +116,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
                   roleKey: item.role.key,
                   roleName: item.role.name,
                   permissions: new Set(item.role.permissions.map((permission) => permission.permission)),
+                  modules: new Set(item.modules.map((module) => module.moduleKey)),
                   scopeMode: item.scopeMode,
                   employeeId: item.employeeId,
                   branchIds: item.branchScopes.map((scope) => scope.branchId),
@@ -131,7 +134,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
                     <td><strong className={ui.primaryText}>{name}</strong><span className={ui.secondaryText}>{item.user.email}</span></td>
                     <td><strong className={ui.primaryText}>{item.role.name}</strong></td>
                     <td><span className={item.status === "ACTIVE" ? ui.statusBadge : ui.statusWarning}><span className={ui.statusDot} />{statusLabels[item.status]}</span></td>
-                    <td>{scopeSummary(context)}</td>
+                    <td><strong className={ui.primaryText}>{item.modules.map((module) => moduleLabel(module.moduleKey)).join(", ") || "Modül yok"}</strong><span className={ui.secondaryText}>{scopeSummary(context)}</span></td>
                     <td><strong className={ui.primaryText}>{item.role.permissions.length}</strong><span className={ui.secondaryText}>işlem</span></td>
                     <td><Link href={`/dashboard/access/members/${item.id}`} className={ui.rowAction} aria-label={`${name} rol ve kapsamını incele`}>Yönet <ArrowUpRight size={14} /></Link></td>
                   </tr>

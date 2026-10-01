@@ -31,6 +31,9 @@ import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
 import { can, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import ui from "./management.module.css";
+import { redirect } from "next/navigation";
+import { canAccessModule } from "@/lib/authorization";
+import { MODULES } from "@/lib/module-catalog";
 
 const attendanceLabels = {
   ENTRY: "Giriş",
@@ -91,6 +94,10 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
   const { user, authorization } = await requireSessionUser();
+  if (!canAccessModule(authorization, MODULES.HR)) {
+    if (canAccessModule(authorization, MODULES.PRODUCTION_PLANNING)) redirect("/dashboard/production");
+    redirect("/login");
+  }
   const isSuperadmin = user.role === "SUPERADMIN";
   const companyIds = await getAccessibleCompanyIds(user);
   const companyScope = isSuperadmin ? scopedCompanyFilter(companyIds) : employeeScopeWhere(authorization);

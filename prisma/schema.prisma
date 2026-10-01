@@ -287,11 +287,22 @@ model CompanyMembership {
   employeeScopes   MembershipEmployeeScope[]
   deviceScopes     MembershipDeviceScope[]
   teamScopes       MembershipTeamScope[]
+  modules          MembershipModule[]
   createdAt        DateTime                    @default(now())
   updatedAt        DateTime                    @updatedAt
 
   @@unique([userId, companyId])
   @@index([companyId, status])
+}
+
+model MembershipModule {
+  membershipId Int               @db.UnsignedInt
+  membership   CompanyMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  moduleKey    String            @db.VarChar(64)
+  createdAt    DateTime          @default(now())
+
+  @@id([membershipId, moduleKey])
+  @@index([moduleKey])
 }
 
 model MembershipBranchScope {
@@ -363,21 +374,22 @@ model CompanyTeamEmployee {
 }
 
 model CompanyInvitation {
-  id          Int                     @id @default(autoincrement()) @db.UnsignedInt
-  companyId   Int                     @db.UnsignedInt
-  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  email       String
-  roleId      Int                     @db.UnsignedInt
-  role        CompanyRole             @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  tokenHash   String                  @unique @db.Char(64)
-  status      CompanyInvitationStatus @default(PENDING)
-  scopeMode   DataScopeMode           @default(NONE)
-  scopeJson   String?                 @db.Text
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  createdById Int                     @db.UnsignedInt
-  createdBy   User                    @relation("InvitationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  createdAt   DateTime                @default(now())
+  id             Int                     @id @default(autoincrement()) @db.UnsignedInt
+  companyId      Int                     @db.UnsignedInt
+  company        Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email          String
+  roleId         Int                     @db.UnsignedInt
+  role           CompanyRole             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  tokenHash      String                  @unique @db.Char(64)
+  status         CompanyInvitationStatus @default(PENDING)
+  scopeMode      DataScopeMode           @default(NONE)
+  scopeJson      String?                 @db.Text
+  moduleKeysJson String?                 @db.Text
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdById    Int                     @db.UnsignedInt
+  createdBy      User                    @relation("InvitationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt      DateTime                @default(now())
 
   @@index([companyId, email, status])
 }

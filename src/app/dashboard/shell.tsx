@@ -31,6 +31,7 @@ import { logoutAction } from "./actions";
 import { setActiveCompanyAction } from "./access-actions";
 import { SubmitButton } from "./submit-button";
 import { PERMISSIONS } from "@/lib/permission-catalog";
+import { MODULES } from "@/lib/module-catalog";
 import styles from "./shell.module.css";
 
 type DashboardShellProps = {
@@ -46,7 +47,7 @@ type DashboardShellProps = {
       name: string;
     } | null;
   };
-  authorization: { isPlatformAdmin: boolean; roleName: string | null; permissions: string[] };
+  authorization: { isPlatformAdmin: boolean; roleName: string | null; permissions: string[]; modules: string[] };
   memberships: Array<{ companyId: number; companyName: string; roleName: string }>;
 };
 
@@ -63,23 +64,27 @@ export function DashboardShell({ children, user, authorization, memberships }: D
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
   const allowed = (permission: string) => authorization.isPlatformAdmin || authorization.permissions.includes(permission);
+  const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || authorization.modules.includes(moduleKey);
+  const hasHr = hasModule(MODULES.HR);
+  const hasProduction = hasModule(MODULES.PRODUCTION_PLANNING);
+  const productionActive = pathname.startsWith("/dashboard/production");
 
   const items = [
-    { href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard },
+    ...(hasHr ? [{ href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard }] : []),
     ...(user.role === "SUPERADMIN"
       ? [
           { href: "/dashboard/users", label: "Kullanıcılar", icon: Users },
           { href: "/dashboard/firmware-updates", label: "Cihaz Yazılım Güncellemeleri", icon: CloudDownload },
         ]
-      : [
+      : hasHr ? [
           ...(allowed(PERMISSIONS.PERSONNEL_VIEW) ? [{ href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users }] : []),
           ...(allowed(PERMISSIONS.MOVEMENT_VIEW) ? [{ href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList }, { href: "/dashboard/movement-reviews", label: "İncelenecek Hareketler", icon: ListChecks }] : []),
           ...(allowed(PERMISSIONS.LEAVE_VIEW) ? [{ href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane }] : []),
           ...(allowed(PERMISSIONS.DEVICE_VIEW) ? [{ href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone }, { href: "/dashboard/device-health", label: "Cihaz Sağlığı", icon: HeartPulse }] : []),
           ...(allowed(PERMISSIONS.ACCESS_VIEW) ? [{ href: "/dashboard/access", label: "Kullanıcılar ve Yetkiler", icon: KeyRound }] : []),
-        ]),
+        ] : []),
   ];
-  const reportItems = allowed(PERMISSIONS.REPORT_VIEW) ? [
+  const reportItems = hasHr && allowed(PERMISSIONS.REPORT_VIEW) ? [
     { href: "/dashboard/reports", label: "Rapor Merkezi", icon: FileBarChart },
     { href: "/dashboard/reports/personnel", label: "Personel PDKS", icon: Users },
     { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: FileBarChart },
@@ -88,7 +93,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
     ...(allowed(PERMISSIONS.AUDIT_VIEW) ? [{ href: "/dashboard/reports/audit", label: "Audit Raporu", icon: History }] : []),
     { href: "/dashboard/reports/payroll", label: "Aylık Puantaj Onayı", icon: FileLock2 },
   ] : [];
-  const calendarItems = allowed(PERMISSIONS.CALENDAR_VIEW) ? [
+  const calendarItems = hasHr && allowed(PERMISSIONS.CALENDAR_VIEW) ? [
     { href: "/dashboard/calendar", label: "Takvim Görünümü", icon: CalendarDays },
     ...(allowed(PERMISSIONS.CALENDAR_MANAGE) ? [
       { href: "/dashboard/calendar/templates", label: "Takvim Şablonları", icon: CalendarDays },
@@ -110,6 +115,12 @@ export function DashboardShell({ children, user, authorization, memberships }: D
           ...(allowed(PERMISSIONS.SETTINGS_MANAGE) ? [{ href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags }, { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 }, { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users }] : []),
         ]),
   ];
+  const productionItems = hasProduction ? [
+    { href: "/dashboard/production/work-centers", label: "İş Merkezleri", icon: Building2 },
+    { href: "/dashboard/production/capacity-planning", label: "Kapasite Planlama", icon: Timer },
+    { href: "/dashboard/production/calendar", label: "Üretim Takvimi", icon: CalendarDays },
+    { href: "/dashboard/production/reports", label: "Üretim Raporları", icon: FileBarChart },
+  ] : [];
 
   return (
     <div className={styles.shell}>
@@ -138,6 +149,19 @@ export function DashboardShell({ children, user, authorization, memberships }: D
         </div>
 
         <nav className={styles.nav}>
+          <div className={styles.moduleSwitcher} aria-label="Modüller">
+            <p className={styles.moduleSwitcherLabel}>Modüller</p>
+            {hasHr ? <Link href="/dashboard" className={`${styles.moduleLink} ${!productionActive ? styles.moduleLinkActive : ""}`} onClick={() => setIsOpen(false)}>İK</Link> : null}
+            {hasProduction ? <Link href="/dashboard/production" className={`${styles.moduleLink} ${productionActive ? styles.moduleLinkActive : ""}`} onClick={() => setIsOpen(false)}>Üretim Planlama</Link> : null}
+          </div>
+
+          {productionActive && productionItems.length ? productionItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return <Link key={item.href} href={item.href} className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={18}/><span>{item.label}</span></Link>;
+          }) : null}
+
+          {!productionActive ? <>
           {items.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -269,6 +293,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
               ) : null}
             </div>
           ) : null}
+          </> : null}
         </nav>
 
         <form action={logoutAction} className={styles.logoutForm}>

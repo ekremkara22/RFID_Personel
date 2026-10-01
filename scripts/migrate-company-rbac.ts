@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient, DataScopeMode, CompanyMembershipStatus } from "../src/generated/prisma/client";
 import { READY_COMPANY_ROLES } from "../src/lib/permission-catalog";
+import { MODULES } from "../src/lib/module-catalog";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is not configured.");
@@ -28,7 +29,7 @@ async function ensureRoles(companyId: number) {
 }
 
 async function main() {
-  const report = { companies: 0, roles: 0, memberships: 0, branchLinks: 0, departmentLinks: 0, ambiguousEmployees: [] as number[] };
+  const report = { companies: 0, roles: 0, memberships: 0, moduleGrants: 0, branchLinks: 0, departmentLinks: 0, ambiguousEmployees: [] as number[] };
   const companies = await prisma.company.findMany({ select: { id: true } });
   for (const company of companies) {
     const roles = await ensureRoles(company.id);
@@ -47,8 +48,28 @@ async function main() {
       if (user.deviceAccess.length) {
         await prisma.membershipDeviceScope.createMany({ data: user.deviceAccess.map((item) => ({ membershipId: membership.id, deviceId: item.deviceId })), skipDuplicates: true });
       }
+      const role = await prisma.companyRole.findUniqueOrThrow({ where: { id: membership.roleId }, select: { key: true } });
+      const moduleKeys = role.key === "OWNER" || role.key === "ADMIN"
+        ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
+        : [MODULES.HR];
+      await prisma.membershipModule.createMany({
+        data: moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey })),
+        skipDuplicates: true,
+      });
+      report.moduleGrants += moduleKeys.length;
       report.memberships += 1;
     }
+  }
+
+  const memberships = await prisma.companyMembership.findMany({ select: { id: true, role: { select: { key: true } } } });
+  for (const membership of memberships) {
+    const moduleKeys = membership.role.key === "OWNER" || membership.role.key === "ADMIN"
+      ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
+      : [MODULES.HR];
+    await prisma.membershipModule.createMany({
+      data: moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey })),
+      skipDuplicates: true,
+    });
   }
 
   const employees = await prisma.employee.findMany({ select: { id: true, companyId: true, branch: true, department: true, branchId: true, departmentId: true } });

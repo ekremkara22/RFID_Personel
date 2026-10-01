@@ -3,10 +3,15 @@ import test from "node:test";
 import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/client";
 import { can, employeeScopeWhere, type AuthorizationContext } from "@/lib/authorization-scope";
 import { PERMISSIONS, READY_COMPANY_ROLES } from "@/lib/permission-catalog";
+import { MODULES } from "@/lib/module-catalog";
 
 function context(overrides: Partial<AuthorizationContext> = {}): AuthorizationContext {
-  return { isPlatformAdmin: false, userId: 7, companyId: 10, membershipId: 2, membershipStatus: CompanyMembershipStatus.ACTIVE, sessionVersion: 1, roleKey: "TEST", roleName: "Test", permissions: new Set([PERMISSIONS.PERSONNEL_VIEW]), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [], ...overrides };
+  return { isPlatformAdmin: false, userId: 7, companyId: 10, membershipId: 2, membershipStatus: CompanyMembershipStatus.ACTIVE, sessionVersion: 1, roleKey: "TEST", roleName: "Test", permissions: new Set([PERMISSIONS.PERSONNEL_VIEW]), modules: new Set([MODULES.HR]), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [], ...overrides };
 }
+
+test("İK izni modül erişimi olmadan kullanılamaz", () => {
+  assert.equal(can(context({ modules: new Set() }), PERMISSIONS.PERSONNEL_VIEW), false);
+});
 
 test("boş kısıtlı kapsam hiçbir zaman sınırsız erişime dönüşmez", () => {
   assert.deepEqual(employeeScopeWhere(context({ scopeMode: DataScopeMode.RESTRICTED })), { id: -1 });

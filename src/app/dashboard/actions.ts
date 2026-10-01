@@ -24,6 +24,7 @@ import {
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS, READY_COMPANY_ROLES } from "@/lib/permission-catalog";
+import { MODULES } from "@/lib/module-catalog";
 import { prisma } from "@/lib/prisma";
 import {
   assertPayrollPeriodUnlocked,
@@ -318,7 +319,7 @@ export async function createCompanyAction(formData: FormData) {
         const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) } } });
         if (definition.key === "OWNER") ownerRoleId = role.id;
       }
-      await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY" } });
+      await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: [{ moduleKey: MODULES.HR }, { moduleKey: MODULES.PRODUCTION_PLANNING }] } } });
     }
   });
 

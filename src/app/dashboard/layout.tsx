@@ -8,5 +8,5 @@ export default async function DashboardLayout({
 }) {
   const { user, authorization, memberships } = await requireSessionUser();
 
-  return <DashboardShell user={user} authorization={{ isPlatformAdmin: authorization.isPlatformAdmin, roleName: authorization.roleName, permissions: [...authorization.permissions] }} memberships={memberships}>{children}</DashboardShell>;
+  return <DashboardShell user={user} authorization={{ isPlatformAdmin: authorization.isPlatformAdmin, roleName: authorization.roleName, permissions: [...authorization.permissions], modules: [...authorization.modules] }} memberships={memberships}>{children}</DashboardShell>;
 }
