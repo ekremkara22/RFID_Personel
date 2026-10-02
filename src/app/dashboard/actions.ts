@@ -36,6 +36,7 @@ import {
 import { requireSessionUser } from "@/lib/session";
 import { calculateGrossMinutes, calculateNetMinutes } from "@/lib/work-calendar-rules";
 import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
+import { isValidOptionalUsername, normalizeOptionalUsername } from "@/lib/user-identity";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -483,7 +484,7 @@ export async function createDashboardUserAction(formData: FormData) {
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
   const email = normalizeOptionalEmail(getString(formData, "email"));
-  const username = getString(formData, "username").toLowerCase();
+  const username = normalizeOptionalUsername(getString(formData, "username"));
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
   const role = await getAssignableRole(formData);
@@ -513,7 +514,7 @@ export async function updateDashboardUserAction(formData: FormData) {
   const firstName = getString(formData, "firstName");
   const lastName = getString(formData, "lastName");
   const email = normalizeOptionalEmail(getString(formData, "email"));
-  const username = getString(formData, "username").toLowerCase();
+  const username = normalizeOptionalUsername(getString(formData, "username"));
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
   const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
@@ -523,7 +524,7 @@ export async function updateDashboardUserAction(formData: FormData) {
     : null;
   const role = await getAssignableRole(formData);
 
-  if (!userId || !targetUser || !firstName || !lastName || !email || !/^[a-z0-9._-]{3,64}$/.test(username)) {
+  if (!userId || !targetUser || !firstName || !lastName || !email || !isValidOptionalUsername(username)) {
     throw new Error("Kullanici bilgileri eksik.");
   }
 
