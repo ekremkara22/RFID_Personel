@@ -511,18 +511,21 @@ export async function updateDashboardUserAction(formData: FormData) {
   const currentUser = await assertSuperadminUser();
 
   const userId = getId(formData, "userId");
-  const firstName = getString(formData, "firstName");
-  const lastName = getString(formData, "lastName");
-  const email = normalizeOptionalEmail(getString(formData, "email"));
+  const submittedFirstName = getString(formData, "firstName");
+  const submittedLastName = getString(formData, "lastName");
+  const submittedEmail = normalizeOptionalEmail(getString(formData, "email"));
   const username = normalizeOptionalUsername(getString(formData, "username"));
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
   const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
   const deviceIds = getIdList(formData, "deviceIds");
   const targetUser = userId
-    ? await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+    ? await prisma.user.findUnique({ where: { id: userId }, select: { id: true, firstName: true, lastName: true, email: true } })
     : null;
   const role = await getAssignableRole(formData);
+  const firstName = submittedFirstName || targetUser?.firstName?.trim() || "";
+  const lastName = submittedLastName || targetUser?.lastName?.trim() || "";
+  const email = submittedEmail ?? targetUser?.email ?? null;
 
   if (!userId || !targetUser || !firstName || !lastName || !email || !isValidOptionalUsername(username)) {
     throw new Error("Kullanici bilgileri eksik.");

@@ -12,6 +12,7 @@ import { ALL_PERMISSIONS, permissionModule, PERMISSIONS } from "@/lib/permission
 import { ALL_MODULE_KEYS, MODULES, moduleLabel } from "@/lib/module-catalog";
 import { prisma } from "@/lib/prisma";
 import { membershipModuleRows } from "@/lib/role-module-sync";
+import { companyRoleDeletionMessage } from "@/lib/company-role-policy";
 import { ACTIVE_COMPANY_COOKIE_NAME, requireSessionUser } from "@/lib/session";
 
 function value(formData: FormData, key: string) { const item = formData.get(key); return typeof item === "string" ? item.trim() : ""; }
@@ -274,9 +275,10 @@ export async function deleteCompanyRoleAction(formData: FormData) {
   const roleId = Number(value(formData, "roleId"));
   const role = await prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId }, include: { _count: { select: { memberships: true } } } });
   if (!role) throw new Error("Rol bulunamadı.");
-  if (role.isSystem) throw new Error("Hazır roller silinemez; gerekirse pasifleştirilebilir.");
-  if (role._count.memberships) throw new Error("Kullanıcısı bulunan rol silinemez. Önce kullanıcıları başka role taşıyın.");
+  const deletionMessage = companyRoleDeletionMessage(role._count.memberships);
+  if (deletionMessage) throw new Error(deletionMessage);
   await prisma.$transaction(async (tx) => {
+    await tx.companyInvitation.deleteMany({ where: { roleId: role.id } });
     await tx.companyRole.delete({ where: { id: role.id } });
     await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: "ROLE_DELETED", summary: `${role.name} rolü silindi.` } });
   });

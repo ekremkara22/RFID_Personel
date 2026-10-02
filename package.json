@@ -8,7 +8,7 @@
     "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/work-calendar-rules.test.ts src/lib/attendance-sequence.test.ts src/lib/attendance-review.test.ts src/lib/authorization.test.ts src/lib/app-time.test.ts src/lib/company-scope.test.ts src/lib/device-status.test.ts src/lib/cursor-pagination.test.ts src/lib/device-scan.test.ts src/lib/server-health-rules.test.ts src/lib/role-module-sync.test.ts src/lib/user-identity.test.ts",
+    "test": "tsx --test src/lib/work-calendar-rules.test.ts src/lib/attendance-sequence.test.ts src/lib/attendance-review.test.ts src/lib/authorization.test.ts src/lib/app-time.test.ts src/lib/company-scope.test.ts src/lib/device-status.test.ts src/lib/cursor-pagination.test.ts src/lib/device-scan.test.ts src/lib/server-health-rules.test.ts src/lib/role-module-sync.test.ts src/lib/user-identity.test.ts src/lib/company-role-policy.test.ts",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
