@@ -18,6 +18,22 @@ export function latencyHealthLevel(milliseconds: number | null): HealthLevel {
   return "healthy";
 }
 
+export function bandwidthHealthLevel(
+  megabitsPerSecond: number | null,
+  warningBelow: number,
+  criticalBelow: number,
+): HealthLevel {
+  if (megabitsPerSecond === null || !Number.isFinite(megabitsPerSecond)) return "critical";
+  if (megabitsPerSecond < criticalBelow) return "critical";
+  if (megabitsPerSecond < warningBelow) return "warning";
+  return "healthy";
+}
+
+export function calculateMbps(bytes: number, durationMilliseconds: number) {
+  if (!Number.isFinite(bytes) || !Number.isFinite(durationMilliseconds) || bytes <= 0 || durationMilliseconds <= 0) return null;
+  return Math.round(((bytes * 8) / (durationMilliseconds / 1000) / 1_000_000) * 10) / 10;
+}
+
 export function overallHealthLevel(levels: HealthLevel[]): HealthLevel {
   if (levels.includes("critical")) return "critical";
   if (levels.includes("warning")) return "warning";

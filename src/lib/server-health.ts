@@ -1,6 +1,7 @@
 import { statfs } from "node:fs/promises";
 import os from "node:os";
 import { isDeviceOnline } from "@/lib/device-status";
+import { getInternetSpeedSnapshot } from "@/lib/internet-speed";
 import { prisma } from "@/lib/prisma";
 import {
   latencyHealthLevel,
@@ -57,7 +58,7 @@ export async function getServerHealthSnapshot() {
   const loadAverage = os.loadavg()[0];
   const cpuLoadPercent = Math.round((loadAverage / cpuCount) * 1000) / 10;
   const processMemory = process.memoryUsage();
-  const disk = await getDiskSnapshot();
+  const [disk, internet] = await Promise.all([getDiskSnapshot(), getInternetSpeedSnapshot()]);
 
   let databaseConnected = false;
   let databaseLatencyMs: number | null = null;
@@ -146,7 +147,7 @@ export async function getServerHealthSnapshot() {
   const databaseLevel = databaseConnected ? latencyHealthLevel(databaseLatencyMs) : "critical";
   const connectionUsedPercent = percent(databaseConnections, databaseMaxConnections);
   const connectionLevel = usageHealthLevel(connectionUsedPercent, 70, 85);
-  const overallLevel = overallHealthLevel([memoryLevel, diskLevel, databaseLevel, connectionLevel]);
+  const overallLevel = overallHealthLevel([memoryLevel, diskLevel, databaseLevel, connectionLevel, internet.level]);
 
   const notices: Array<{ level: HealthLevel; title: string; description: string }> = [];
   if (!databaseConnected) {
@@ -169,6 +170,11 @@ export async function getServerHealthSnapshot() {
   }
   if (applicationCounts.queuedDeviceRecords > 0) {
     notices.push({ level: "warning", title: "Cihaz kuyruğunda kayıt var", description: `${applicationCounts.queuedDeviceRecords} hareket henüz sunucuya aktarılmayı bekliyor.` });
+  }
+  if (!internet.available) {
+    notices.push({ level: "critical", title: "İnternet hız testi tamamlanamadı", description: "Sunucunun dış ağ erişimi veya Cloudflare hız testi bağlantısı kontrol edilmeli." });
+  } else if (internet.level === "warning" || internet.level === "critical") {
+    notices.push({ level: internet.level, title: "İnternet bağlantısı yavaş", description: `Ölçülen hız: ${internet.downloadMbps ?? 0} Mbps indirme, ${internet.uploadMbps ?? 0} Mbps yükleme.` });
   }
 
   return {
@@ -211,5 +217,6 @@ export async function getServerHealthSnapshot() {
       slowQueries: databaseSlowQueries,
     },
     application: applicationCounts,
+    internet,
   };
 }

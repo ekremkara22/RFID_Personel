@@ -7,6 +7,7 @@ import {
   HardDrive,
   MemoryStick,
   Server,
+  Wifi,
 } from "lucide-react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
@@ -121,6 +122,12 @@ export default async function ServerHealthPage() {
           <p className={styles.summaryHelp}>{health.server.disk ? `${formatBytes(health.server.disk.freeBytes)} boş alan` : "Disk bilgisi okunamadı"}</p>
           <Progress value={health.server.disk?.usedPercent ?? null} level={health.server.diskLevel} label="Disk kullanımı" />
         </article>
+        <article className={styles.summaryCard}>
+          <div className={styles.summaryTop}><span className={styles.summaryIcon}><Wifi size={18} aria-hidden="true" /></span><StatusPill level={health.internet.level} /></div>
+          <p className={styles.summaryLabel}>İnternet bağlantısı</p>
+          <p className={styles.summaryValue}>{health.internet.available ? `${health.internet.downloadMbps} Mbps` : "Ölçülemedi"}</p>
+          <p className={styles.summaryHelp}>{health.internet.available ? `Yükleme ${health.internet.uploadMbps} Mbps · ${health.internet.latencyMs} ms` : "Dış ağ bağlantısı kontrol edilmeli"}</p>
+        </article>
       </section>
 
       <section className={ui.surface}>
@@ -164,6 +171,19 @@ export default async function ServerHealthPage() {
           </dl>
           <Progress value={health.database.connectionUsedPercent} level={health.database.connectionLevel} label="Veritabanı bağlantı kullanımı" />
           <p className={styles.detailHelp}>Bağlantı kapasitesinin %{health.database.connectionUsedPercent ?? 0} kadarı kullanımda.</p>
+        </article>
+
+        <article className={styles.detailCard}>
+          <div className={styles.detailHeader}><Wifi size={18} aria-hidden="true" /><h2>İnternet bağlantısı</h2></div>
+          <dl className={styles.detailList}>
+            <div className={styles.detailRow}><dt>Bağlantı</dt><dd>{health.internet.available ? "Erişilebilir" : "Ölçülemedi"}</dd></div>
+            <div className={styles.detailRow}><dt>İndirme hızı</dt><dd>{health.internet.downloadMbps === null ? "—" : `${health.internet.downloadMbps} Mbps`}</dd></div>
+            <div className={styles.detailRow}><dt>Yükleme hızı</dt><dd>{health.internet.uploadMbps === null ? "—" : `${health.internet.uploadMbps} Mbps`}</dd></div>
+            <div className={styles.detailRow}><dt>Gecikme</dt><dd>{health.internet.latencyMs === null ? "—" : `${health.internet.latencyMs} ms`}</dd></div>
+            <div className={styles.detailRow}><dt>Ölçüm zamanı</dt><dd>{formatDate(health.internet.measuredAt)}</dd></div>
+            <div className={styles.detailRow}><dt>Sonraki ölçüm</dt><dd>{formatDate(health.internet.cachedUntil)}</dd></div>
+          </dl>
+          <p className={styles.detailHelp}>Cloudflare ağına 5 MB indirme ve 1 MB yükleme örneğiyle ölçülür; sonuç 15 dakika önbellekte tutulur.</p>
         </article>
       </section>
 
