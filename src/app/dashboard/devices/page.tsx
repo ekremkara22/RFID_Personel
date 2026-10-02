@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Eye, Search } from "lucide-react";
+import { Filter, MonitorSmartphone, Search } from "lucide-react";
 import { updateDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
@@ -9,6 +8,8 @@ import { requireSessionUser } from "@/lib/session";
 import { can, deviceScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../page.module.css";
+import ui from "../management.module.css";
+import { DevicesTable } from "./devices-table";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
@@ -93,88 +94,53 @@ export default async function DevicesPage(props: {
   );
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>RFID Cihazlar</p>
-          <h1 className={styles.title}>Atanan Cihazlar</h1>
-          <p className={styles.subtitle}>
-            Super adminin kullanicina ekledigi cihazlari burada gorur, takma adini ve hangi firma/subede
-            kullanilacagini belirlersin.
-          </p>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}>
+        <div className={ui.headerCopy}>
+          <p className={ui.kicker}>Cihaz yönetimi</p>
+          <h1 className={ui.pageTitle}>RFID Cihazları</h1>
+          <p className={ui.pageDescription}>Firmanıza atanmış okuyucuları, bağlantı bilgilerini ve kullanım yerlerini tek ekrandan yönetin.</p>
         </div>
+      </header>
+
+      <section className={ui.surface} aria-label="RFID cihaz filtreleri">
+        <form className={`${ui.filterBar} ${ui.searchFilterBar}`}>
+          <label className={ui.field}><span className={ui.fieldLabel}>Cihaz ara</span><span className={ui.controlWrap}><Search className={ui.controlIcon} size={16} /><input className={`${ui.control} ${ui.controlWithIcon}`} name="q" defaultValue={query} placeholder="Cihaz adı, MAC adresi veya secret key" /></span></label>
+          <button className={ui.filterButton} type="submit"><Filter size={15} />Filtrele</button>
+        </form>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.listToolbar}>
-          <form className={styles.searchForm}>
-            <Search size={18} />
-            <input name="q" defaultValue={query} placeholder="Cihaz arama: ad, MAC veya secret key" />
-            <button type="submit">Ara</button>
-          </form>
-        </div>
-
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Cihaz Adi</th>
-                <th>Firma</th>
-                <th>MAC Adresi</th>
-                <th>Sube/Lokasyon</th>
-                <th>Secret Key</th>
-                <th>Son Gorulme</th>
-                <th>Islem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {devices.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className={styles.emptyCell}>
-                    Firmana atanmis cihaz bulunamadi.
-                  </td>
-                </tr>
-              ) : (
-                devices.map((device) => (
-                  <tr key={device.id}>
-                    <td>{device.name}</td>
-                    <td>{device.company?.name ?? "Firma atanmadi"}</td>
-                    <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
-                    <td>{device.branchLocation ?? "-"}</td>
-                    <td className={styles.monoCell}>{can(authorization, PERMISSIONS.DEVICE_SECRET_VIEW) ? device.secretKey : "••••••••"}</td>
-                    <td>{device.lastSeenAt ? formatDate(device.lastSeenAt) : "Henuz yok"}</td>
-                    <td>
-                      <Link href={buildDeviceUrl(query, device.id)} className={styles.inlineAction}>
-                        <Eye size={16} />
-                        <span>Incele</span>
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}><div><h2>Atanmış cihazlar</h2><p>Firma ve şube bağlantılarıyla birlikte kayıtlı okuyucular</p></div><span className={ui.countBadge}>{devices.length} cihaz</span></div>
+        <DevicesTable
+          canExport={can(authorization, PERMISSIONS.REPORT_EXPORT)}
+          rows={devices.map((device) => ({
+            id: device.id,
+            name: device.name,
+            code: device.code || "Cihaz kodu yok",
+            company: device.company?.name ?? "Firma atanmamış",
+            branch: device.branchLocation ?? "Şube atanmamış",
+            macAddress: device.macAddress ?? "—",
+            secretKey: can(authorization, PERMISSIONS.DEVICE_SECRET_VIEW) ? device.secretKey : "••••••••",
+            lastSeen: device.lastSeenAt ? formatDate(device.lastSeenAt) : "Henüz bağlantı yok",
+            actionLabel: "İncele",
+            actionHref: buildDeviceUrl(query, device.id),
+          }))}
+        />
       </section>
 
       {selectedDevice ? (
-        <section className={`glass-panel ${styles.sectionCard}`}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.sectionEyebrow}>Cihaz Detayi</p>
-              <h2 className={styles.sectionTitle}>{selectedDevice.name}</h2>
-            </div>
-          </div>
-
-          <form action={updateDeviceAction} className={styles.formGrid}>
+        <section className={ui.surface}>
+          <div className={ui.sectionHeading}><div><h2>Cihaz bilgileri</h2><p>{selectedDevice.name} kaydının kullanım yeri ve görünen adı</p></div><MonitorSmartphone size={20} /></div>
+          <form action={updateDeviceAction} className={ui.formGrid}>
             <input type="hidden" name="deviceId" value={selectedDevice.id} />
 
-            <label className={styles.field}>
-              <span>Cihaz Adi</span>
+            <label className={ui.formField}>
+              <span>Cihaz adı</span>
               <input name="name" defaultValue={selectedDevice.name} required />
             </label>
 
-            <label className={styles.field}>
+            <label className={ui.formField}>
               <span>Firma</span>
               <select name="companyId" defaultValue={selectedDevice.companyId ?? ""} required>
                 <option value="" disabled>Firma sec</option>
@@ -186,8 +152,8 @@ export default async function DevicesPage(props: {
               </select>
             </label>
 
-            <label className={styles.field}>
-              <span>Sube/Lokasyon</span>
+            <label className={ui.formField}>
+              <span>Şube / Lokasyon</span>
               <select name="branchLocation" defaultValue={selectedDevice.branchLocation ?? ""}>
                 <option value="">Seciniz</option>
                 {selectedDevice.branchLocation && !hasSelectedBranchLocation ? (
@@ -201,26 +167,26 @@ export default async function DevicesPage(props: {
               </select>
             </label>
 
-            <label className={styles.field}>
-              <span>MAC Adresi</span>
+            <label className={ui.formField}>
+              <span>MAC adresi</span>
               <input value={selectedDevice.macAddress ?? ""} readOnly />
             </label>
 
-            <label className={styles.field}>
+            <label className={ui.formField}>
               <span>Secret Key</span>
               <input value={can(authorization, PERMISSIONS.DEVICE_SECRET_VIEW) ? selectedDevice.secretKey : "Gizli alan için yetkiniz yok"} readOnly />
             </label>
 
-            <label className={styles.field}>
-              <span>Son Gorulme</span>
-              <input value={selectedDevice.lastSeenAt ? formatDate(selectedDevice.lastSeenAt) : "Henuz yok"} readOnly />
+            <label className={ui.formField}>
+              <span>Son görülme</span>
+              <input value={selectedDevice.lastSeenAt ? formatDate(selectedDevice.lastSeenAt) : "Henüz yok"} readOnly />
             </label>
 
-            <div className={styles.fullWidth}>
+            <div className={`${ui.formActions} ${ui.formFullWidth}`}>
               <SubmitButton
-                idleLabel="Cihaz Adini Guncelle"
-                pendingLabel="Guncelleniyor..."
-                className={styles.primaryButton}
+                idleLabel="Cihazı Güncelle"
+                pendingLabel="Güncelleniyor..."
+                className={ui.primaryAction}
               />
             </div>
           </form>

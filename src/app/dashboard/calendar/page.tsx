@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CalendarDays, Filter } from "lucide-react";
 import { WorkDayType } from "@/generated/prisma/client";
 import { generateEmployeeDailyCalendarAction } from "@/app/dashboard/actions";
-import { ExportButton } from "@/app/dashboard/export-button";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
+import ui from "../management.module.css";
+import { CalendarTable } from "./calendar-table";
 import {
   calculationStatusLabels,
   dayTypeLabels,
@@ -86,54 +88,36 @@ export default async function CalendarOverviewPage(props: {
     return { date, records, conflictCount, workCount };
   });
 
-  const exportRows = dailyCalendars.map((record) => ({
-    Tarih: formatDate(record.workDate),
-    Personel: `${record.employee.firstName} ${record.employee.lastName}`,
-    Departman: record.employee.department,
-    "Gun Turu": dayTypeLabels[record.dayType],
-    "Planlanan Giris": record.plannedStart ?? "-",
-    "Planlanan Cikis": record.plannedEnd ?? "-",
-    "Net Sure": formatPlannedDuration(record.plannedNetMinutes),
-    "Kural Kaynagi": record.ruleSourceType,
-    Durum: calculationStatusLabels[record.calculationStatus],
+  const tableRows = dailyCalendars.map((record) => ({
+    id: record.id,
+    date: formatDate(record.workDate),
+    employee: `${record.employee.firstName} ${record.employee.lastName}`,
+    department: record.employee.department,
+    dayType: dayTypeLabels[record.dayType],
+    plan: `${record.plannedStart ?? "—"} / ${record.plannedEnd ?? "—"}`,
+    duration: formatPlannedDuration(record.plannedNetMinutes),
+    rule: record.ruleSourceType,
+    status: calculationStatusLabels[record.calculationStatus],
+    statusTone: record.dayType === WorkDayType.CONFLICT ? "danger" : "success",
   }));
-  const exportColumns: { key: keyof (typeof exportRows)[number] & string; label: string }[] = [
-    { key: "Tarih", label: "Tarih" },
-    { key: "Personel", label: "Personel" },
-    { key: "Departman", label: "Departman" },
-    { key: "Gun Turu", label: "Gun Turu" },
-    { key: "Planlanan Giris", label: "Planlanan Giris" },
-    { key: "Planlanan Cikis", label: "Planlanan Cikis" },
-    { key: "Net Sure", label: "Net Sure" },
-    { key: "Kural Kaynagi", label: "Kural Kaynagi" },
-    { key: "Durum", label: "Durum" },
-  ];
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>Calisma Takvimi</p>
-          <h1 className={styles.title}>Takvim Gorunumu</h1>
-          <p className={styles.subtitle}>
-            Personel ve tarih bazinda planlanan calisma durumunu, izin etkisini, kural kaynagini ve cakismalari izleyin.
-          </p>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}>
+        <div className={ui.headerCopy}>
+          <p className={ui.kicker}>Çalışma planlama</p>
+          <h1 className={ui.pageTitle}>Çalışma Takvimi</h1>
+          <p className={ui.pageDescription}>Personel ve tarih bazında planlanan çalışma durumunu, izin etkisini, kural kaynağını ve çakışmaları izleyin.</p>
         </div>
-        {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
-          filename="calisma-takvimi.csv"
-          rows={exportRows}
-          columns={exportColumns}
-          className={styles.inlineAction}
-        /> : null}
-      </section>
+      </header>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <form className={styles.formGrid}>
-          <label className={styles.field}>
-            <span>Yil</span>
+      <section className={ui.surface} aria-label="Takvim filtreleri">
+        <form className={ui.formGridThree}>
+          <label className={ui.formField}>
+            <span>Yıl</span>
             <input name="year" type="number" defaultValue={year} />
           </label>
-          <label className={styles.field}>
+          <label className={ui.formField}>
             <span>Ay</span>
             <select name="month" defaultValue={month}>
               {Array.from({ length: 12 }, (_, index) => (
@@ -143,10 +127,10 @@ export default async function CalendarOverviewPage(props: {
               ))}
             </select>
           </label>
-          <label className={styles.field}>
+          <label className={ui.formField}>
             <span>Departman</span>
             <select name="department" defaultValue={department}>
-              <option value="">Tumu</option>
+              <option value="">Tümü</option>
               {departments.map((item) => (
                 <option key={item.id} value={item.name}>
                   {item.name}
@@ -154,10 +138,10 @@ export default async function CalendarOverviewPage(props: {
               ))}
             </select>
           </label>
-          <label className={styles.field}>
+          <label className={ui.formField}>
             <span>Personel</span>
             <select name="employeeId" defaultValue={employeeId ?? ""}>
-              <option value="">Tumu</option>
+              <option value="">Tümü</option>
               {employees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
                   {employee.firstName} {employee.lastName}
@@ -165,10 +149,10 @@ export default async function CalendarOverviewPage(props: {
               ))}
             </select>
           </label>
-          <label className={styles.field}>
-            <span>Gun Turu</span>
+          <label className={ui.formField}>
+            <span>Gün türü</span>
             <select name="dayType" defaultValue={dayType}>
-              <option value="">Tumu</option>
+              <option value="">Tümü</option>
               {Object.values(WorkDayType).map((type) => (
                 <option key={type} value={type}>
                   {dayTypeLabels[type]}
@@ -176,75 +160,45 @@ export default async function CalendarOverviewPage(props: {
               ))}
             </select>
           </label>
-          <label className={styles.field}>
-            <span>Gorunum</span>
+          <label className={ui.formField}>
+            <span>Görünüm</span>
             <select name="view" defaultValue={view}>
               <option value="calendar">Takvim</option>
               <option value="list">Liste</option>
             </select>
           </label>
-          <div className={styles.fullWidthActionRow}>
-            <button className={styles.primaryButton} type="submit">Filtrele</button>
+          <div className={`${ui.formActions} ${ui.formFullWidth}`}>
+            <button className={ui.filterButton} type="submit"><Filter size={15} />Filtrele</button>
           </div>
         </form>
       </section>
 
-      <section className={styles.mainGrid}>
-        <div className={styles.primaryColumn}>
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Aylik Plan</p>
-                <h2 className={styles.sectionTitle}>{year}/{month} Takvimi</h2>
-              </div>
-            </div>
+      <section className={ui.splitLayout}>
+        <div className={ui.stack}>
+          <section className={ui.surface}>
+            <div className={ui.sectionHeading}><div><h2>{year}/{month} çalışma planı</h2><p>{dailyCalendars.length} hesaplanmış personel-gün kaydı</p></div><CalendarDays size={20} /></div>
 
             {view === "list" ? (
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Tarih</th>
-                      <th>Personel</th>
-                      <th>Gun</th>
-                      <th>Saat</th>
-                      <th>Net</th>
-                      <th>Kural</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dailyCalendars.map((record) => (
-                      <tr key={record.id}>
-                        <td>{formatDate(record.workDate)}</td>
-                        <td>{record.employee.firstName} {record.employee.lastName}</td>
-                        <td>{dayTypeLabels[record.dayType]}</td>
-                        <td>{record.plannedStart ?? "-"} / {record.plannedEnd ?? "-"}</td>
-                        <td>{formatPlannedDuration(record.plannedNetMinutes)}</td>
-                        <td>{record.ruleSourceType}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <CalendarTable rows={tableRows} canExport={can(authorization, PERMISSIONS.REPORT_EXPORT)} />
             ) : (
               <div className={styles.cardGridWide}>
                 {calendarDays.map((day) => (
                   <Link
                     key={day.date.toISOString()}
                     href={`/dashboard/calendar?year=${year}&month=${month}&department=${department}&employeeId=${employeeId}&dayType=${dayType}&selected=${formatInputDate(day.date)}`}
-                    className={styles.companyCardLink}
+                    className={ui.navigationCard}
                   >
                     <div className={styles.infoCardTop}>
                       <div>
                         <p className={styles.infoCardTitle}>{formatDate(day.date)}</p>
                         <p className={styles.infoCardMeta}>{day.records.length} personel kaydi</p>
                       </div>
-                      <span className={styles.countPill}>{day.conflictCount > 0 ? "Cakisma" : `${day.workCount} calisir`}</span>
+                      <span className={ui.countBadge}>{day.conflictCount > 0 ? "Çakışma" : `${day.workCount} çalışır`}</span>
                     </div>
                     <p className={styles.infoCardBody}>
                       {day.records[0]
                         ? `${dayTypeLabels[day.records[0].dayType]} - ${day.records[0].plannedStart ?? "-"} / ${day.records[0].plannedEnd ?? "-"}`
-                        : "Bu gun icin hesaplanmis personel takvimi yok."}
+                        : "Bu gün için hesaplanmış personel takvimi yok."}
                     </p>
                   </Link>
                 ))}
@@ -253,37 +207,31 @@ export default async function CalendarOverviewPage(props: {
           </section>
         </div>
 
-        <aside className={styles.sideColumn}>
-          {can(authorization, PERMISSIONS.CALENDAR_MANAGE) ? <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Takvim Uret</p>
-                <h2 className={styles.sectionTitle}>Personel-Gun Hesapla</h2>
-                <p className={styles.tableSubText}>Seçilen tarih aralığında vardiya, izin, özel gün ve takvim atamalarını birleştirerek personellerin günlük çalışma planını oluşturur veya günceller.</p>
-              </div>
-            </div>
-            <form action={generateEmployeeDailyCalendarAction} className={styles.formGridSingle}>
-              <label className={styles.field}>
-                <span>Baslangic</span>
+        <aside className={ui.stack}>
+          {can(authorization, PERMISSIONS.CALENDAR_MANAGE) ? <section className={ui.surface}>
+            <div className={ui.sectionHeading}><div><h2>Personel-gün hesapla</h2><p>Vardiya, izin, özel gün ve atamaları birleştirerek seçilen dönemin günlük planını oluşturur veya günceller.</p></div></div>
+            <form action={generateEmployeeDailyCalendarAction} className={ui.formShell}>
+              <label className={ui.formField}>
+                <span>Başlangıç</span>
                 <input name="fromDate" type="date" defaultValue={formatInputDate(start)} required />
               </label>
-              <label className={styles.field}>
-                <span>Bitis</span>
+              <label className={ui.formField}>
+                <span>Bitiş</span>
                 <input name="toDate" type="date" defaultValue={formatInputDate(end)} required />
               </label>
-              <label className={styles.field}>
+              <label className={ui.formField}>
                 <span>Departman</span>
                 <select name="department" defaultValue={department}>
-                  <option value="">Tumu</option>
+                  <option value="">Tümü</option>
                   {departments.map((item) => (
                     <option key={item.id} value={item.name}>{item.name}</option>
                   ))}
                 </select>
               </label>
-              <label className={styles.field}>
+              <label className={ui.formField}>
                 <span>Personel</span>
                 <select name="employeeId" defaultValue={employeeId ?? ""}>
-                  <option value="">Tumu</option>
+                  <option value="">Tümü</option>
                   {employees.map((employee) => (
                     <option key={employee.id} value={employee.id}>
                       {employee.firstName} {employee.lastName}
@@ -291,17 +239,12 @@ export default async function CalendarOverviewPage(props: {
                   ))}
                 </select>
               </label>
-              <SubmitButton idleLabel="Hesapla" pendingLabel="Hesaplaniyor..." className={styles.primaryButton} />
+              <div className={ui.formActions}><SubmitButton idleLabel="Takvimi Hesapla" pendingLabel="Hesaplanıyor..." className={ui.primaryAction} /></div>
             </form>
           </section> : null}
 
-          <section className={`glass-panel ${styles.sectionCard}`}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionEyebrow}>Detay</p>
-                <h2 className={styles.sectionTitle}>Secili Gun</h2>
-              </div>
-            </div>
+          <section className={ui.surface}>
+            <div className={ui.sectionHeading}><div><h2>Seçili gün</h2><p>Takvimden seçilen kaydın hesaplama ayrıntıları</p></div></div>
             {selectedRecord ? (
               <div className={styles.detailList}>
                 <p><strong>Personel:</strong> {selectedRecord.employee.firstName} {selectedRecord.employee.lastName}</p>
@@ -314,13 +257,12 @@ export default async function CalendarOverviewPage(props: {
                 <p><strong>Durum:</strong> {calculationStatusLabels[selectedRecord.calculationStatus]}</p>
               </div>
             ) : (
-              <p className={styles.emptyState}>Detay icin takvimde hesaplanmis bir gune tiklayin.</p>
+              <p className={ui.helpText}>Detay için takvimde hesaplanmış bir güne tıklayın.</p>
             )}
           </section>
 
-          {can(authorization, PERMISSIONS.CALENDAR_MANAGE) ? <section className={`glass-panel ${styles.sectionCard}`}>
-            <p className={styles.sectionEyebrow}>Sablonlar</p>
-            <h2 className={styles.sectionTitle}>Aktif Takvimler</h2>
+          {can(authorization, PERMISSIONS.CALENDAR_MANAGE) ? <section className={ui.surface}>
+            <div className={ui.sectionHeading}><div><h2>Aktif takvimler</h2><p>Kullanılabilir çalışma takvimi şablonları</p></div></div>
             <div className={styles.logList}>
               {templates.map((template) => (
                 <p key={template.id} className={styles.logItem}>

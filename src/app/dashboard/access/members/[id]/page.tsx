@@ -1,29 +1,113 @@
+import { UserRoundCog } from "lucide-react";
 import { notFound } from "next/navigation";
 import { transferCompanyOwnershipAction, updateCompanyMembershipAction } from "@/app/dashboard/access-actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/client";
 import { assertPermission } from "@/lib/authorization";
-import { permissionLabel, PERMISSIONS } from "@/lib/permission-catalog";
+import { moduleLabel } from "@/lib/module-catalog";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
-import { MODULE_CATALOG } from "@/lib/module-catalog";
+import ui from "../../../management.module.css";
 import styles from "../../../page.module.css";
 
+const scopeLabels: Record<DataScopeMode, string> = {
+  COMPANY: "Firmanın tamamı",
+  RESTRICTED: "Yalnız seçilen kayıtlar",
+  OWN: "Yalnız bağlı personelin kendi kaydı",
+  NONE: "Veri erişimi yok",
+};
+
+const statusLabels: Record<CompanyMembershipStatus, string> = {
+  PENDING: "Bekleyen",
+  ACTIVE: "Aktif",
+  SUSPENDED: "Askıya alınmış",
+  REVOKED: "Erişimi kaldırılmış",
+};
+
 export default async function MembershipDetailPage(props: { params: Promise<{ id: string }> }) {
-  const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_VIEW); if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
+  const { user, authorization } = await requireSessionUser();
+  assertPermission(authorization, PERMISSIONS.ACCESS_VIEW);
+  if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
   const membershipId = Number((await props.params).id);
+
   const [membership, roles, branches, departments, employees, devices, teams] = await Promise.all([
-    prisma.companyMembership.findFirst({ where: { id: membershipId, companyId: authorization.companyId }, include: { user: true, role: { include: { permissions: true } }, employee: true, branchScopes: true, departmentScopes: true, employeeScopes: true, deviceScopes: true, teamScopes: true, modules: true } }),
-    prisma.companyRole.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { permissions: true }, orderBy: { name: "asc" } }), prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }), prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }), prisma.employee.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }), prisma.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }), prisma.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    prisma.companyMembership.findFirst({ where: { id: membershipId, companyId: authorization.companyId }, include: { user: true, role: { include: { permissions: true, modules: true } }, employee: true, branchScopes: true, departmentScopes: true, employeeScopes: true, deviceScopes: true, teamScopes: true, modules: true } }),
+    prisma.companyRole.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { permissions: true, modules: true }, orderBy: { name: "asc" } }),
+    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    prisma.employee.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    prisma.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }),
+    prisma.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
   ]);
   if (!membership) notFound();
-  const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE); const isOwner = membership.role.key === "OWNER";
-  const assignableRoles = roles.filter((role)=> role.key !== "OWNER" && role.permissions.every((permission)=>authorization.permissions.has(permission.permission)));
-  const availableModules = MODULE_CATALOG.filter((module)=>authorization.isPlatformAdmin || authorization.modules.has(module.key));
-  return <div className={styles.page}><section className={`glass-panel ${styles.heroCard}`}><div><p className={styles.eyebrow}>Üyelik detayı</p><h1 className={styles.title}>{membership.user.firstName} {membership.user.lastName}</h1><p className={styles.subtitle}>{membership.user.email} · {membership.role.name}</p></div></section>
-    <section className={styles.mainGrid}><div className={styles.primaryColumn}><section className={`glass-panel ${styles.sectionCard}`}><div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Efektif yetkiler</p><h2 className={styles.sectionTitle}>{membership.role.name}</h2></div></div><div className={styles.permissionSummary}>{membership.role.permissions.map((item)=><span key={item.permission} className={styles.reportBadgeSuccess}>{permissionLabel(item.permission)}</span>)}</div></section>
-    {canManage && !isOwner ? <section className={`glass-panel ${styles.sectionCard}`}><form action={updateCompanyMembershipAction} className={styles.formGrid}><input type="hidden" name="membershipId" value={membership.id}/><label className={styles.field}><span>Ad</span><input name="firstName" defaultValue={membership.user.firstName ?? ""} required/></label><label className={styles.field}><span>Soyad</span><input name="lastName" defaultValue={membership.user.lastName ?? ""} required/></label><label className={styles.field}><span>Kullanıcı adı</span><input name="username" defaultValue={membership.user.username ?? ""} minLength={3} pattern="[a-zA-Z0-9._-]+" placeholder="İsteğe bağlı; e-posta ile de giriş yapılabilir"/><small>Eski kullanıcılar için boş bırakılabilir. Girilirse boşluk içermemelidir.</small></label><label className={styles.field}><span>E-posta</span><input name="email" type="email" defaultValue={membership.user.email} required/></label><label className={styles.field}><span>Telefon</span><input name="phone" type="tel" defaultValue={membership.user.phone ?? ""}/></label><label className={styles.field}><span>Yeni şifre</span><input name="password" type="password" minLength={10} autoComplete="new-password" placeholder="Değişmeyecekse boş bırakın"/><small>Yeni şifre en az 10 karakter olmalıdır.</small></label><label className={styles.field}><span>Rol</span><select name="roleId" defaultValue={membership.roleId}>{assignableRoles.map((role)=><option key={role.id} value={role.id}>{role.name}</option>)}</select></label><label className={styles.field}><span>Durum</span><select name="status" defaultValue={membership.status}>{Object.values(CompanyMembershipStatus).map((status)=><option key={status} value={status}>{status}</option>)}</select></label><label className={styles.field}><span>Kapsam modu</span><select name="scopeMode" defaultValue={membership.scopeMode}>{Object.values(DataScopeMode).map((mode)=><option key={mode} value={mode}>{mode}</option>)}</select></label><label className={styles.field}><span>Bağlı personel (OWN için)</span><select name="employeeId" defaultValue={membership.employeeId ?? ""}><option value="">Bağlantı yok</option>{employees.map((item)=><option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}</select></label><ModuleChecks selected={membership.modules.map((item)=>item.moduleKey)} modules={availableModules}/><Checks title="Şubeler" name="branchIds" items={branches} selected={membership.branchScopes.map((item)=>item.branchId)}/><Checks title="Departmanlar" name="departmentIds" items={departments} selected={membership.departmentScopes.map((item)=>item.departmentId)}/><Checks title="Açık personeller" name="employeeIds" items={employees.map((item)=>({id:item.id,name:`${item.firstName} ${item.lastName}`}))} selected={membership.employeeScopes.map((item)=>item.employeeId)}/><Checks title="Ekipler" name="teamIds" items={teams} selected={membership.teamScopes.map((item)=>item.teamId)}/><Checks title="Cihazlar" name="deviceIds" items={devices} selected={membership.deviceScopes.map((item)=>item.deviceId)}/><div className={styles.fullWidthActionRow}><SubmitButton idleLabel="Kullanıcı ve Yetkileri Kaydet" pendingLabel="Kaydediliyor..." className={styles.primaryButton}/></div></form></section> : null}</div>
-    <aside className={styles.sideColumn}>{isOwner ? <section className={`glass-panel ${styles.sectionCard}`}><p className={styles.sectionEyebrow}>Korunan rol</p><h2 className={styles.sectionTitle}>Firma sahibi</h2><p className={styles.helperText}>Sahip üyeliği askıya alınamaz veya normal rol formuyla değiştirilemez. Sahiplik yalnız açık devir işlemiyle aktarılır.</p>{membership.userId === user.id && authorization.permissions.has(PERMISSIONS.OWNERSHIP_TRANSFER) ? <form action={transferCompanyOwnershipAction} className={styles.formGrid}><label className={`${styles.field} ${styles.fullWidth}`}><span>Yeni firma sahibi</span><select name="targetMembershipId" required><option value="">Seçin</option>{(await prisma.companyMembership.findMany({where:{companyId:authorization.companyId,status:"ACTIVE",userId:{not:user.id}},include:{user:true}})).map((item)=><option key={item.id} value={item.id}>{item.user.email}</option>)}</select></label><SubmitButton idleLabel="Sahipliği Devret" pendingLabel="Devrediliyor..." className={styles.dangerButton}/></form> : null}</section> : null}</aside></section></div>;
+
+  const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE);
+  const isOwner = membership.role.key === "OWNER";
+  const assignableRoles = roles.filter((role) =>
+    role.key !== "OWNER"
+    && role.permissions.every((permission) => authorization.permissions.has(permission.permission))
+    && (authorization.isPlatformAdmin || role.modules.every((module) => authorization.modules.has(module.moduleKey))),
+  );
+  const ownerCandidates = isOwner && membership.userId === user.id && authorization.permissions.has(PERMISSIONS.OWNERSHIP_TRANSFER)
+    ? await prisma.companyMembership.findMany({ where: { companyId: authorization.companyId, status: "ACTIVE", userId: { not: user.id } }, include: { user: true } })
+    : [];
+
+  return (
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}>
+        <div className={ui.headerCopy}>
+          <p className={ui.kicker}>Kullanıcı yönetimi</p>
+          <h1 className={ui.pageTitle}>{membership.user.firstName} {membership.user.lastName}</h1>
+          <p className={ui.pageDescription}>{membership.user.email} · {membership.role.name} · {membership.role.modules.map((item) => moduleLabel(item.moduleKey)).join(", ") || "Modül tanımsız"}</p>
+        </div>
+        <span className={ui.summaryIcon}><UserRoundCog size={18} /></span>
+      </header>
+
+      {canManage && !isOwner ? (
+        <form action={updateCompanyMembershipAction} className={ui.formShell}>
+          <input type="hidden" name="membershipId" value={membership.id} />
+          <section className={ui.formSection}>
+            <div className={ui.formSectionHeader}><h2>Hesap bilgileri</h2><p>Kullanıcının temel iletişim ve giriş bilgileri.</p></div>
+            <div className={ui.formGridThree}>
+              <label className={ui.formField}><span>Ad</span><input name="firstName" defaultValue={membership.user.firstName ?? ""} required /></label>
+              <label className={ui.formField}><span>Soyad</span><input name="lastName" defaultValue={membership.user.lastName ?? ""} required /></label>
+              <label className={ui.formField}><span>Telefon</span><input name="phone" type="tel" defaultValue={membership.user.phone ?? ""} /></label>
+              <label className={ui.formField}><span>Kullanıcı adı</span><input name="username" defaultValue={membership.user.username ?? ""} minLength={3} pattern="[a-zA-Z0-9._-]+" placeholder="İsteğe bağlı" /><small className={ui.helpText}>Girilecekse boşluk içermemelidir.</small></label>
+              <label className={ui.formField}><span>E-posta</span><input name="email" type="email" defaultValue={membership.user.email} required /></label>
+              <label className={ui.formField}><span>Yeni şifre</span><input name="password" type="password" minLength={10} autoComplete="new-password" placeholder="Değişmeyecekse boş bırakın" /><small className={ui.helpText}>Yeni şifre en az 10 karakter olmalıdır.</small></label>
+            </div>
+          </section>
+
+          <section className={ui.formSection}>
+            <div className={ui.formSectionHeader}><h2>Rol ve veri kapsamı</h2><p>Modüller ve işlem yetkileri seçilen rolden otomatik alınır. Veri kapsamı görülebilecek kayıtları belirler.</p></div>
+            <div className={ui.formGridThree}>
+              <label className={ui.formField}><span>Rol</span><select name="roleId" defaultValue={membership.roleId}>{assignableRoles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.modules.map((item) => moduleLabel(item.moduleKey)).join(" + ") || "Modül tanımsız"}</option>)}</select><small className={ui.helpText}>Rol değiştirildiğinde kullanıcının modülleri de yeni role göre güncellenir.</small></label>
+              <label className={ui.formField}><span>Üyelik durumu</span><select name="status" defaultValue={membership.status}>{Object.values(CompanyMembershipStatus).map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></label>
+              <label className={ui.formField}><span>Veri erişim kapsamı</span><select name="scopeMode" defaultValue={membership.scopeMode}>{Object.values(DataScopeMode).map((mode) => <option key={mode} value={mode}>{scopeLabels[mode]}</option>)}</select><small className={ui.helpText}>Kullanıcının firma verilerinin ne kadarını görebileceğini belirler.</small></label>
+              <label className={ui.formField}><span>Kullanıcının bağlı olduğu personel</span><select name="employeeId" defaultValue={membership.employeeId ?? ""}><option value="">Personel bağlantısı yok</option>{employees.map((item) => <option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}</select><small className={ui.helpText}>“Yalnız bağlı personelin kendi kaydı” seçildiğinde kullanıcının hangi personel kaydını göreceğini belirler.</small></label>
+            </div>
+          </section>
+
+          <section className={ui.formSection}>
+            <div className={ui.formSectionHeader}><h2>Kısıtlı erişim seçimleri</h2><p>“Yalnız seçilen kayıtlar” kapsamında erişilebilecek kayıtları belirleyin.</p></div>
+            <div className={ui.formGrid}>
+              <Checks title="Şubeler" name="branchIds" items={branches} selected={membership.branchScopes.map((item) => item.branchId)} />
+              <Checks title="Departmanlar" name="departmentIds" items={departments} selected={membership.departmentScopes.map((item) => item.departmentId)} />
+              <Checks title="Personeller" name="employeeIds" items={employees.map((item) => ({ id: item.id, name: `${item.firstName} ${item.lastName}` }))} selected={membership.employeeScopes.map((item) => item.employeeId)} />
+              <Checks title="Ekipler" name="teamIds" items={teams} selected={membership.teamScopes.map((item) => item.teamId)} />
+              <Checks title="Cihazlar" name="deviceIds" items={devices} selected={membership.deviceScopes.map((item) => item.deviceId)} />
+            </div>
+          </section>
+          <div className={ui.formActions}><SubmitButton idleLabel="Kullanıcıyı Kaydet" pendingLabel="Kaydediliyor..." className={ui.primaryAction} /></div>
+        </form>
+      ) : null}
+
+      {isOwner ? <section className={ui.surface}><div className={ui.sectionHeading}><div><h2>Firma sahibi</h2><p>Bu rol korumalıdır; askıya alınamaz veya standart kullanıcı formundan değiştirilemez.</p></div></div>{ownerCandidates.length ? <form action={transferCompanyOwnershipAction} className={ui.formGrid}><label className={ui.formField}><span>Yeni firma sahibi</span><select name="targetMembershipId" required><option value="">Kullanıcı seçin</option>{ownerCandidates.map((item) => <option key={item.id} value={item.id}>{item.user.email}</option>)}</select></label><div className={ui.formActions}><SubmitButton idleLabel="Sahipliği Devret" pendingLabel="Devrediliyor..." className={ui.dangerAction} /></div></form> : null}</section> : null}
+    </div>
+  );
 }
-function Checks({title,name,items,selected}:{title:string;name:string;items:Array<{id:number;name:string}>;selected:number[]}) { return <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>{title}</legend><div className={styles.permissionCheckGrid}>{items.map((item)=><label key={item.id} className={styles.checkField}><input type="checkbox" name={name} value={item.id} defaultChecked={selected.includes(item.id)}/><span>{item.name}</span></label>)}</div></fieldset>; }
-function ModuleChecks({selected,modules}:{selected:string[];modules:Array<(typeof MODULE_CATALOG)[number]>}) { return <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Kullanılabilir modüller</legend><div className={styles.permissionCheckGrid}>{modules.map((item)=><label key={item.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={item.key} defaultChecked={selected.includes(item.key)}/><span className={styles.moduleCheckCopy}><strong>{item.name}</strong><small>{item.description}</small></span></label>)}</div></fieldset>; }
+
+function Checks({ title, name, items, selected }: { title: string; name: string; items: Array<{ id: number; name: string }>; selected: number[] }) {
+  return <fieldset className={ui.fieldset}><legend>{title}</legend><div className={ui.checkGrid}>{items.length ? items.map((item) => <label key={item.id} className={ui.checkField}><input type="checkbox" name={name} value={item.id} defaultChecked={selected.includes(item.id)} /><span>{item.name}</span></label>) : <span className={ui.helpText}>Tanımlı kayıt yok.</span>}</div></fieldset>;
+}

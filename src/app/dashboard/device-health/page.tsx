@@ -1,11 +1,14 @@
 import { AlertTriangle, CheckCircle2, Database, RefreshCw } from "lucide-react";
 import { redirect } from "next/navigation";
 import { DeviceStatusRefresh } from "@/app/dashboard/device-status-refresh";
+import { can, deviceScopeWhere } from "@/lib/authorization";
 import { isDeviceOnline } from "@/lib/device-status";
+import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
-import { deviceScopeWhere } from "@/lib/authorization";
+import ui from "../management.module.css";
 import styles from "../page.module.css";
+import { DeviceHealthTable } from "./device-health-table";
 
 function formatDate(date?: Date | null) {
   if (!date) return "—";
@@ -21,54 +24,55 @@ export default async function DeviceHealthPage() {
     include: { company: true },
     orderBy: [{ company: { name: "asc" } }, { name: "asc" }],
   });
-
   const onlineCount = devices.filter((device) => isDeviceOnline(device.lastSeenAt)).length;
   const pendingCount = devices.reduce((total, device) => total + (device.pendingQueueCount ?? 0), 0);
   const errorCount = devices.filter((device) => device.lastSendError || device.clockSynchronized === false).length;
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>Cihaz İzleme</p>
-          <h1 className={styles.title}>Cihaz Sağlık Ekranı</h1>
-          <p className={styles.subtitle}>Çevrimiçi durum, cihazda bekleyen hareketler, saat senkronu ve son gönderim hatası.</p>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}>
+        <div className={ui.headerCopy}>
+          <p className={ui.kicker}>Canlı cihaz izleme</p>
+          <h1 className={ui.pageTitle}>Cihaz Sağlığı</h1>
+          <p className={ui.pageDescription}>RFID okuyucularının bağlantısını, bekleyen kayıtlarını, saat durumunu ve son aktarım hatalarını izleyin.</p>
         </div>
         <DeviceStatusRefresh />
+      </header>
+
+      <section className={ui.summaryGrid}>
+        <article className={ui.summaryCard}><span className={ui.summaryIcon}><CheckCircle2 size={18} /></span><p className={ui.summaryLabel}>Çevrimiçi cihaz</p><p className={ui.summaryValue}>{onlineCount}/{devices.length}</p></article>
+        <article className={ui.summaryCard}><span className={ui.summaryIcon}><Database size={18} /></span><p className={ui.summaryLabel}>Bekleyen kayıt</p><p className={ui.summaryValue}>{pendingCount}</p></article>
+        <article className={ui.summaryCard}><span className={ui.summaryIcon}><AlertTriangle size={18} /></span><p className={ui.summaryLabel}>Dikkat gerektiren</p><p className={ui.summaryValue}>{errorCount}</p></article>
       </section>
 
-      <section className={styles.metricsGrid}>
-        <article className={`glass-panel ${styles.metricCard}`}><span className={styles.metricIcon}><CheckCircle2 size={18} /></span><p className={styles.metricLabel}>Çevrimiçi</p><p className={styles.metricValue}>{onlineCount}/{devices.length}</p></article>
-        <article className={`glass-panel ${styles.metricCard}`}><span className={styles.metricIcon}><Database size={18} /></span><p className={styles.metricLabel}>Bekleyen Kayıt</p><p className={styles.metricValue}>{pendingCount}</p></article>
-        <article className={`glass-panel ${styles.metricCard}`}><span className={styles.metricIcon}><AlertTriangle size={18} /></span><p className={styles.metricLabel}>Dikkat Gerektiren</p><p className={styles.metricValue}>{errorCount}</p></article>
-      </section>
-
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Canlı telemetri</p><h2 className={styles.sectionTitle}>Cihazlar</h2></div><div className={styles.countPill}>{devices.length} cihaz</div></div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>Cihaz / Firma</th><th>Bağlantı</th><th>Bekleyen</th><th>En Eski Kayıt</th><th>Saat Durumu</th><th>Son Başarılı Gönderim</th><th>Son Hata</th><th>Firmware</th></tr></thead>
-            <tbody>
-              {devices.length === 0 ? <tr><td colSpan={8} className={styles.emptyCell}>Atanmış cihaz bulunamadı.</td></tr> : devices.map((device) => {
-                const online = isDeviceOnline(device.lastSeenAt);
-                const clockHealthy = device.clockSynchronized === true && Math.abs(device.clockOffsetMinutes ?? 0) <= 2;
-                return (
-                  <tr key={device.id}>
-                    <td><strong>{device.name}</strong><p className={styles.tableSubText}>{device.company?.name ?? "Firma yok"} · {device.branchLocation ?? "Şube yok"}</p></td>
-                    <td><span className={online ? styles.reportBadgeSuccess : styles.reportBadgeDanger}>{online ? "Çevrimiçi" : "Çevrimdışı"}</span><p className={styles.tableSubText}>{formatDate(device.lastSeenAt)}</p></td>
-                    <td><strong>{device.pendingQueueCount ?? "—"}</strong></td>
-                    <td>{formatDate(device.oldestQueuedAt)}</td>
-                    <td>{device.clockSynchronized === null ? "Telemetri yok" : <span className={clockHealthy ? styles.reportBadgeSuccess : styles.reportBadgeDanger}>{clockHealthy ? "Senkron" : "Kontrol gerekli"}</span>}<p className={styles.tableSubText}>{device.clockOffsetMinutes === null ? "Fark bilinmiyor" : `${device.clockOffsetMinutes} dk fark`}</p></td>
-                    <td>{formatDate(device.lastDataTransferAt)}</td>
-                    <td>{device.lastSendError ? <span className={styles.reportBadgeDanger}>{device.lastSendError}</span> : <span className={styles.reportBadgeSuccess}>Hata yok</span>}</td>
-                    <td>{device.firmwareVersion ?? "—"}<p className={styles.tableSubText}>Sağlık: {formatDate(device.healthReportedAt)}</p></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className={styles.helperText}><RefreshCw size={14} /> Yeni telemetri alanları, güncel cihaz firmware’i heartbeat gönderdiğinde dolacaktır. Eski firmware kullanan cihazlarda “Telemetri yok” görünmesi normaldir.</p>
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}><div><h2>Canlı telemetri</h2><p>Bağlantı, kuyruk, saat ve firmware verileri</p></div><span className={ui.countBadge}>{devices.length} cihaz</span></div>
+        <DeviceHealthTable
+          canExport={can(authorization, PERMISSIONS.REPORT_EXPORT)}
+          rows={devices.map((device) => {
+            const online = isDeviceOnline(device.lastSeenAt);
+            const clockHealthy = device.clockSynchronized === true && Math.abs(device.clockOffsetMinutes ?? 0) <= 2;
+            return {
+              id: device.id,
+              name: device.name,
+              organization: `${device.company?.name ?? "Firma yok"} · ${device.branchLocation ?? "Şube yok"}`,
+              connection: online ? "Çevrimiçi" : "Çevrimdışı",
+              connectionTone: online ? "success" : "danger",
+              lastSeen: `Son görülme: ${formatDate(device.lastSeenAt)}`,
+              pending: device.pendingQueueCount ?? "—",
+              oldestQueued: `En eski: ${formatDate(device.oldestQueuedAt)}`,
+              clock: device.clockSynchronized === null ? "Telemetri yok" : clockHealthy ? "Senkron" : "Kontrol gerekli",
+              clockTone: device.clockSynchronized === null ? "neutral" : clockHealthy ? "success" : "danger",
+              clockOffset: device.clockOffsetMinutes === null ? "Fark bilinmiyor" : `${device.clockOffsetMinutes} dk fark`,
+              lastTransfer: formatDate(device.lastDataTransferAt),
+              lastError: device.lastSendError || "Hata yok",
+              errorTone: device.lastSendError ? "danger" : "success",
+              firmware: device.firmwareVersion ?? "Bilinmiyor",
+              healthReported: `Sağlık: ${formatDate(device.healthReportedAt)}`,
+            };
+          })}
+        />
+        <p className={ui.helpText}><RefreshCw size={14} /> Telemetri alanları güncel cihaz yazılımı heartbeat gönderdiğinde dolar. Eski yazılım kullanan cihazlarda “Telemetri yok” görünmesi normaldir.</p>
       </section>
     </div>
   );

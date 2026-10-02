@@ -30,11 +30,6 @@ function validateDelegatedModules(keys: string[], available: Set<string>, isPlat
   }
 }
 
-function validateRoleModules(userModules: string[], roleModules: Array<{ moduleKey: string }>) {
-  const allowed = new Set(roleModules.map((item) => item.moduleKey));
-  if (userModules.some((key) => !allowed.has(key))) throw new Error("Seçilen rol, kullanıcıya açılmak istenen modüllerin tamamını kapsamıyor.");
-}
-
 function validatePermissionsForModules(permissions: string[], selectedModules: string[]) {
   if (permissions.some((permission) => {
     const moduleKey = permissionModule(permission);
@@ -78,10 +73,7 @@ export async function createCompanyUserAction(formData: FormData) {
   const password = value(formData, "password");
   const roleId = Number(value(formData, "roleId"));
   const scopeMode = value(formData, "scopeMode") as DataScopeMode;
-  const selectedModuleKeys = moduleKeys(formData);
-
-  validateModuleSelection(selectedModuleKeys);
-  validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
+  const employeeId = Number(value(formData, "employeeId")) || null;
   if (!firstName || !lastName || !email.includes("@") || password.length < 10 || !/^[a-z0-9._-]{3,64}$/.test(username)) {
     throw new Error("Ad, soyad, geçerli e-posta, en az 3 karakter kullanıcı adı ve en az 10 karakter şifre zorunludur.");
   }
@@ -89,25 +81,28 @@ export async function createCompanyUserAction(formData: FormData) {
 
   const role = await prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId, isActive: true }, include: { permissions: true, modules: true } });
   if (!role || role.key === "OWNER") throw new Error("Firma sahibi rolü bu formdan atanamaz.");
-  validateRoleModules(selectedModuleKeys, role.modules);
+  const selectedModuleKeys = role.modules.map((item) => item.moduleKey);
+  validateModuleSelection(selectedModuleKeys);
+  validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
   if (role.permissions.some((item) => !authorization.permissions.has(item.permission))) throw new Error("Sahip olmadığınız bir yetkiyi devredemezsiniz.");
 
   const branchIds = ids(formData, "branchIds"); const departmentIds = ids(formData, "departmentIds"); const employeeIds = ids(formData, "employeeIds"); const deviceIds = ids(formData, "deviceIds"); const teamIds = ids(formData, "teamIds");
   await validateScopeIds(authorization.companyId, branchIds, departmentIds, employeeIds, deviceIds, teamIds);
+  if (employeeId && !(await prisma.employee.findFirst({ where: { id: employeeId, companyId: authorization.companyId }, select: { id: true } }))) throw new Error("Bağlı personel bu firmaya ait değil.");
   const duplicate = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] }, select: { email: true, username: true } });
   if (duplicate) throw new Error(duplicate.email === email ? "Bu e-posta zaten kullanılıyor." : "Bu kullanıcı adı zaten kullanılıyor.");
 
   await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({ data: { firstName, lastName, name: `${firstName} ${lastName}`.trim(), username, email, phone: phone || null, password: await bcrypt.hash(password, 12), role: Role.COMPANY_ADMIN, companyId: authorization.companyId } });
     await tx.userCompanyAccess.create({ data: { userId: created.id, companyId: authorization.companyId! } });
-    const membership = await tx.companyMembership.create({ data: { userId: created.id, companyId: authorization.companyId!, roleId, status: CompanyMembershipStatus.ACTIVE, scopeMode } });
+    const membership = await tx.companyMembership.create({ data: { userId: created.id, companyId: authorization.companyId!, roleId, status: CompanyMembershipStatus.ACTIVE, scopeMode, employeeId } });
     await tx.membershipModule.createMany({ data: selectedModuleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey })) });
     if (branchIds.length) await tx.membershipBranchScope.createMany({ data: branchIds.map((branchId) => ({ membershipId: membership.id, branchId })) });
     if (departmentIds.length) await tx.membershipDepartmentScope.createMany({ data: departmentIds.map((departmentId) => ({ membershipId: membership.id, departmentId })) });
     if (employeeIds.length) await tx.membershipEmployeeScope.createMany({ data: employeeIds.map((employeeId) => ({ membershipId: membership.id, employeeId })) });
     if (deviceIds.length) await tx.membershipDeviceScope.createMany({ data: deviceIds.map((deviceId) => ({ membershipId: membership.id, deviceId })) });
     if (teamIds.length) await tx.membershipTeamScope.createMany({ data: teamIds.map((teamId) => ({ membershipId: membership.id, teamId })) });
-    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, targetUserId: created.id, action: "USER_CREATED", summary: `${username} kullanıcı adıyla ${role.name} rolünde kullanıcı oluşturuldu.`, metadataJson: JSON.stringify({ roleId, scopeMode, moduleKeys: selectedModuleKeys, branchIds, departmentIds, employeeIds, deviceIds, teamIds }) } });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, targetUserId: created.id, action: "USER_CREATED", summary: `${username} kullanıcı adıyla ${role.name} rolünde kullanıcı oluşturuldu.`, metadataJson: JSON.stringify({ roleId, scopeMode, employeeId, moduleKeys: selectedModuleKeys, branchIds, departmentIds, employeeIds, deviceIds, teamIds }) } });
   });
   revalidatePath("/dashboard/access");
   redirect("/dashboard/access");
@@ -120,13 +115,12 @@ export async function createCompanyInvitationAction(formData: FormData) {
   const email = normalizeEmail(value(formData, "email"));
   const roleId = Number(value(formData, "roleId"));
   const scopeMode = value(formData, "scopeMode") as DataScopeMode;
-  const selectedModuleKeys = moduleKeys(formData);
-  validateModuleSelection(selectedModuleKeys);
-  validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
   if (!email || !email.includes("@") || !Object.values(DataScopeMode).includes(scopeMode)) throw new Error("Davet bilgileri geçersiz.");
   const role = await prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId, isActive: true }, include: { permissions: true, modules: true } });
   if (!role || role.key === "OWNER") throw new Error("Firma sahibi davetle atanamaz; sahiplik devri kullanılmalıdır.");
-  validateRoleModules(selectedModuleKeys, role.modules);
+  const selectedModuleKeys = role.modules.map((item) => item.moduleKey);
+  validateModuleSelection(selectedModuleKeys);
+  validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
   if (role.permissions.some((item) => !authorization.permissions.has(item.permission))) throw new Error("Sahip olmadığınız bir yetkiyi devredemezsiniz.");
   const branchIds = ids(formData, "branchIds"); const departmentIds = ids(formData, "departmentIds"); const employeeIds = ids(formData, "employeeIds"); const deviceIds = ids(formData, "deviceIds"); const teamIds = ids(formData, "teamIds");
   await validateScopeIds(authorization.companyId, branchIds, departmentIds, employeeIds, deviceIds, teamIds);
@@ -181,15 +175,14 @@ export async function updateCompanyMembershipAction(formData: FormData) {
   const { user, authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.ACCESS_MANAGE);
   if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
   const membershipId = Number(value(formData, "membershipId")); const roleId = Number(value(formData, "roleId")); const status = value(formData, "status") as CompanyMembershipStatus; const scopeMode = value(formData, "scopeMode") as DataScopeMode; const employeeId = Number(value(formData, "employeeId")) || null;
-  const selectedModuleKeys = moduleKeys(formData);
-  validateModuleSelection(selectedModuleKeys);
-  validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
   if (!Object.values(CompanyMembershipStatus).includes(status) || !Object.values(DataScopeMode).includes(scopeMode)) throw new Error("Üyelik bilgileri geçersiz.");
   const firstName = value(formData, "firstName"); const lastName = value(formData, "lastName"); const usernameInput = value(formData, "username"); const username = usernameInput ? normalizeUsername(usernameInput) : null; const email = normalizeEmail(value(formData, "email")); const phone = value(formData, "phone"); const password = value(formData, "password");
   if (!firstName || !lastName || !email.includes("@") || (username !== null && !/^[a-z0-9._-]{3,64}$/.test(username)) || (password && password.length < 10)) throw new Error("Kullanıcı bilgileri geçersiz. Kullanıcı adı girilirse en az 3 karakter, yeni şifre girilirse en az 10 karakter olmalıdır.");
   const [target, role] = await Promise.all([prisma.companyMembership.findFirst({ where: { id: membershipId, companyId: authorization.companyId }, include: { role: { include: { permissions: true } }, user: true } }), prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId, isActive: true }, include: { permissions: true, modules: true } })]);
   if (!target || !role) throw new Error("Üyelik veya rol bulunamadı.");
-  validateRoleModules(selectedModuleKeys, role.modules);
+  const selectedModuleKeys = role.modules.map((item) => item.moduleKey);
+  validateModuleSelection(selectedModuleKeys);
+  validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
   if (target.role.key === "OWNER" || role.key === "OWNER") throw new Error("Firma sahibi değişikliği yalnız sahiplik devriyle yapılabilir.");
   if (role.permissions.some((item) => !authorization.permissions.has(item.permission))) throw new Error("Sahip olmadığınız bir yetkiyi devredemezsiniz.");
   if (target.userId === user.id) throw new Error("Kendi rolünüzü, durumunuzu veya veri kapsamınızı değiştiremezsiniz. Bu değişikliği başka bir firma yöneticisi yapmalıdır.");

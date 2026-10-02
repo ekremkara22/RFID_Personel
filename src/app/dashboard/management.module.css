@@ -404,6 +404,155 @@
   text-align: center !important;
 }
 
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  min-width: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 16px;
+}
+
+.summaryIcon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: #eff8ff;
+  color: #1570ef;
+}
+
+.summaryLabel {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.summaryValue {
+  margin: 4px 0 0;
+  color: #101828;
+  font-size: 25px;
+  font-weight: 720;
+  line-height: 1.2;
+}
+
+.navigationGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.navigationCard {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 16px;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.navigationCard:hover {
+  border-color: #84caff;
+  background: #f9fcff;
+}
+
+.navigationCardIcon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #eff8ff;
+  color: #1570ef;
+}
+
+.navigationCard h2 {
+  margin: 0;
+  color: #101828;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.navigationCard p {
+  margin: 4px 0 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.splitLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.fieldset {
+  min-width: 0;
+  grid-column: 1 / -1;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.fieldset legend {
+  padding: 0 6px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.helpText {
+  margin: 4px 0 0;
+  color: var(--ui-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.detailList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.detailRow {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1.3fr);
+  gap: 12px;
+  border-bottom: 1px solid #eaecf0;
+  padding-bottom: 9px;
+  color: #344054;
+  font-size: 13px;
+}
+
+.detailRow:last-child { border-bottom: 0; padding-bottom: 0; }
+.detailRow dt { color: var(--ui-muted); }
+.detailRow dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+
 @media (max-width: 1100px) {
   .filterBar,
   .filterBarWide,
@@ -451,6 +600,11 @@
   .sectionHeading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .navigationGrid,
+  .splitLayout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
