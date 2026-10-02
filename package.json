@@ -12,6 +12,7 @@
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
+    "rbac:migrate": "tsx scripts/migrate-company-rbac.ts",
     "rbac:migrate:staging": "tsx scripts/migrate-company-rbac.ts",
     "rbac:seed:staging": "tsx scripts/seed-rbac-staging-demo.ts",
     "calendar:backfill": "node --env-file=.env --import tsx scripts/backfill-attendance-calendars.ts",

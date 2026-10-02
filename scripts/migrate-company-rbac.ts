@@ -8,9 +8,16 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is not configured.");
 const parsedUrl = new URL(databaseUrl);
 const database = parsedUrl.pathname.replace(/^\//, "");
-if (!database.toLowerCase().includes("staging")) {
-  throw new Error(`Güvenlik nedeniyle RBAC geçişi yalnız staging veritabanında çalışır. Hedef: ${database}`);
+const explicitlyAllowedDatabase = process.env.RBAC_MIGRATION_TARGET_DATABASE?.trim();
+if (!database.toLowerCase().includes("staging") && explicitlyAllowedDatabase !== database) {
+  throw new Error(`Canlı RBAC geçişi için RBAC_MIGRATION_TARGET_DATABASE hedef veritabanı adıyla birebir eşleşmelidir. Hedef: ${database}`);
 }
+const adminEmails = new Set(
+  (process.env.RBAC_MIGRATION_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((item) => item.trim().toLocaleLowerCase("tr-TR"))
+    .filter(Boolean),
+);
 const prisma = new PrismaClient({ adapter: new PrismaMariaDb({ host: parsedUrl.hostname, port: parsedUrl.port ? Number(parsedUrl.port) : 3306, user: decodeURIComponent(parsedUrl.username), password: decodeURIComponent(parsedUrl.password), database }) });
 
 async function ensureRoles(companyId: number) {
@@ -37,12 +44,13 @@ async function main() {
     report.roles += READY_COMPANY_ROLES.length;
     const legacyUsers = await prisma.user.findMany({
       where: { role: "COMPANY_ADMIN", OR: [{ companyId: company.id }, { companyAccess: { some: { companyId: company.id } } }] },
-      select: { id: true, deviceAccess: { where: { device: { companyId: company.id } }, select: { deviceId: true } } },
+      select: { id: true, email: true, deviceAccess: { where: { device: { companyId: company.id } }, select: { deviceId: true } } },
     });
     for (const user of legacyUsers) {
+      const roleKey = adminEmails.has(user.email.toLocaleLowerCase("tr-TR")) ? "ADMIN" : "OWNER";
       const membership = await prisma.companyMembership.upsert({
         where: { userId_companyId: { userId: user.id, companyId: company.id } },
-        create: { userId: user.id, companyId: company.id, roleId: roles.get("OWNER")!, status: CompanyMembershipStatus.ACTIVE, scopeMode: DataScopeMode.COMPANY },
+        create: { userId: user.id, companyId: company.id, roleId: roles.get(roleKey)!, status: CompanyMembershipStatus.ACTIVE, scopeMode: DataScopeMode.COMPANY },
         update: {},
       });
       if (user.deviceAccess.length) {
