@@ -115,25 +115,78 @@ export async function getServerHealthSnapshot() {
     movementsLast24Hours: 0,
     latestMovementAt: null as Date | null,
   };
+  let deviceHealth: Array<{
+    id: number;
+    name: string;
+    code: string | null;
+    companyName: string | null;
+    branchLocation: string | null;
+    online: boolean;
+    lastSeenAt: Date | null;
+    lastDataTransferAt: Date | null;
+    firmwareVersion: string | null;
+    lastFirmwareCheckAt: Date | null;
+    pendingQueueCount: number | null;
+    oldestQueuedAt: Date | null;
+    clockSynchronized: boolean | null;
+    clockOffsetMinutes: number | null;
+    lastError: string | null;
+  }> = [];
 
   if (databaseConnected) {
     try {
       const last24Hours = new Date(generatedAt.getTime() - 24 * 60 * 60 * 1000);
-      const [companies, users, activeEmployees, devices, movementsLast24Hours, latestMovement] = await Promise.all([
+      const [companies, users, activeEmployees, deviceRecords, movementsLast24Hours, latestMovement] = await Promise.all([
         prisma.company.count(),
         prisma.user.count(),
         prisma.employee.count({ where: { isActive: true } }),
-        prisma.device.findMany({ select: { lastSeenAt: true, pendingQueueCount: true } }),
+        prisma.device.findMany({
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            branchLocation: true,
+            lastSeenAt: true,
+            lastDataTransferAt: true,
+            firmwareVersion: true,
+            lastFirmwareCheckAt: true,
+            pendingQueueCount: true,
+            oldestQueuedAt: true,
+            clockSynchronized: true,
+            clockOffsetMinutes: true,
+            lastSendError: true,
+            firmwareLastError: true,
+            company: { select: { name: true } },
+          },
+          orderBy: [{ company: { name: "asc" } }, { name: "asc" }],
+        }),
         prisma.attendanceLog.count({ where: { scannedAt: { gte: last24Hours } } }),
         prisma.attendanceLog.findFirst({ select: { scannedAt: true }, orderBy: { scannedAt: "desc" } }),
       ]);
+      deviceHealth = deviceRecords.map((device) => ({
+        id: device.id,
+        name: device.name,
+        code: device.code,
+        companyName: device.company?.name ?? null,
+        branchLocation: device.branchLocation,
+        online: isDeviceOnline(device.lastSeenAt, generatedAt.getTime()),
+        lastSeenAt: device.lastSeenAt,
+        lastDataTransferAt: device.lastDataTransferAt,
+        firmwareVersion: device.firmwareVersion,
+        lastFirmwareCheckAt: device.lastFirmwareCheckAt,
+        pendingQueueCount: device.pendingQueueCount,
+        oldestQueuedAt: device.oldestQueuedAt,
+        clockSynchronized: device.clockSynchronized,
+        clockOffsetMinutes: device.clockOffsetMinutes,
+        lastError: device.lastSendError ?? device.firmwareLastError,
+      }));
       applicationCounts = {
         companies,
         users,
         activeEmployees,
-        devices: devices.length,
-        onlineDevices: devices.filter((device) => isDeviceOnline(device.lastSeenAt, generatedAt.getTime())).length,
-        queuedDeviceRecords: devices.reduce((sum, device) => sum + (device.pendingQueueCount ?? 0), 0),
+        devices: deviceHealth.length,
+        onlineDevices: deviceHealth.filter((device) => device.online).length,
+        queuedDeviceRecords: deviceHealth.reduce((sum, device) => sum + (device.pendingQueueCount ?? 0), 0),
         movementsLast24Hours,
         latestMovementAt: latestMovement?.scannedAt ?? null,
       };
@@ -218,5 +271,6 @@ export async function getServerHealthSnapshot() {
     },
     application: applicationCounts,
     internet,
+    devices: deviceHealth,
   };
 }

@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { requireSessionUser } from "@/lib/session";
 import { getServerHealthSnapshot } from "@/lib/server-health";
 import type { HealthLevel } from "@/lib/server-health-rules";
+import { ReorderableDataTable, type DataTableColumn, type DataTableRow } from "../reorderable-data-table";
 import ui from "../management.module.css";
 import { HealthRefresh } from "./health-refresh";
 import styles from "./server-health.module.css";
@@ -24,6 +25,16 @@ const healthLabels: Record<HealthLevel, string> = {
   critical: "Kritik",
   unknown: "Bilinmiyor",
 };
+
+const deviceColumns: DataTableColumn[] = [
+  { id: "device", label: "CİHAZ", valueKey: "device", secondaryKey: "deviceMeta", exportValueKey: "deviceExport", kind: "stack" },
+  { id: "organization", label: "FİRMA / ŞUBE", valueKey: "company", secondaryKey: "branch", exportValueKey: "organizationExport", kind: "stack" },
+  { id: "connection", label: "BAĞLANTI", valueKey: "connection", secondaryKey: "lastSeen", exportValueKey: "connectionExport", toneKey: "connectionTone", kind: "status" },
+  { id: "firmware", label: "FIRMWARE", valueKey: "firmware", secondaryKey: "firmwareCheck", exportValueKey: "firmwareExport", kind: "stack" },
+  { id: "queue", label: "KUYRUK / SAAT", valueKey: "queue", secondaryKey: "clock", exportValueKey: "queueExport", kind: "stack" },
+  { id: "transfer", label: "SON AKTARIM", valueKey: "lastTransfer", kind: "text" },
+  { id: "error", label: "SON HATA", valueKey: "lastError", toneKey: "errorTone", kind: "status" },
+];
 
 function formatBytes(bytes: number | null) {
   if (bytes === null || !Number.isFinite(bytes)) return "Bilinmiyor";
@@ -80,6 +91,40 @@ export default async function ServerHealthPage() {
   const notices = health.notices.length > 0
     ? health.notices
     : [{ level: "healthy" as const, title: "Temel servisler normal çalışıyor", description: "Sunucu kaynakları ve veritabanı ölçümleri tanımlı eşiklerin altında." }];
+  const deviceRows: DataTableRow[] = health.devices.map((device) => {
+    const clockHealthy = device.clockSynchronized === true && Math.abs(device.clockOffsetMinutes ?? 0) <= 2;
+    const clockLabel = device.clockSynchronized === null
+      ? "Saat telemetrisi yok"
+      : clockHealthy
+        ? `Saat senkron · ${device.clockOffsetMinutes ?? 0} dk`
+        : `Saat kontrolü gerekli · ${device.clockOffsetMinutes ?? "?"} dk`;
+    const lastSeen = formatDate(device.lastSeenAt);
+    const company = device.companyName ?? "Firma atanmamış";
+    const branch = device.branchLocation ?? "Şube belirtilmemiş";
+    const queue = `${device.pendingQueueCount ?? 0} kayıt`;
+    return {
+      id: device.id,
+      device: device.name,
+      deviceMeta: device.code ? `Kod: ${device.code}` : "Cihaz kodu yok",
+      deviceExport: `${device.name} · ${device.code ?? "Kod yok"}`,
+      company,
+      branch,
+      organizationExport: `${company} · ${branch}`,
+      connection: device.online ? "Çevrimiçi" : "Çevrimdışı",
+      connectionTone: device.online ? "success" : "danger",
+      lastSeen,
+      connectionExport: `${device.online ? "Çevrimiçi" : "Çevrimdışı"} · Son bağlantı: ${lastSeen}`,
+      firmware: device.firmwareVersion ?? "Sürüm bilinmiyor",
+      firmwareCheck: `Son kontrol: ${formatDate(device.lastFirmwareCheckAt)}`,
+      firmwareExport: `${device.firmwareVersion ?? "Sürüm bilinmiyor"} · Son kontrol: ${formatDate(device.lastFirmwareCheckAt)}`,
+      queue,
+      clock: clockLabel,
+      queueExport: `${queue} · ${clockLabel} · En eski: ${formatDate(device.oldestQueuedAt)}`,
+      lastTransfer: formatDate(device.lastDataTransferAt),
+      lastError: device.lastError ?? "Hata yok",
+      errorTone: device.lastError ? "danger" : "success",
+    };
+  });
 
   return (
     <div className={ui.managementPage}>
@@ -195,6 +240,22 @@ export default async function ServerHealthPage() {
           <article className={styles.applicationCard}><p className={styles.applicationLabel}>Çevrimiçi cihaz</p><p className={styles.applicationValue}>{health.application.onlineDevices} / {health.application.devices}</p><p className={styles.applicationHelp}>{health.application.queuedDeviceRecords} bekleyen hareket</p></article>
           <article className={styles.applicationCard}><p className={styles.applicationLabel}>Son 24 saat hareketi</p><p className={styles.applicationValue}>{health.application.movementsLast24Hours}</p><p className={styles.applicationHelp}>Son kayıt: {formatDate(health.application.latestMovementAt)}</p></article>
         </div>
+      </section>
+
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}>
+          <div><h2>RFID cihazlarının güncel durumu</h2><p>Tüm firmalardaki cihazların bağlantı, firmware ve telemetri bilgileri</p></div>
+          <span className={ui.countBadge}>{health.devices.length} cihaz</span>
+        </div>
+        <ReorderableDataTable
+          rows={deviceRows}
+          columns={deviceColumns}
+          storageKey="server-health-device-columns-v1"
+          filename={`rfid-cihaz-durumlari-${health.generatedAt.toISOString().slice(0, 10)}.csv`}
+          emptyMessage="Sistemde tanımlı RFID cihazı bulunmuyor."
+          canExport
+          minWidth={1180}
+        />
       </section>
 
       <p className={styles.detailHelp}>Son ölçüm: {formatDate(health.generatedAt)} · Sayfa açıkken bilgiler 30 saniyede bir yenilenir. Gizli bağlantı bilgileri bu ekranda gösterilmez.</p>

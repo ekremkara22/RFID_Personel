@@ -12,6 +12,7 @@ export type DataTableColumn = {
   id: string;
   label: string;
   valueKey: string;
+  exportValueKey?: string;
   secondaryKey?: string;
   imageKey?: string;
   hrefKey?: string;
@@ -92,7 +93,7 @@ export function ReorderableDataTable({
   function exportRows() {
     const exportColumns = orderedColumns.filter((column) => column.exportable !== false);
     const header = exportColumns.map((column) => escapeCsvCell(column.label)).join(";");
-    const body = rows.map((row) => exportColumns.map((column) => escapeCsvCell(row[column.valueKey])).join(";"));
+    const body = rows.map((row) => exportColumns.map((column) => escapeCsvCell(row[column.exportValueKey ?? column.valueKey])).join(";"));
     const blob = new Blob([["\uFEFF" + header, ...body].join("\r\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
