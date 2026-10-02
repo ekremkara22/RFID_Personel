@@ -1,0 +1,190 @@
+.summaryGrid,
+.detailGrid,
+.applicationGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.summaryGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detailGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.applicationGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.summaryCard,
+.detailCard,
+.applicationCard {
+  min-width: 0;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.summaryCard {
+  padding: 16px;
+}
+
+.summaryTop,
+.detailHeader,
+.detailRow,
+.noticeItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summaryIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #eff8ff;
+  color: #1570ef;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusPill[data-level="healthy"] { background: #ecfdf3; color: #027a48; }
+.statusPill[data-level="warning"] { background: #fffaeb; color: #b54708; }
+.statusPill[data-level="critical"] { background: #fef3f2; color: #b42318; }
+.statusPill[data-level="unknown"] { background: #f2f4f7; color: #475467; }
+
+.summaryLabel,
+.applicationLabel {
+  margin: 14px 0 0;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.summaryValue {
+  margin: 5px 0 0;
+  color: #101828;
+  font-size: 25px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.summaryHelp,
+.detailHelp,
+.applicationHelp {
+  margin: 4px 0 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.detailCard {
+  padding: 18px;
+}
+
+.detailHeader {
+  justify-content: flex-start;
+  margin-bottom: 14px;
+  color: #101828;
+}
+
+.detailHeader h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.detailList {
+  display: grid;
+  margin: 0;
+}
+
+.detailRow {
+  padding: 10px 0;
+  border-top: 1px solid #eaecf0;
+}
+
+.detailRow dt {
+  color: #667085;
+  font-size: 13px;
+}
+
+.detailRow dd {
+  margin: 0;
+  color: #101828;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: right;
+}
+
+.progressTrack {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eaecf0;
+  margin-top: 10px;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: inherit;
+  background: #1570ef;
+}
+
+.progressBar[data-level="warning"] { background: #f79009; }
+.progressBar[data-level="critical"] { background: #f04438; }
+.progressBar[data-level="unknown"] { background: #98a2b3; }
+
+.applicationCard {
+  padding: 14px 15px;
+}
+
+.applicationLabel { margin: 0; }
+.applicationValue { margin: 5px 0 0; color: #101828; font-size: 21px; font-weight: 720; }
+
+.noticeList {
+  display: grid;
+  gap: 9px;
+}
+
+.noticeItem {
+  justify-content: flex-start;
+  align-items: flex-start;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+  padding: 12px 14px;
+}
+
+.noticeItem[data-level="warning"] { border-color: #fedf89; background: #fffcf5; }
+.noticeItem[data-level="critical"] { border-color: #fecdca; background: #fffbfa; }
+.noticeItem[data-level="healthy"] { border-color: #abefc6; background: #f6fef9; }
+.noticeItem svg { flex: 0 0 auto; margin-top: 1px; }
+.noticeItem[data-level="warning"] svg { color: #dc6803; }
+.noticeItem[data-level="critical"] svg { color: #d92d20; }
+.noticeItem[data-level="healthy"] svg { color: #039855; }
+.noticeItem strong { display: block; color: #101828; font-size: 13px; }
+.noticeItem p { margin: 3px 0 0; color: #667085; font-size: 12px; line-height: 1.45; }
+
+@media (max-width: 1100px) {
+  .summaryGrid,
+  .applicationGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .summaryGrid,
+  .detailGrid,
+  .applicationGrid { grid-template-columns: minmax(0, 1fr); }
+  .summaryValue { font-size: 23px; }
+}

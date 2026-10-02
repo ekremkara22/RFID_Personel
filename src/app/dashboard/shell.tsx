@@ -22,6 +22,7 @@ import {
   MonitorSmartphone,
   Plane,
   ShieldCheck,
+  ServerCog,
   SlidersHorizontal,
   Tags,
   Users,
@@ -153,6 +154,16 @@ export function DashboardShell({ children, user, authorization, memberships }: D
         </div>
 
         <nav className={styles.nav}>
+          {user.role === "SUPERADMIN" ? (
+            <Link
+              href="/dashboard/server-health"
+              className={`${styles.navItem} ${pathname.startsWith("/dashboard/server-health") ? styles.navItemActive : ""}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <ServerCog size={18} />
+              <span>Sunucu Durumu</span>
+            </Link>
+          ) : null}
           {hasHr ? <div className={styles.navGroup}>
             <button type="button" className={`${styles.navItem} ${!productionActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>İK Yönetimi</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
             {hrOpen ? <div className={styles.subNav}>
