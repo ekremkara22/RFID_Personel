@@ -38,6 +38,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
       companyAccess: { include: { company: true }, orderBy: { createdAt: "asc" } },
       deviceAccess: { include: { device: { include: { company: true } } }, orderBy: { createdAt: "asc" } },
       memberships: { include: { company: true, modules: true }, orderBy: { createdAt: "asc" } },
+      moduleEntitlements: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -84,8 +85,11 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
               ) : users.map((item) => {
                 const companyNames = item.companyAccess.length > 0
                   ? item.companyAccess.map((access) => access.company.name).join(", ")
-                  : item.memberships.map((membership) => membership.company.name).join(", ") || item.company?.name || "-";
-                const moduleNames = [...new Set(item.memberships.flatMap((membership) => membership.modules.map((module) => moduleLabel(module.moduleKey))))].join(", ");
+                  : item.memberships.map((membership) => membership.company.name).join(", ") || item.company?.name || "Firma henüz tanımlanmadı";
+                const moduleNames = [...new Set([
+                  ...item.moduleEntitlements.map((module) => moduleLabel(module.moduleKey)),
+                  ...item.memberships.flatMap((membership) => membership.modules.map((module) => moduleLabel(module.moduleKey))),
+                ])].join(", ");
                 return (
                   <tr key={item.id}>
                     <td><strong>{fullName(item)}</strong><p className={styles.tableSubText}>{item.email}</p></td>

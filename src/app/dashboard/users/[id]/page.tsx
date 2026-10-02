@@ -60,7 +60,7 @@ export default async function UserDetailPage(props: {
     ? (searchParams.tab as TabKey)
     : "general";
 
-  const [record, roleDefinitions, companies] = await Promise.all([
+  const [record, roleDefinitions] = await Promise.all([
     prisma.user.findFirst({
       where: { id },
       include: {
@@ -70,10 +70,10 @@ export default async function UserDetailPage(props: {
           orderBy: { createdAt: "asc" },
         },
         memberships: { include: { modules: true }, orderBy: { createdAt: "asc" } },
+        moduleEntitlements: true,
       },
     }),
     prisma.roleDefinition.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.company.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ]);
 
   if (!record) notFound();
@@ -82,7 +82,10 @@ export default async function UserDetailPage(props: {
   if (record.companyId) selectedCompanyIds.add(record.companyId);
   const selectedDeviceIds = new Set(record.deviceAccess.map((access) => access.deviceId));
   const selectedCompanyIdList = Array.from(selectedCompanyIds);
-  const selectedModuleKeys = new Set(record.memberships.flatMap((membership) => membership.modules.map((module) => module.moduleKey)));
+  const selectedModuleKeys = new Set([
+    ...record.moduleEntitlements.map((module) => module.moduleKey),
+    ...record.memberships.flatMap((membership) => membership.modules.map((module) => module.moduleKey)),
+  ]);
   const roleOptions = (roleDefinitions.length > 0
     ? roleDefinitions.map((role) => ({ code: role.code, name: role.name }))
     : Object.values(Role).map((role) => ({ code: role, name: roleLabels[role] }))).filter((role) => role.code !== Role.EMPLOYEE);
@@ -160,8 +163,8 @@ export default async function UserDetailPage(props: {
               </select>
             </label>
 
-            <label className={styles.field}><span>Firma</span><select name="companyIds" defaultValue={selectedCompanyIdList[0] ?? ""}><option value="">Firma seçilmedi</option>{companies.map((company)=><option key={company.id} value={company.id}>{company.name}</option>)}</select><small>Firma admini için bir firma seçilmelidir.</small></label>
-            <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Başlangıç Modül Yetkileri</legend><p className={styles.scopeHint}>Firma admini kendi kullanıcılarına yalnız seçili modülleri açabilir.</p><div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={selectedModuleKeys.has(module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
+            <label className={styles.field}><span>Firma Durumu</span><input value={selectedCompanyIdList.length ? `${selectedCompanyIdList.length} firma tanımlı` : "Firma henüz tanımlanmadı"} readOnly /><small>Firma admini firmasını kendi hesabından oluşturur.</small></label>
+            <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini ve onun oluşturacağı alt kullanıcılar yalnız seçili modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={selectedModuleKeys.has(module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
             {record.deviceAccess.map((access) => (
               <input key={access.deviceId} type="hidden" name="deviceIds" value={access.deviceId} />
             ))}

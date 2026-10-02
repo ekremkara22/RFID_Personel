@@ -226,11 +226,22 @@ model User {
   approvedPayrollPeriods      PayrollPeriod[]              @relation("PayrollApprovedBy")
   lockedPayrollPeriods        PayrollPeriod[]              @relation("PayrollLockedBy")
   memberships                 CompanyMembership[]
+  moduleEntitlements          UserModuleEntitlement[]
   sentCompanyInvitations      CompanyInvitation[]          @relation("InvitationCreatedBy")
   accessAuditActions          CompanyAccessAudit[]         @relation("AccessAuditActor")
   accessAuditTargets          CompanyAccessAudit[]         @relation("AccessAuditTarget")
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
+}
+
+model UserModuleEntitlement {
+  userId    Int      @db.UnsignedInt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleKey String   @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  @@id([userId, moduleKey])
+  @@index([moduleKey])
 }
 
 model UserCompanyAccess {

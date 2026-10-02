@@ -256,7 +256,7 @@ async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
 export async function createCompanyAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
-  if (user.role !== "SUPERADMIN") {
+  if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
     throw new Error("Bu islem icin yetkiniz yok.");
   }
 
@@ -274,12 +274,15 @@ export async function createCompanyAction(formData: FormData) {
   const adminUsername = getString(formData, "adminUsername").toLowerCase();
   const adminPhone = getString(formData, "adminPhone");
   const adminPassword = getString(formData, "adminPassword");
-  const moduleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
+  const requestedModuleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
+  const entitlementRows = user.role === "COMPANY_ADMIN"
+    ? await prisma.userModuleEntitlement.findMany({ where: { userId: user.id }, select: { moduleKey: true } })
+    : [];
+  const moduleKeys = user.role === "SUPERADMIN"
+    ? requestedModuleKeys
+    : entitlementRows.map((item) => item.moduleKey).filter((key) => ALL_MODULE_KEYS.includes(key as never));
 
-  if (
-    !companyName ||
-    (!adminFirstName || !adminLastName || !adminEmail || !adminUsername || !adminPassword || !moduleKeys.length)
-  ) {
+  if (!companyName || !moduleKeys.length || (user.role === "SUPERADMIN" && (!adminFirstName || !adminLastName || !adminEmail || !adminUsername || !adminPassword))) {
     throw new Error("Sirket ve firma yoneticisi bilgileri eksik.");
   }
 
@@ -326,6 +329,17 @@ export async function createCompanyAction(formData: FormData) {
         if (definition.key === "OWNER") ownerRoleId = role.id;
       }
       await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
+      await tx.userModuleEntitlement.createMany({ data: moduleKeys.map((moduleKey) => ({ userId: adminUser.id, moduleKey })), skipDuplicates: true });
+    } else {
+      let ownerRoleId = 0;
+      for (const definition of READY_COMPANY_ROLES) {
+        const roleModuleKeys = defaultRoleModules(definition.key).filter((moduleKey) => moduleKeys.includes(moduleKey));
+        const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) }, modules: { create: roleModuleKeys.map((moduleKey) => ({ moduleKey })) } } });
+        if (definition.key === "OWNER") ownerRoleId = role.id;
+      }
+      await tx.user.update({ where: { id: user.id }, data: { companyId: company.id } });
+      await tx.userCompanyAccess.create({ data: { userId: user.id, companyId: company.id } });
+      await tx.companyMembership.create({ data: { userId: user.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
     }
   });
 
@@ -463,58 +477,6 @@ async function assertSuperadminUser() {
   return user;
 }
 
-async function syncUserAccess(userId: number, companyIds: number[], deviceIds: number[]) {
-  const uniqueCompanyIds = Array.from(new Set(companyIds));
-  const uniqueDeviceIds = Array.from(new Set(deviceIds));
-
-  if (uniqueCompanyIds.length > 0) {
-    const companyCount = await prisma.company.count({
-      where: { id: { in: uniqueCompanyIds }, isActive: true },
-    });
-
-    if (companyCount !== uniqueCompanyIds.length) {
-      throw new Error("Secilen firmalardan biri bulunamadi.");
-    }
-  }
-
-  if (uniqueDeviceIds.length > 0) {
-    const deviceCount = await prisma.device.count({
-      where: {
-        id: { in: uniqueDeviceIds },
-        ...(uniqueCompanyIds.length > 0
-          ? {
-              OR: [
-                { companyId: { in: uniqueCompanyIds } },
-                { companyId: null },
-              ],
-            }
-          : {}),
-      },
-    });
-
-    if (deviceCount !== uniqueDeviceIds.length) {
-      throw new Error("Secilen cihazlardan biri kullanicinin firmalarina ait degil.");
-    }
-  }
-
-  await prisma.userCompanyAccess.deleteMany({ where: { userId } });
-  await prisma.userDeviceAccess.deleteMany({ where: { userId } });
-
-  if (uniqueCompanyIds.length > 0) {
-    await prisma.userCompanyAccess.createMany({
-      data: uniqueCompanyIds.map((companyId) => ({ userId, companyId })),
-      skipDuplicates: true,
-    });
-  }
-
-  if (uniqueDeviceIds.length > 0) {
-    await prisma.userDeviceAccess.createMany({
-      data: uniqueDeviceIds.map((deviceId) => ({ userId, deviceId })),
-      skipDuplicates: true,
-    });
-  }
-}
-
 export async function createDashboardUserAction(formData: FormData) {
   await assertSuperadminUser();
 
@@ -525,31 +487,19 @@ export async function createDashboardUserAction(formData: FormData) {
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
   const role = await getAssignableRole(formData);
-  const companyIds = [...new Set(getIdList(formData, "companyIds"))];
   const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
 
   if (!firstName || !lastName || !email || !password || !username || !/^[a-z0-9._-]{3,64}$/.test(username)) {
     throw new Error("Kullanici bilgileri eksik.");
   }
   if (password.length < 10) throw new Error("Şifre en az 10 karakter olmalıdır.");
-  if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new Error("Bu ekrandan yalnız süper admin veya firma admini oluşturulabilir.");
-  if (role === Role.COMPANY_ADMIN && (companyIds.length !== 1 || !moduleKeys.length)) throw new Error("Firma admini için bir firma ve en az bir başlangıç modülü seçilmelidir.");
-
-  const company = role === Role.COMPANY_ADMIN
-    ? await prisma.company.findFirst({ where: { id: companyIds[0], isActive: true }, select: { id: true } })
-    : null;
-  const ownerRole = company
-    ? await prisma.companyRole.findUnique({ where: { companyId_key: { companyId: company.id, key: "OWNER" } }, select: { id: true } })
-    : null;
-  if (role === Role.COMPANY_ADMIN && (!company || !ownerRole)) throw new Error("Seçilen firma veya firma sahibi rolü bulunamadı.");
+  if (role !== Role.COMPANY_ADMIN) throw new Error("Bu ekrandan yalnız firma admini oluşturulabilir.");
+  if (!moduleKeys.length) throw new Error("Firma admini için en az bir modül lisansı seçilmelidir.");
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({ data: { firstName, lastName, name: `${firstName} ${lastName}`.trim(), username, email, phone: phone || null, password: passwordHash, role, companyId: company?.id ?? null } });
-    if (company && ownerRole) {
-      await tx.userCompanyAccess.create({ data: { userId: created.id, companyId: company.id } });
-      await tx.companyMembership.create({ data: { userId: created.id, companyId: company.id, roleId: ownerRole.id, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
-    }
+    const created = await tx.user.create({ data: { firstName, lastName, name: `${firstName} ${lastName}`.trim(), username, email, phone: phone || null, password: passwordHash, role, companyId: null } });
+    await tx.userModuleEntitlement.createMany({ data: moduleKeys.map((moduleKey) => ({ userId: created.id, moduleKey })) });
   });
 
   revalidatePath("/dashboard/users");
@@ -566,7 +516,6 @@ export async function updateDashboardUserAction(formData: FormData) {
   const username = getString(formData, "username").toLowerCase();
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
-  const companyIds = [...new Set(getIdList(formData, "companyIds"))];
   const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
   const deviceIds = getIdList(formData, "deviceIds");
   const targetUser = userId
@@ -582,32 +531,39 @@ export async function updateDashboardUserAction(formData: FormData) {
     throw new Error("Kendi super admin rolunuzu degistiremezsiniz.");
   }
   if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new Error("Bu ekrandan yalnız süper admin veya firma admini yönetilebilir.");
-  if (role === Role.COMPANY_ADMIN && (companyIds.length !== 1 || !moduleKeys.length)) throw new Error("Firma admini için bir firma ve en az bir başlangıç modülü seçilmelidir.");
-
-  const company = role === Role.COMPANY_ADMIN
-    ? await prisma.company.findFirst({ where: { id: companyIds[0], isActive: true }, select: { id: true } })
-    : null;
-  const ownerRole = company
-    ? await prisma.companyRole.findUnique({ where: { companyId_key: { companyId: company.id, key: "OWNER" } }, select: { id: true } })
-    : null;
-  if (role === Role.COMPANY_ADMIN && (!company || !ownerRole)) throw new Error("Seçilen firma veya firma sahibi rolü bulunamadı.");
+  if (role === Role.COMPANY_ADMIN && !moduleKeys.length) throw new Error("Firma admini için en az bir modül lisansı seçilmelidir.");
 
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
-      data: { firstName, lastName, username, name: `${firstName} ${lastName}`.trim(), email, phone: phone || null, role, companyId: company?.id ?? null, ...(password ? { password: await bcrypt.hash(password, 10) } : {}) },
+      data: { firstName, lastName, username, name: `${firstName} ${lastName}`.trim(), email, phone: phone || null, role, ...(password ? { password: await bcrypt.hash(password, 10) } : {}) },
     });
-    await tx.companyMembership.deleteMany({ where: { userId } });
-    if (company && ownerRole) {
-      await tx.companyMembership.create({ data: { userId, companyId: company.id, roleId: ownerRole.id, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
+    await tx.userModuleEntitlement.deleteMany({ where: { userId } });
+    if (role === Role.COMPANY_ADMIN) {
+      await tx.userModuleEntitlement.createMany({ data: moduleKeys.map((moduleKey) => ({ userId, moduleKey })) });
+      const memberships = await tx.companyMembership.findMany({ where: { userId }, select: { id: true, companyId: true, role: { select: { key: true } } } });
+      const ownedCompanyIds = memberships.filter((membership) => membership.role.key === "OWNER").map((membership) => membership.companyId);
+      if (ownedCompanyIds.length > 0) {
+        await tx.membershipModule.deleteMany({
+          where: { membership: { companyId: { in: ownedCompanyIds } }, moduleKey: { notIn: moduleKeys } },
+        });
+        await tx.companyRoleModule.deleteMany({
+          where: { role: { companyId: { in: ownedCompanyIds } }, moduleKey: { notIn: moduleKeys } },
+        });
+      }
+      await tx.membershipModule.deleteMany({ where: { membershipId: { in: memberships.map((item) => item.id) } } });
+      if (memberships.length > 0) {
+        await tx.membershipModule.createMany({
+          data: memberships.flatMap((membership) => moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey }))),
+          skipDuplicates: true,
+        });
+      }
+    }
+    await tx.userDeviceAccess.deleteMany({ where: { userId } });
+    if (role === Role.COMPANY_ADMIN && deviceIds.length > 0) {
+      await tx.userDeviceAccess.createMany({ data: [...new Set(deviceIds)].map((deviceId) => ({ userId, deviceId })), skipDuplicates: true });
     }
   });
-
-  if (role === Role.COMPANY_ADMIN) {
-    await syncUserAccess(userId, companyIds, deviceIds);
-  } else {
-    await syncUserAccess(userId, [], []);
-  }
 
   revalidatePath("/dashboard/users");
   revalidatePath(`/dashboard/users/${userId}`);

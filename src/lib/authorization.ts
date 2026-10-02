@@ -25,7 +25,11 @@ export async function getAuthorizationContext(user: { id: number; role: string }
   });
   const membership = memberships.find((item) => item.companyId === requestedCompanyId) ?? memberships[0];
   if (!membership) {
-    return { isPlatformAdmin: false, userId: user.id, companyId: null, membershipId: null, membershipStatus: null, sessionVersion: 0, roleKey: null, roleName: null, permissions: new Set(), modules: new Set(), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [] };
+    const entitlements = await prisma.userModuleEntitlement.findMany({
+      where: { userId: user.id },
+      select: { moduleKey: true },
+    });
+    return { isPlatformAdmin: false, userId: user.id, companyId: null, membershipId: null, membershipStatus: null, sessionVersion: 0, roleKey: "PENDING_COMPANY_OWNER", roleName: "Firma yöneticisi", permissions: new Set(), modules: new Set(entitlements.map((item) => item.moduleKey)), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [] };
   }
   return {
     isPlatformAdmin: false,

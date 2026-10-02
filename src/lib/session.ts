@@ -47,7 +47,7 @@ export async function requireSessionUser() {
   const preferredCompanyId = Number.isSafeInteger(requestedCompanyId) && requestedCompanyId > 0 ? requestedCompanyId : user.companyId;
   const authorization = await getAuthorizationContext(user, preferredCompanyId);
 
-  if (user.role !== "SUPERADMIN" && !authorization.companyId) redirect("/login");
+  if (user.role !== "SUPERADMIN" && !authorization.companyId && authorization.modules.size === 0) redirect("/login");
   if (authorization.companyId) {
     const activeMembership = user.memberships.find((item) => item.companyId === authorization.companyId);
     user.companyId = authorization.companyId;

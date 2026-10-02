@@ -48,7 +48,7 @@ type DashboardShellProps = {
       name: string;
     } | null;
   };
-  authorization: { isPlatformAdmin: boolean; roleName: string | null; permissions: string[]; modules: string[] };
+  authorization: { isPlatformAdmin: boolean; companyId: number | null; roleName: string | null; permissions: string[]; modules: string[] };
   memberships: Array<{ companyId: number; companyName: string; roleName: string }>;
 };
 
@@ -67,7 +67,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
   const allowed = (permission: string) => authorization.isPlatformAdmin || authorization.permissions.includes(permission);
-  const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || authorization.modules.includes(moduleKey);
+  const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || (!!authorization.companyId && authorization.modules.includes(moduleKey));
   const hasHr = hasModule(MODULES.HR);
   const hasProduction = hasModule(MODULES.PRODUCTION_PLANNING);
   const productionActive = pathname.startsWith("/dashboard/production");
@@ -115,7 +115,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
       : [
           ...(allowed(PERMISSIONS.ACCESS_VIEW) ? [{ href: "/dashboard/access", label: "Kullanıcı Tanımlama", icon: KeyRound }, { href: "/dashboard/access/roles", label: "Rol ve Yetki Tanımları", icon: ShieldCheck }] : []),
           ...(allowed(PERMISSIONS.ACCESS_MANAGE) ? [{ href: "/dashboard/access/teams", label: "Ekip Tanımları", icon: Users }] : []),
-          ...(allowed(PERMISSIONS.COMPANY_VIEW) ? [{ href: "/dashboard/companies", label: "Firma Tanım", icon: Building2 }] : []),
+          ...(!authorization.companyId || allowed(PERMISSIONS.COMPANY_VIEW) ? [{ href: "/dashboard/companies", label: "Firma Tanım", icon: Building2 }] : []),
           ...(allowed(PERMISSIONS.SETTINGS_MANAGE) ? [{ href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags }, { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 }, { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users }] : []),
         ]),
   ];

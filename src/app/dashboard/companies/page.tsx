@@ -26,7 +26,7 @@ export default async function CompaniesPage(props: {
     redirect("/dashboard");
   }
 
-  if (user.role !== "SUPERADMIN") assertPermission(authorization, PERMISSIONS.COMPANY_VIEW);
+  if (user.role !== "SUPERADMIN" && authorization.companyId) assertPermission(authorization, PERMISSIONS.COMPANY_VIEW);
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const queryId = Number(query);

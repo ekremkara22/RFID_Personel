@@ -94,6 +94,7 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
   const { user, authorization } = await requireSessionUser();
+  if (user.role === "COMPANY_ADMIN" && !authorization.companyId) redirect("/dashboard/companies/new");
   if (!canAccessModule(authorization, MODULES.HR)) {
     if (canAccessModule(authorization, MODULES.PRODUCTION_PLANNING)) redirect("/dashboard/production");
     redirect("/login");
