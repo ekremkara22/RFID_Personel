@@ -33,6 +33,9 @@ export async function POST(request: Request) {
           include: { company: true },
           orderBy: { id: "asc" },
         },
+        moduleEntitlements: {
+          select: { moduleKey: true },
+        },
       },
     });
 
@@ -43,19 +46,20 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.role !== "SUPERADMIN" && user.memberships.length === 0) {
-      return NextResponse.json(
-        { error: "Aktif firma üyeliğiniz bulunmuyor. Firma yöneticinizle görüşün." },
-        { status: 403 },
-      );
-    }
-
     const passwordMatches = await bcrypt.compare(password, user.password);
 
     if (!passwordMatches) {
       return NextResponse.json(
         { error: "Sifre hatali. Lutfen tekrar deneyin." },
         { status: 401 },
+      );
+    }
+
+    const canCreateFirstCompany = user.role === "COMPANY_ADMIN" && user.moduleEntitlements.length > 0;
+    if (user.role !== "SUPERADMIN" && user.memberships.length === 0 && !canCreateFirstCompany) {
+      return NextResponse.json(
+        { error: "Aktif firma üyeliğiniz veya atanmış modül lisansınız bulunmuyor. Sistem yöneticinizle görüşün." },
+        { status: 403 },
       );
     }
 
