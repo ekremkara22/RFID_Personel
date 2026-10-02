@@ -11,6 +11,7 @@ import { assertPermission } from "@/lib/authorization";
 import { ALL_PERMISSIONS, permissionModule, PERMISSIONS } from "@/lib/permission-catalog";
 import { ALL_MODULE_KEYS, MODULES, moduleLabel } from "@/lib/module-catalog";
 import { prisma } from "@/lib/prisma";
+import { membershipModuleRows } from "@/lib/role-module-sync";
 import { ACTIVE_COMPANY_COOKIE_NAME, requireSessionUser } from "@/lib/session";
 
 function value(formData: FormData, key: string) { const item = formData.get(key); return typeof item === "string" ? item.trim() : ""; }
@@ -244,19 +245,23 @@ export async function updateCompanyRoleAction(formData: FormData) {
   if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
   const roleId = Number(value(formData, "roleId")); const name = value(formData, "name"); const description = value(formData, "description"); const isActive = formData.get("isActive") === "on"; const requested = formData.getAll("permissions").filter((item): item is string => typeof item === "string" && ALL_PERMISSIONS.includes(item as never));
   const selectedModuleKeys = moduleKeys(formData); validateModuleSelection(selectedModuleKeys); validateDelegatedModules(selectedModuleKeys, authorization.modules, authorization.isPlatformAdmin);
-  const role = await prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId }, include: { memberships: { where: { status: CompanyMembershipStatus.ACTIVE }, include: { modules: true } } } });
+  const role = await prisma.companyRole.findFirst({ where: { id: roleId, companyId: authorization.companyId }, include: { memberships: { select: { id: true, status: true } } } });
   if (!role || !name) throw new Error("Rol bulunamadı.");
   if (role.key === "OWNER" && !isActive) throw new Error("Firma sahibi rolü pasifleştirilemez.");
   if (requested.some((permission) => !authorization.permissions.has(permission))) throw new Error("Sahip olmadığınız izni role ekleyemezsiniz.");
   validatePermissionsForModules(requested, selectedModuleKeys);
-  if (!isActive && role.memberships.length) throw new Error("Aktif üyesi bulunan rol önce üyelerden kaldırılmalıdır; erişim sessizce başka role genişletilmez.");
-  if (role.memberships.some((membership) => membership.modules.some((module) => !selectedModuleKeys.includes(module.moduleKey)))) throw new Error("Bu rolü kullanan aktif kullanıcılarda kaldırılmak istenen modül bulunuyor. Önce kullanıcıların modül yetkilerini güncelleyin.");
+  if (!isActive && role.memberships.some((membership) => membership.status === CompanyMembershipStatus.ACTIVE)) throw new Error("Aktif üyesi bulunan rol önce üyelerden kaldırılmalıdır; erişim sessizce başka role genişletilmez.");
   await prisma.$transaction(async (tx) => {
     await tx.companyRole.update({ where: { id: role.id }, data: { name, description: description || null, isActive } });
     await tx.companyRolePermission.deleteMany({ where: { roleId: role.id } });
     if (requested.length) await tx.companyRolePermission.createMany({ data: requested.map((permission) => ({ roleId: role.id, permission })) });
     await tx.companyRoleModule.deleteMany({ where: { roleId: role.id } });
     await tx.companyRoleModule.createMany({ data: selectedModuleKeys.map((moduleKey) => ({ roleId: role.id, moduleKey })) });
+    const membershipIds = role.memberships.map((membership) => membership.id);
+    if (membershipIds.length) {
+      await tx.membershipModule.deleteMany({ where: { membershipId: { in: membershipIds } } });
+      await tx.membershipModule.createMany({ data: membershipModuleRows(membershipIds, selectedModuleKeys) });
+    }
     await tx.companyMembership.updateMany({ where: { roleId: role.id }, data: { sessionVersion: { increment: 1 } } });
     await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: "ROLE_UPDATED", summary: `${name} rolü güncellendi.`, metadataJson: JSON.stringify({ permissions: requested, moduleKeys: selectedModuleKeys, isActive }) } });
   });
