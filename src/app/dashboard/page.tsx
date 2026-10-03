@@ -94,6 +94,9 @@ function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
   const { user, authorization } = await requireSessionUser();
+  if (!authorization.isPlatformAdmin && authorization.modules.size === 0) {
+    return <div className={`${styles.page} ${ui.managementPage}`}><section className={ui.surface}><h1 className={ui.pageTitle}>Açık modül bulunmuyor</h1><p className={ui.pageDescription}>Hesabınıza veya firmanıza açık bir modül bulunmuyor. Modül erişimi için süper adminle, rol yetkileri için firma yöneticinizle iletişime geçin. Yetki tekrar verildiğinde ilgili modüller kullanılabilir olacaktır.</p></section></div>;
+  }
   if (user.role === "COMPANY_ADMIN" && !authorization.companyId) redirect("/dashboard/companies/new");
   if (!canAccessModule(authorization, MODULES.HR)) {
     if (canAccessModule(authorization, MODULES.PRODUCTION_PLANNING)) redirect("/dashboard/production");

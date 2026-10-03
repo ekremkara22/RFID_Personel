@@ -1,5 +1,8 @@
 "use server";
 
+import { ActionError } from "@/lib/action-error";
+import { runFormAction } from "@/lib/run-form-action";
+
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -54,7 +57,7 @@ function getStringList(formData: FormData, key: string) {
 function parseIdValue(value: string, fieldName: string) {
   const id = Number(value);
   if (!Number.isSafeInteger(id) || id <= 0) {
-    throw new Error(`${fieldName} bilgisi gecersiz.`);
+    throw new ActionError(`${fieldName} bilgisi gecersiz.`);
   }
   return id;
 }
@@ -91,7 +94,7 @@ async function getAssignableRole(formData: FormData) {
   const allowedRoles = new Set<string>(Object.values(Role));
 
   if (!allowedRoles.has(role)) {
-    throw new Error("Rol bilgisi gecersiz.");
+    throw new ActionError("Rol bilgisi gecersiz.");
   }
 
   const configuredRoles = await prisma.roleDefinition.findMany({
@@ -100,7 +103,7 @@ async function getAssignableRole(formData: FormData) {
   });
 
   if (configuredRoles.length > 0 && !configuredRoles.some((item) => item.code === role)) {
-    throw new Error("Secilen rol aktif degil.");
+    throw new ActionError("Secilen rol aktif degil.");
   }
 
   return role;
@@ -123,7 +126,7 @@ function getOptionalNumber(formData: FormData, key: string) {
 
 function getRequiredDate(formData: FormData, key: string) {
   const date = getOptionalDate(formData, key);
-  if (!date) throw new Error("Tarih bilgisi gecersiz.");
+  if (!date) throw new ActionError("Tarih bilgisi gecersiz.");
   return date;
 }
 
@@ -132,7 +135,7 @@ function parseCalendarScope(formData: FormData) {
   const allowedScopes = new Set<string>(Object.values(CalendarScopeType));
 
   if (!allowedScopes.has(scopeType)) {
-    throw new Error("Takvim kapsami gecersiz.");
+    throw new ActionError("Takvim kapsami gecersiz.");
   }
 
   return {
@@ -154,7 +157,7 @@ async function assertCalendarScopeBelongsToCompany(
     });
 
     if (!branch) {
-      throw new Error("Secilen sube firmaya ait degil.");
+      throw new ActionError("Secilen sube firmaya ait degil.");
     }
   }
 
@@ -165,7 +168,7 @@ async function assertCalendarScopeBelongsToCompany(
     });
 
     if (!department) {
-      throw new Error("Secilen departman firmaya ait degil.");
+      throw new ActionError("Secilen departman firmaya ait degil.");
     }
   }
 
@@ -176,7 +179,7 @@ async function assertCalendarScopeBelongsToCompany(
     });
 
     if (!employee) {
-      throw new Error("Secilen personel firmaya ait degil.");
+      throw new ActionError("Secilen personel firmaya ait degil.");
     }
   }
 }
@@ -241,7 +244,7 @@ async function saveEmployeePhoto(formData: FormData, fallback?: string | null) {
   }
 
   if (!file.type.startsWith("image/")) {
-    throw new Error("Personel resmi icin gecerli bir gorsel dosyasi secilmelidir.");
+    throw new ActionError("Personel resmi icin gecerli bir gorsel dosyasi secilmelidir.");
   }
 
   const extension = path.extname(file.name).toLowerCase() || ".jpg";
@@ -472,13 +475,17 @@ async function assertSuperadminUser() {
   const { user } = await requireSessionUser();
 
   if (user.role !== "SUPERADMIN") {
-    throw new Error("Bu islem icin yetkiniz yok.");
+    throw new ActionError("Bu islem icin yetkiniz yok.");
   }
 
   return user;
 }
 
 export async function createDashboardUserAction(formData: FormData) {
+  return runFormAction(() => createDashboardUserActionImpl(formData));
+}
+
+async function createDashboardUserActionImpl(formData: FormData) {
   await assertSuperadminUser();
 
   const firstName = getString(formData, "firstName");
@@ -490,12 +497,12 @@ export async function createDashboardUserAction(formData: FormData) {
   const role = await getAssignableRole(formData);
   const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
 
-  if (!firstName || !lastName || !email || !password || !username || !/^[a-z0-9._-]{3,64}$/.test(username)) {
-    throw new Error("Kullanici bilgileri eksik.");
-  }
-  if (password.length < 10) throw new Error("Şifre en az 10 karakter olmalıdır.");
-  if (role !== Role.COMPANY_ADMIN) throw new Error("Bu ekrandan yalnız firma admini oluşturulabilir.");
-  if (!moduleKeys.length) throw new Error("Firma admini için en az bir modül lisansı seçilmelidir.");
+  if (!firstName || !lastName) throw new ActionError("Ad ve soyad alanlarını doldurun.");
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ActionError("Geçerli bir e-posta adresi girin.");
+  if (!username || !isValidOptionalUsername(username)) throw new ActionError("Kullanıcı adı 3–64 karakter olmalı; yalnız İngilizce harf, rakam, nokta, alt çizgi veya tire içermelidir. Boşluk ve Türkçe karakter kullanmayın.");
+  if (password.length < 10) throw new ActionError("Şifre en az 10 karakter olmalıdır.");
+  if (role !== Role.COMPANY_ADMIN) throw new ActionError("Bu ekrandan yalnız firma admini oluşturulabilir.");
+  if (!moduleKeys.length) throw new ActionError("Firma admini için en az bir modül lisansı seçilmelidir.");
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.$transaction(async (tx) => {
@@ -508,6 +515,10 @@ export async function createDashboardUserAction(formData: FormData) {
 }
 
 export async function updateDashboardUserAction(formData: FormData) {
+  return runFormAction(() => updateDashboardUserActionImpl(formData));
+}
+
+async function updateDashboardUserActionImpl(formData: FormData) {
   const currentUser = await assertSuperadminUser();
 
   const userId = getId(formData, "userId");
@@ -528,40 +539,29 @@ export async function updateDashboardUserAction(formData: FormData) {
   const email = submittedEmail ?? targetUser?.email ?? null;
 
   if (!userId || !targetUser || !firstName || !lastName || !email || !isValidOptionalUsername(username)) {
-    throw new Error("Kullanici bilgileri eksik.");
+    throw new ActionError("Kullanici bilgileri eksik.");
   }
 
   if (userId === currentUser.id && role !== Role.SUPERADMIN) {
-    throw new Error("Kendi super admin rolunuzu degistiremezsiniz.");
+    throw new ActionError("Kendi super admin rolunuzu degistiremezsiniz.");
   }
-  if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new Error("Bu ekrandan yalnız süper admin veya firma admini yönetilebilir.");
-  if (role === Role.COMPANY_ADMIN && !moduleKeys.length) throw new Error("Firma admini için en az bir modül lisansı seçilmelidir.");
+  if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new ActionError("Bu ekrandan yalnız süper admin veya firma admini yönetilebilir.");
+  if (password && password.length < 10) throw new ActionError("Yeni şifre en az 10 karakter olmalıdır.");
+  const passwordHash = password ? await bcrypt.hash(password, 10) : null;
 
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
-      data: { firstName, lastName, username, name: `${firstName} ${lastName}`.trim(), email, phone: phone || null, role, ...(password ? { password: await bcrypt.hash(password, 10) } : {}) },
+      data: { firstName, lastName, username, name: `${firstName} ${lastName}`.trim(), email, phone: phone || null, role, ...(passwordHash ? { password: passwordHash } : {}) },
     });
     await tx.userModuleEntitlement.deleteMany({ where: { userId } });
     if (role === Role.COMPANY_ADMIN) {
-      await tx.userModuleEntitlement.createMany({ data: moduleKeys.map((moduleKey) => ({ userId, moduleKey })) });
-      const memberships = await tx.companyMembership.findMany({ where: { userId }, select: { id: true, companyId: true, role: { select: { key: true } } } });
-      const ownedCompanyIds = memberships.filter((membership) => membership.role.key === "OWNER").map((membership) => membership.companyId);
-      if (ownedCompanyIds.length > 0) {
-        await tx.membershipModule.deleteMany({
-          where: { membership: { companyId: { in: ownedCompanyIds } }, moduleKey: { notIn: moduleKeys } },
-        });
-        await tx.companyRoleModule.deleteMany({
-          where: { role: { companyId: { in: ownedCompanyIds } }, moduleKey: { notIn: moduleKeys } },
-        });
-      }
-      await tx.membershipModule.deleteMany({ where: { membershipId: { in: memberships.map((item) => item.id) } } });
-      if (memberships.length > 0) {
-        await tx.membershipModule.createMany({
-          data: memberships.flatMap((membership) => moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey }))),
-          skipDuplicates: true,
-        });
-      }
+      if (moduleKeys.length) await tx.userModuleEntitlement.createMany({ data: moduleKeys.map((moduleKey) => ({ userId, moduleKey })) });
+      // Keep role and membership configuration intact when a license is disabled.
+      // Authorization intersects it with the owner's current licenses on every request.
+      const memberships = await tx.companyMembership.findMany({ where: { userId, role: { key: "OWNER" } }, select: { companyId: true } });
+      const companyIds = memberships.map((item) => item.companyId);
+      await tx.companyMembership.updateMany({ where: { companyId: { in: companyIds } }, data: { sessionVersion: { increment: 1 } } });
     }
     await tx.userDeviceAccess.deleteMany({ where: { userId } });
     if (role === Role.COMPANY_ADMIN && deviceIds.length > 0) {
@@ -571,15 +571,20 @@ export async function updateDashboardUserAction(formData: FormData) {
 
   revalidatePath("/dashboard/users");
   revalidatePath(`/dashboard/users/${userId}`);
+  revalidatePath("/dashboard", "layout");
   if (getReturnTo(formData)) redirectToReturnPath(formData);
 }
 
 export async function deleteDashboardUserAction(formData: FormData) {
+  return runFormAction(() => deleteDashboardUserActionImpl(formData));
+}
+
+async function deleteDashboardUserActionImpl(formData: FormData) {
   const currentUser = await assertSuperadminUser();
   const userId = getId(formData, "userId");
 
   if (!userId || userId === currentUser.id) {
-    throw new Error("Kullanici silinemez.");
+    throw new ActionError("Kullanici silinemez.");
   }
 
   await prisma.user.deleteMany({ where: { id: userId } });
@@ -717,7 +722,7 @@ async function assertCompanyDepartment(companyId: number, department: string) {
   });
 
   if (!existingDepartment) {
-    throw new Error("Secilen departman firma tanimlarinda aktif degil.");
+    throw new ActionError("Secilen departman firma tanimlarinda aktif degil.");
   }
   return existingDepartment;
 }
@@ -1194,6 +1199,10 @@ export async function deleteCompanyDeviceAction(formData: FormData) {
 }
 
 export async function createUserDeviceAction(formData: FormData) {
+  return runFormAction(() => createUserDeviceActionImpl(formData));
+}
+
+async function createUserDeviceActionImpl(formData: FormData) {
   await assertSuperadminUser();
 
   const userId = getId(formData, "userId");
@@ -1208,13 +1217,13 @@ export async function createUserDeviceAction(formData: FormData) {
   const allowedPurposes = new Set<string>(Object.values(DevicePurpose));
 
   if (!userId || !name || !macAddress || !allowedPurposes.has(purpose)) {
-    throw new Error("Cihaz bilgileri eksik.");
+    throw new ActionError("Cihaz bilgileri eksik.");
   }
 
   const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
 
   if (!targetUser) {
-    throw new Error("Cihaz atanacak kullanici bulunamadi.");
+    throw new ActionError("Cihaz atanacak kullanici bulunamadi.");
   }
 
   const device = await prisma.device.create({
@@ -1242,13 +1251,17 @@ export async function createUserDeviceAction(formData: FormData) {
 }
 
 export async function deleteUserDeviceAccessAction(formData: FormData) {
+  return runFormAction(() => deleteUserDeviceAccessActionImpl(formData));
+}
+
+async function deleteUserDeviceAccessActionImpl(formData: FormData) {
   await assertSuperadminUser();
 
   const userId = getId(formData, "userId");
   const deviceId = getId(formData, "deviceId");
 
   if (!userId || !deviceId) {
-    throw new Error("Cihaz bilgisi eksik.");
+    throw new ActionError("Cihaz bilgisi eksik.");
   }
 
   await prisma.userDeviceAccess.deleteMany({

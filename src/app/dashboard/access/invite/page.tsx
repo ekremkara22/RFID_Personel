@@ -1,3 +1,5 @@
+import { canDelegateRole } from "@/lib/module-license-policy";
+import { ActionForm } from "@/app/dashboard/action-form";
 import { UserPlus } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createCompanyUserAction } from "@/app/dashboard/access-actions";
@@ -30,10 +32,7 @@ export default async function NewCompanyUserPage() {
     prisma.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }),
     prisma.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
   ]);
-  const assignableRoles = roles.filter((role) =>
-    role.permissions.every((permission) => authorization.permissions.has(permission.permission))
-    && (authorization.isPlatformAdmin || role.modules.every((module) => authorization.modules.has(module.moduleKey))),
-  );
+  const assignableRoles = roles.filter((role) => canDelegateRole(role, authorization));
 
   return (
     <div className={`${styles.page} ${ui.managementPage}`}>
@@ -46,7 +45,7 @@ export default async function NewCompanyUserPage() {
         <span className={ui.summaryIcon}><UserPlus size={18} /></span>
       </header>
 
-      <form action={createCompanyUserAction} className={ui.formShell}>
+      <ActionForm action={createCompanyUserAction} className={ui.formShell}>
         <section className={ui.formSection}>
           <div className={ui.formSectionHeader}><h2>Hesap bilgileri</h2><p>Kullanıcının giriş yaparken kullanacağı temel bilgiler.</p></div>
           <div className={ui.formGridThree}>
@@ -80,7 +79,7 @@ export default async function NewCompanyUserPage() {
         </section>
 
         <div className={ui.formActions}><SubmitButton idleLabel="Kullanıcıyı Oluştur" pendingLabel="Oluşturuluyor..." className={ui.primaryAction} /></div>
-      </form>
+      </ActionForm>
     </div>
   );
 }

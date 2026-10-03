@@ -1386,8 +1386,8 @@
   color: #ffffff;
 }
 
-.heroWithBack {
-  padding-top: 3.25rem;
+.heroCard.heroWithBack {
+  padding-top: 3.75rem;
 }
 
 .backLink {

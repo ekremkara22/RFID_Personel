@@ -1,5 +1,7 @@
 "use client";
 
+import { useContext } from "react";
+import { ActionFormPending } from "./action-form";
 import { useFormStatus } from "react-dom";
 
 type SubmitButtonProps = {
@@ -13,7 +15,9 @@ export function SubmitButton({
   pendingLabel,
   className,
 }: SubmitButtonProps) {
-  const { pending } = useFormStatus();
+  const { pending: formPending } = useFormStatus();
+  const actionPending = useContext(ActionFormPending);
+  const pending = formPending || actionPending;
 
   return (
     <button type="submit" className={className} disabled={pending}>

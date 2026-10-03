@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { logoutAction } from "./actions";
+import { ActionForm } from "./action-form";
 import { setActiveCompanyAction } from "./access-actions";
 import { SubmitButton } from "./submit-button";
 import { PERMISSIONS } from "@/lib/permission-catalog";
@@ -150,7 +151,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
           <p className={styles.profileMeta}>
             {user.role === "SUPERADMIN" ? "Super Admin" : `${user.company?.name ?? "Firma"} · ${authorization.roleName ?? "Üyelik"}`}
           </p>
-          {memberships.length > 1 ? <form action={setActiveCompanyAction} className={styles.companySwitcher}><select name="companyId" defaultValue={user.company?.id}>{memberships.map((item) => <option key={item.companyId} value={item.companyId}>{item.companyName} · {item.roleName}</option>)}</select><button type="submit">Geç</button></form> : null}
+          {memberships.length > 1 ? <ActionForm action={setActiveCompanyAction} className={styles.companySwitcher}><select name="companyId" defaultValue={user.company?.id}>{memberships.map((item) => <option key={item.companyId} value={item.companyId}>{item.companyName} · {item.roleName}</option>)}</select><button type="submit">Geç</button></ActionForm> : null}
         </div>
 
         <nav className={styles.nav}>

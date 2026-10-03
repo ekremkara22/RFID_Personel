@@ -1,3 +1,5 @@
+import { canDelegateRole } from "@/lib/module-license-policy";
+import { ActionForm } from "@/app/dashboard/action-form";
 import { UserRoundCog } from "lucide-react";
 import { notFound } from "next/navigation";
 import { transferCompanyOwnershipAction, updateCompanyMembershipAction } from "@/app/dashboard/access-actions";
@@ -42,13 +44,9 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
   ]);
   if (!membership) notFound();
 
-  const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE);
+  const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE) && membership.userId !== user.id;
   const isOwner = membership.role.key === "OWNER";
-  const assignableRoles = roles.filter((role) =>
-    role.key !== "OWNER"
-    && role.permissions.every((permission) => authorization.permissions.has(permission.permission))
-    && (authorization.isPlatformAdmin || role.modules.every((module) => authorization.modules.has(module.moduleKey))),
-  );
+  const assignableRoles = roles.filter((role) => canDelegateRole(role, authorization));
   const ownerCandidates = isOwner && membership.userId === user.id && authorization.permissions.has(PERMISSIONS.OWNERSHIP_TRANSFER)
     ? await prisma.companyMembership.findMany({ where: { companyId: authorization.companyId, status: "ACTIVE", userId: { not: user.id } }, include: { user: true } })
     : [];
@@ -64,8 +62,9 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
         <span className={ui.summaryIcon}><UserRoundCog size={18} /></span>
       </header>
 
+      {membership.userId === user.id && !isOwner ? <p className={ui.actionFeedback}>Kendi rolünüzü veya veri kapsamınızı değiştiremezsiniz. Bu işlemi başka bir firma yöneticisi yapmalıdır.</p> : null}
       {canManage && !isOwner ? (
-        <form action={updateCompanyMembershipAction} className={ui.formShell}>
+        <ActionForm action={updateCompanyMembershipAction} className={ui.formShell}>
           <input type="hidden" name="membershipId" value={membership.id} />
           <section className={ui.formSection}>
             <div className={ui.formSectionHeader}><h2>Hesap bilgileri</h2><p>Kullanıcının temel iletişim ve giriş bilgileri.</p></div>
@@ -100,10 +99,10 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
             </div>
           </section>
           <div className={ui.formActions}><SubmitButton idleLabel="Kullanıcıyı Kaydet" pendingLabel="Kaydediliyor..." className={ui.primaryAction} /></div>
-        </form>
+        </ActionForm>
       ) : null}
 
-      {isOwner ? <section className={ui.surface}><div className={ui.sectionHeading}><div><h2>Firma sahibi</h2><p>Bu rol korumalıdır; askıya alınamaz veya standart kullanıcı formundan değiştirilemez.</p></div></div>{ownerCandidates.length ? <form action={transferCompanyOwnershipAction} className={ui.formGrid}><label className={ui.formField}><span>Yeni firma sahibi</span><select name="targetMembershipId" required><option value="">Kullanıcı seçin</option>{ownerCandidates.map((item) => <option key={item.id} value={item.id}>{item.user.email}</option>)}</select></label><div className={ui.formActions}><SubmitButton idleLabel="Sahipliği Devret" pendingLabel="Devrediliyor..." className={ui.dangerAction} /></div></form> : null}</section> : null}
+      {isOwner ? <section className={ui.surface}><div className={ui.sectionHeading}><div><h2>Firma sahibi</h2><p>Bu rol korumalıdır; askıya alınamaz veya standart kullanıcı formundan değiştirilemez.</p></div></div>{ownerCandidates.length ? <ActionForm action={transferCompanyOwnershipAction} className={ui.formGrid}><label className={ui.formField}><span>Yeni firma sahibi</span><select name="targetMembershipId" required><option value="">Kullanıcı seçin</option>{ownerCandidates.map((item) => <option key={item.id} value={item.id}>{item.user.email}</option>)}</select></label><div className={ui.formActions}><SubmitButton idleLabel="Sahipliği Devret" pendingLabel="Devrediliyor..." className={ui.dangerAction} /></div></ActionForm> : null}</section> : null}
     </div>
   );
 }

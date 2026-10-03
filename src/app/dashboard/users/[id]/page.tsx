@@ -1,3 +1,5 @@
+import ui from "../../management.module.css";
+import { ActionForm } from "@/app/dashboard/action-form";
 import { isDeviceOnline } from "@/lib/device-status";
 import { APP_TIME_ZONE } from "@/lib/app-time";
 import { DeviceStatusRefresh } from "../../device-status-refresh";
@@ -119,7 +121,7 @@ export default async function UserDetailPage(props: {
     : "Henüz yok";
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${ui.managementPage}`}>
       <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Kullanici Detay</p>
@@ -145,7 +147,7 @@ export default async function UserDetailPage(props: {
 
       {activeTab === "general" ? (
         <section className={`glass-panel ${styles.sectionCard}`}>
-          <form action={updateDashboardUserAction} className={styles.formGrid}>
+          <ActionForm action={updateDashboardUserAction} className={styles.formGrid}>
             <input type="hidden" name="returnTo" value={`/dashboard/users/${record.id}?tab=general`} />
             <input type="hidden" name="userId" value={record.id} />
             <label className={styles.field}><span>Ad</span><input name="firstName" defaultValue={record.firstName ?? ""} required /></label>
@@ -170,14 +172,14 @@ export default async function UserDetailPage(props: {
             ))}
 
             <div className={styles.fullWidthActionRow}>
-              <SubmitButton idleLabel="Kullaniciyi Guncelle" pendingLabel="Guncelleniyor..." className={styles.primaryButton} />
+              <SubmitButton idleLabel="Kullaniciyi Guncelle" pendingLabel="Guncelleniyor..." className={ui.primaryAction} />
             </div>
-          </form>
+          </ActionForm>
 
-          <form action={deleteDashboardUserAction} className={styles.dangerForm}>
+          <ActionForm action={deleteDashboardUserAction} className={styles.dangerForm}>
             <input type="hidden" name="userId" value={record.id} />
-            <SubmitButton idleLabel="Kullaniciyi Sil" pendingLabel="Siliniyor..." className={styles.dangerButton} />
-          </form>
+            <SubmitButton idleLabel="Kullaniciyi Sil" pendingLabel="Siliniyor..." className={ui.dangerAction} />
+          </ActionForm>
         </section>
       ) : null}
 
@@ -239,11 +241,11 @@ export default async function UserDetailPage(props: {
                         <td className={styles.monoCell}>{device.macAddress ?? "-"}</td>
                         <td>{purposeLabels[device.purpose]}</td>
                         <td>
-                          <form action={deleteUserDeviceAccessAction}>
+                          <ActionForm action={deleteUserDeviceAccessAction}>
                             <input type="hidden" name="userId" value={record.id} />
                             <input type="hidden" name="deviceId" value={device.id} />
-                            <SubmitButton idleLabel="Kaldir" pendingLabel="Kaldiriliyor..." className={styles.smallButton} />
-                          </form>
+                            <SubmitButton idleLabel="Kaldir" pendingLabel="Kaldiriliyor..." className={ui.rowAction} />
+                          </ActionForm>
                         </td>
                       </tr>
                     ))}
@@ -262,7 +264,7 @@ export default async function UserDetailPage(props: {
                   <h2 className={styles.sectionTitle}>Cihaz Ekle ve Ata</h2>
                 </div>
               </div>
-              <form action={createUserDeviceAction} className={styles.formGrid}>
+              <ActionForm action={createUserDeviceAction} className={styles.formGrid}>
                 <input type="hidden" name="userId" value={record.id} />
                 <label className={styles.field}><span>Cihaz Kodu</span><input name="code" placeholder="RFID-01" /></label>
                 <label className={styles.field}><span>Cihaz Adi</span><input name="name" required placeholder="Ana Giris Okuyucu" /></label>
@@ -278,9 +280,9 @@ export default async function UserDetailPage(props: {
                 </label>
                 <label className={styles.field}><span>Saat Farki (dk)</span><input name="clockOffsetMinutes" type="number" defaultValue={0} /></label>
                 <div className={styles.fullWidthActionRow}>
-                  <SubmitButton idleLabel="Cihaz Ekle" pendingLabel="Kaydediliyor..." className={styles.primaryButton} />
+                  <SubmitButton idleLabel="Cihaz Ekle" pendingLabel="Kaydediliyor..." className={ui.primaryAction} />
                 </div>
-              </form>
+              </ActionForm>
             </section>
           </aside>
         </section>

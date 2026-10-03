@@ -1,7 +1,8 @@
 import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ALL_PERMISSIONS } from "@/lib/permission-catalog";
+import { ALL_PERMISSIONS, PERMISSIONS } from "@/lib/permission-catalog";
 import { ALL_MODULE_KEYS } from "@/lib/module-catalog";
+import { licensedModules } from "@/lib/module-license-policy";
 import type { AuthorizationContext } from "@/lib/authorization-scope";
 export * from "@/lib/authorization-scope";
 
@@ -13,7 +14,7 @@ export async function getAuthorizationContext(user: { id: number; role: string }
   const memberships = await prisma.companyMembership.findMany({
     where: { userId: user.id, status: CompanyMembershipStatus.ACTIVE, company: { isActive: true }, role: { isActive: true } },
     include: {
-      role: { include: { permissions: true } },
+      role: { include: { permissions: true, modules: true } },
       branchScopes: true,
       departmentScopes: true,
       employeeScopes: true,
@@ -31,6 +32,18 @@ export async function getAuthorizationContext(user: { id: number; role: string }
     });
     return { isPlatformAdmin: false, userId: user.id, companyId: null, membershipId: null, membershipStatus: null, sessionVersion: 0, roleKey: "PENDING_COMPANY_OWNER", roleName: "Firma yöneticisi", permissions: new Set(), modules: new Set(entitlements.map((item) => item.moduleKey)), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [] };
   }
+  // The current owner's platform licenses are the ceiling for every company member.
+  // Read on each request so revocation also applies to already signed-in users.
+  const principals = await prisma.companyMembership.findMany({
+    where: { companyId: membership.companyId, status: CompanyMembershipStatus.ACTIVE, role: { key: { in: ["OWNER", "ADMIN"] }, isActive: true } },
+    select: { userId: true, role: { select: { key: true } }, user: { select: { companyId: true, moduleEntitlements: { select: { moduleKey: true } } } } },
+    orderBy: { id: "asc" },
+  });
+  // Pre-RBAC companies have a primary ADMIN rather than an OWNER membership.
+  const principal = principals.find((item) => item.role.key === "OWNER")
+    ?? principals.find((item) => item.user.companyId === membership.companyId);
+  const companyLicenses = principal?.user.moduleEntitlements.map((item) => item.moduleKey) ?? [];
+  const isLicensePrincipal = principal?.userId === user.id;
   return {
     isPlatformAdmin: false,
     userId: user.id,
@@ -40,8 +53,11 @@ export async function getAuthorizationContext(user: { id: number; role: string }
     sessionVersion: membership.sessionVersion,
     roleKey: membership.role.key,
     roleName: membership.role.name,
-    permissions: new Set(membership.role.permissions.map((item) => item.permission)),
-    modules: new Set(membership.modules.map((item) => item.moduleKey)),
+    permissions: new Set(isLicensePrincipal
+      ? ALL_PERMISSIONS.filter((permission) => membership.role.key === "OWNER" || permission !== PERMISSIONS.OWNERSHIP_TRANSFER)
+      : membership.role.permissions.map((item) => item.permission)),
+    companyModules: new Set(companyLicenses),
+    modules: licensedModules(isLicensePrincipal ? "OWNER" : membership.role.key, membership.role.modules.map((item) => item.moduleKey), companyLicenses),
     scopeMode: membership.scopeMode,
     employeeId: membership.employeeId,
     branchIds: membership.branchScopes.map((item) => item.branchId),

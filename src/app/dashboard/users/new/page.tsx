@@ -1,3 +1,5 @@
+import ui from "../../management.module.css";
+import { ActionForm } from "@/app/dashboard/action-form";
 import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createDashboardUserAction } from "@/app/dashboard/actions";
@@ -14,7 +16,7 @@ export default async function NewUserPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${ui.managementPage}`}>
       <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
         <div>
           <p className={styles.eyebrow}>Yeni Kullanici</p>
@@ -25,7 +27,7 @@ export default async function NewUserPage() {
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
-        <form action={createDashboardUserAction} className={styles.formGrid}>
+        <ActionForm action={createDashboardUserAction} className={styles.formGrid}>
           <label className={styles.field}><span>Ad</span><input name="firstName" required /></label>
           <label className={styles.field}><span>Soyad</span><input name="lastName" required /></label>
           <label className={styles.field}><span>Kullanıcı Adı</span><input name="username" minLength={3} pattern="[a-zA-Z0-9._-]+" required /></label>
@@ -37,9 +39,9 @@ export default async function NewUserPage() {
           <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini, kendi firmasını oluşturduğunda ve alt kullanıcılarını tanımladığında yalnız burada açılan modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
 
           <div className={styles.fullWidthActionRow}>
-            <SubmitButton idleLabel="Kullaniciyi Kaydet" pendingLabel="Kaydediliyor..." className={styles.primaryButton} />
+            <SubmitButton idleLabel="Kullaniciyi Kaydet" pendingLabel="Kaydediliyor..." className={ui.primaryAction} />
           </div>
-        </form>
+        </ActionForm>
       </section>
     </div>
   );

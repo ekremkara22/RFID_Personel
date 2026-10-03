@@ -737,3 +737,6 @@
   .reviewForm,
   .dangerZone { align-items: stretch; flex-direction: column; }
 }
+
+.actionFeedback { grid-column: 1 / -1; min-width: 0; padding: 12px 16px; border: 1px solid #bbd8c9; border-radius: 8px; background: #f0fdf4; color: #166534; font-size: 14px; overflow-wrap: anywhere; }
+.actionFeedback[data-error="true"] { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
