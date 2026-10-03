@@ -353,6 +353,10 @@ export async function createCompanyAction(formData: FormData) {
 }
 
 export async function updateCompanyAction(formData: FormData) {
+  return runFormAction(() => updateCompanyActionImpl(formData));
+}
+
+async function updateCompanyActionImpl(formData: FormData) {
   const { user, authorization } = await requireSessionUser();
 
   if (user.role !== "SUPERADMIN" && user.role !== "COMPANY_ADMIN") {
@@ -373,7 +377,7 @@ export async function updateCompanyAction(formData: FormData) {
   const adminFirstName = getString(formData, "adminFirstName");
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
-  const adminUsername = getString(formData, "adminUsername").toLowerCase();
+  const adminUsername = normalizeOptionalUsername(getString(formData, "adminUsername"));
   const adminPhone = getString(formData, "adminPhone");
   const adminPassword = getString(formData, "adminPassword");
   const moduleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
@@ -382,9 +386,13 @@ export async function updateCompanyAction(formData: FormData) {
   if (
     !companyId ||
     !companyName ||
-    (user.role === "SUPERADMIN" && (!adminId || !adminFirstName || !adminLastName || !adminEmail || !adminUsername || !moduleKeys.length))
+    (user.role === "SUPERADMIN" && (!adminId || !adminFirstName || !adminLastName || !adminEmail || !moduleKeys.length))
   ) {
-    throw new Error("Firma ve admin bilgileri eksik.");
+    throw new ActionError("Firma ve admin bilgileri eksik.");
+  }
+
+  if (!isValidOptionalUsername(adminUsername)) {
+    throw new ActionError("Kullanıcı adı 3–64 karakter olmalı; yalnız İngilizce harf, rakam, nokta, alt çizgi veya tire içermelidir.");
   }
 
   if (user.role === "COMPANY_ADMIN") {
@@ -423,6 +431,11 @@ export async function updateCompanyAction(formData: FormData) {
         },
       });
 
+      await tx.userModuleEntitlement.deleteMany({ where: { userId: adminId } });
+      await tx.userModuleEntitlement.createMany({
+        data: moduleKeys.map((moduleKey) => ({ userId: adminId, moduleKey })),
+      });
+
       await tx.userCompanyAccess.upsert({
         where: {
           userId_companyId: {
@@ -440,7 +453,10 @@ export async function updateCompanyAction(formData: FormData) {
       if (!adminMembership) throw new Error("Firma admin üyeliği bulunamadı.");
       await tx.membershipModule.deleteMany({ where: { membershipId: adminMembership.id } });
       await tx.membershipModule.createMany({ data: moduleKeys.map((moduleKey) => ({ membershipId: adminMembership.id, moduleKey })) });
-      await tx.companyMembership.update({ where: { id: adminMembership.id }, data: { sessionVersion: { increment: 1 } } });
+      await tx.companyMembership.updateMany({
+        where: { companyId },
+        data: { sessionVersion: { increment: 1 } },
+      });
     }
   });
 
@@ -538,8 +554,10 @@ async function updateDashboardUserActionImpl(formData: FormData) {
   const lastName = submittedLastName || targetUser?.lastName?.trim() || "";
   const email = submittedEmail ?? targetUser?.email ?? null;
 
-  if (!userId || !targetUser || !firstName || !lastName || !email || !isValidOptionalUsername(username)) {
-    throw new ActionError("Kullanici bilgileri eksik.");
+  if (!userId || !targetUser) throw new ActionError("Güncellenecek kullanıcı bulunamadı.");
+  if (!firstName || !lastName || !email) throw new ActionError("Kullanıcının ad, soyad veya e-posta bilgisi eksik.");
+  if (!isValidOptionalUsername(username)) {
+    throw new ActionError("Kullanıcı adı 3–64 karakter olmalı; yalnız İngilizce harf, rakam, nokta, alt çizgi veya tire içermelidir.");
   }
 
   if (userId === currentUser.id && role !== Role.SUPERADMIN) {

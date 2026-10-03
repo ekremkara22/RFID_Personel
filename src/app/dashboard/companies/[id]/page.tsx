@@ -2,6 +2,7 @@ import { isDeviceOnline } from "@/lib/device-status";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
+import { ActionForm } from "@/app/dashboard/action-form";
 import {
   deleteCompanyAction,
   deleteCompanyDeviceAction,
@@ -161,7 +162,7 @@ export default async function CompanyDetailPage(props: {
             </div>
           </div>
 
-          <form action={updateCompanyAction} className={styles.formGrid}>
+          <ActionForm action={updateCompanyAction} className={styles.formGrid}>
             <input type="hidden" name="companyId" value={company.id} />
             <input type="hidden" name="adminId" value={companyAdmin?.id ?? ""} />
 
@@ -208,7 +209,8 @@ export default async function CompanyDetailPage(props: {
 
                 <label className={styles.field}>
                   <span>Admin Kullanıcı Adı</span>
-                  <input name="adminUsername" defaultValue={companyAdmin?.username ?? ""} required minLength={3} />
+                  <input name="adminUsername" defaultValue={companyAdmin?.username ?? ""} minLength={3} placeholder="İsteğe bağlı" autoComplete="off" />
+                  <small>Boş bırakılırsa admin e-posta adresiyle giriş yapabilir.</small>
                 </label>
 
                 <label className={styles.field}>
@@ -278,7 +280,7 @@ export default async function CompanyDetailPage(props: {
                 className={styles.primaryButton}
               />
             </div>
-          </form>
+          </ActionForm>
 
           {user.role === "SUPERADMIN" ? (
           <form action={deleteCompanyAction} className={styles.dangerForm}>
