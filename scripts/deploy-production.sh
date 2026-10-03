@@ -15,7 +15,7 @@ git pull --ff-only origin "$BRANCH"
 npm ci
 npm run prisma:generate
 npm run db:migrate:deploy
-npm run rbac:migrate
+RBAC_MIGRATION_TARGET_DATABASE=rfid_personel npm run rbac:migrate
 npm run test
 npm run lint
 npm run build
