@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { deleteBranchAction, updateBranchAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
@@ -13,7 +13,7 @@ export default async function BranchDetailPage(props: { params: Promise<{ id: st
   if (user.role !== "SUPERADMIN" && (user.role !== "COMPANY_ADMIN" || !user.companyId)) redirect("/dashboard");
   const companyIds = await getAccessibleCompanyIds(user);
   const id = parseRouteId((await props.params).id);
-  const branch = await prisma.branch.findFirst({
+  const branch = await queryRepository.branch.findFirst({
     where: {
       id,
       ...(companyIds ? { companyId: { in: companyIds } } : {}),

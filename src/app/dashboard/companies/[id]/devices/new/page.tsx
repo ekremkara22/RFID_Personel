@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { DevicePurpose } from "@/generated/prisma/client";
 import { createCompanyDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../../page.module.css";
@@ -26,7 +26,7 @@ export default async function NewCompanyDevicePage(props: {
   }
 
   const id = parseRouteId((await props.params).id);
-  const company = await prisma.company.findUnique({ where: { id } });
+  const company = await queryRepository.company.findUnique({ where: { id } });
 
   if (!company) {
     notFound();

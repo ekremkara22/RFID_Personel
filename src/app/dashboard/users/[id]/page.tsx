@@ -14,7 +14,7 @@ import {
 } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { DevicePurpose, Role } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import { MODULE_CATALOG } from "@/lib/module-catalog";
@@ -63,7 +63,7 @@ export default async function UserDetailPage(props: {
     : "general";
 
   const [record, roleDefinitions] = await Promise.all([
-    prisma.user.findFirst({
+    queryRepository.user.findFirst({
       where: { id },
       include: {
         companyAccess: { include: { company: true }, orderBy: { createdAt: "asc" } },
@@ -75,7 +75,7 @@ export default async function UserDetailPage(props: {
         moduleEntitlements: true,
       },
     }),
-    prisma.roleDefinition.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.roleDefinition.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ]);
 
   if (!record) notFound();
@@ -97,13 +97,13 @@ export default async function UserDetailPage(props: {
   }
 
   const [visibleEmployees, visibleDevices] = await Promise.all([
-    prisma.employee.findMany({
+    queryRepository.employee.findMany({
       where: selectedCompanyIdList.length > 0 ? { companyId: { in: selectedCompanyIdList } } : { id: -1 },
       include: { company: true },
       orderBy: [{ company: { name: "asc" } }, { firstName: "asc" }],
       take: 100,
     }),
-    prisma.device.findMany({
+    queryRepository.device.findMany({
       where: selectedDeviceIds.size > 0
         ? { id: { in: Array.from(selectedDeviceIds) } }
         : { id: -1 },

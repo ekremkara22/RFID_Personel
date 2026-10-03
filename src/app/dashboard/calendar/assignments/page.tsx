@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { formatDateInput, scopeLabels } from "../calendar-labels";
@@ -16,7 +16,7 @@ export default async function CalendarAssignmentsPage(props: { searchParams?: Pr
   const companyIds = await getAccessibleCompanyIds(user);
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim().toLocaleLowerCase("tr-TR") : "";
-  const assignments = await prisma.calendarAssignment.findMany({
+  const assignments = await queryRepository.calendarAssignment.findMany({
     where: scopedCompanyFilter(companyIds),
     include: { company: true, calendarTemplate: true, branch: true, department: true, employee: true },
     orderBy: [{ isActive: "desc" }, { validFrom: "desc" }],

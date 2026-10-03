@@ -7,7 +7,7 @@ import { AttendanceType } from "@/generated/prisma/client";
 import { buildAttendanceReviewCases } from "@/lib/attendance-review";
 import { employeeScopeWhere } from "@/lib/authorization";
 import { getAppDayKey, getAppDayRange } from "@/lib/app-time";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
@@ -30,11 +30,11 @@ export default async function MovementReviewsPage(props: { searchParams: Promise
   const status = ["open", "resolved", "all"].includes(params.status ?? "") ? params.status! : "open";
 
   const [companies, branches, departments, logs, resolutions] = await Promise.all([
-    prisma.company.findMany({ where: { id: authorization.companyId }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.attendanceLog.findMany({ where: { scannedAt: { gte: from, lt: to }, employee: { ...employeeScopeWhere(authorization), ...(branch ? { branch } : {}), ...(department ? { department } : {}) } }, include: { employee: true }, orderBy: [{ scannedAt: "asc" }, { id: "asc" }], take: 5000 }),
-    prisma.attendanceReviewResolution.findMany({ where: { workDate: { gte: from, lt: to }, employee: { ...employeeScopeWhere(authorization), ...(branch ? { branch } : {}), ...(department ? { department } : {}) } }, include: { resolvedBy: true } }),
+    queryRepository.company.findMany({ where: { id: authorization.companyId }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.attendanceLog.findMany({ where: { scannedAt: { gte: from, lt: to }, employee: { ...employeeScopeWhere(authorization), ...(branch ? { branch } : {}), ...(department ? { department } : {}) } }, include: { employee: true }, orderBy: [{ scannedAt: "asc" }, { id: "asc" }], take: 5000 }),
+    queryRepository.attendanceReviewResolution.findMany({ where: { workDate: { gte: from, lt: to }, employee: { ...employeeScopeWhere(authorization), ...(branch ? { branch } : {}), ...(department ? { department } : {}) } }, include: { resolvedBy: true } }),
   ]);
   const companyById = new Map(companies.map((company) => [company.id, company.name]));
   const resolutionByFingerprint = new Map(resolutions.map((item) => [item.fingerprint, item]));

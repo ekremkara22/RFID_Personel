@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { createBranchAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 
@@ -13,7 +13,7 @@ export default async function NewBranchPage() {
   const companyIds = await getAccessibleCompanyIds(user);
   const currentCompanyId = user.companyId ?? companyIds?.[0] ?? "";
 
-  const companies = await prisma.company.findMany({
+  const companies = await queryRepository.company.findMany({
     where: {
       ...(companyIds ? { id: { in: companyIds } } : {}),
       isActive: true,

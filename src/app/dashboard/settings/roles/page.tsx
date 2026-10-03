@@ -5,7 +5,7 @@ import {
   updateRoleDefinitionAction,
 } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -28,7 +28,7 @@ export default async function RoleDefinitionsPage() {
     redirect("/dashboard");
   }
 
-  const roles = await prisma.roleDefinition.findMany({
+  const roles = await queryRepository.roleDefinition.findMany({
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
   });
   const definedCodes = new Set(roles.map((role) => role.code));

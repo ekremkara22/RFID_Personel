@@ -8,7 +8,7 @@ import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/clien
 import { assertPermission } from "@/lib/authorization";
 import { moduleLabel } from "@/lib/module-catalog";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import ui from "../../../management.module.css";
 import styles from "../../../page.module.css";
@@ -34,13 +34,13 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
   const membershipId = Number((await props.params).id);
 
   const [membership, roles, branches, departments, employees, devices, teams] = await Promise.all([
-    prisma.companyMembership.findFirst({ where: { id: membershipId, companyId: authorization.companyId }, include: { user: true, role: { include: { permissions: true, modules: true } }, employee: true, branchScopes: true, departmentScopes: true, employeeScopes: true, deviceScopes: true, teamScopes: true, modules: true } }),
-    prisma.companyRole.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { permissions: true, modules: true }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
-    prisma.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }),
-    prisma.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.companyMembership.findFirst({ where: { id: membershipId, companyId: authorization.companyId }, include: { user: true, role: { include: { permissions: true, modules: true } }, employee: true, branchScopes: true, departmentScopes: true, employeeScopes: true, deviceScopes: true, teamScopes: true, modules: true } }),
+    queryRepository.companyRole.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { permissions: true, modules: true }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    queryRepository.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }),
+    queryRepository.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
   ]);
   if (!membership) notFound();
 
@@ -48,7 +48,7 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
   const isOwner = membership.role.key === "OWNER";
   const assignableRoles = roles.filter((role) => canDelegateRole(role, authorization));
   const ownerCandidates = isOwner && membership.userId === user.id && authorization.permissions.has(PERMISSIONS.OWNERSHIP_TRANSFER)
-    ? await prisma.companyMembership.findMany({ where: { companyId: authorization.companyId, status: "ACTIVE", userId: { not: user.id } }, include: { user: true } })
+    ? await queryRepository.companyMembership.findMany({ where: { companyId: authorization.companyId, status: "ACTIVE", userId: { not: user.id } }, include: { user: true } })
     : [];
 
   return (

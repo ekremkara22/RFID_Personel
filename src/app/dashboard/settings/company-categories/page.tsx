@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -10,12 +10,12 @@ export default async function CompanyCategoriesPage(props: { searchParams?: Prom
 
   const params = (await props.searchParams) ?? {};
   const query = typeof params.q === "string" ? params.q.trim() : "";
-  const categories = await prisma.companyCategory.findMany({
+  const categories = await queryRepository.companyCategory.findMany({
     where: query ? { name: { contains: query } } : undefined,
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
   });
 
-  const usageCounts = await prisma.company.groupBy({
+  const usageCounts = await queryRepository.company.groupBy({
     by: ["category"],
     where: { category: { not: null } },
     _count: { _all: true },

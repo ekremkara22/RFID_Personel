@@ -5,7 +5,7 @@ import { createEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
@@ -17,10 +17,10 @@ export default async function NewEmployeePage() {
   if (!authorization.companyId) redirect("/dashboard");
 
   const [companies, departments, branches, managers] = await Promise.all([
-    prisma.company.findMany({ where: { id: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length ? { id: { in: authorization.departmentIds } } : {}), isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}), isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    prisma.manager.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.company.findMany({ where: { id: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length ? { id: { in: authorization.departmentIds } } : {}), isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}), isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.manager.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
   ]);
 
   return (

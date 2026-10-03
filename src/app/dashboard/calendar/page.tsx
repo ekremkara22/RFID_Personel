@@ -6,7 +6,7 @@ import { generateEmployeeDailyCalendarAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
@@ -53,16 +53,16 @@ export default async function CalendarOverviewPage(props: {
   const { start, end } = getMonthRange(year, month);
 
   const [employees, departments, templates, dailyCalendars] = await Promise.all([
-    prisma.employee.findMany({
+    queryRepository.employee.findMany({
       where: employeeScopeWhere(authorization),
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
-    prisma.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.workCalendarTemplate.findMany({
+    queryRepository.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.workCalendarTemplate.findMany({
       where: { companyId: user.companyId, isActive: true },
       orderBy: [{ isDefault: "desc" }, { name: "asc" }],
     }),
-    prisma.employeeDailyCalendar.findMany({
+    queryRepository.employeeDailyCalendar.findMany({
       where: {
         employee: {
           ...employeeScopeWhere(authorization),

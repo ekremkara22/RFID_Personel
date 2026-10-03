@@ -6,7 +6,7 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { assertPermission } from "@/lib/authorization";
 import { moduleLabel } from "@/lib/module-catalog";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
@@ -17,7 +17,7 @@ export default async function CompanyRolesPage(props: { searchParams: Promise<{ 
   if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
   const q = (await props.searchParams).q?.trim() ?? "";
   const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE);
-  const roles = await prisma.companyRole.findMany({ where: { companyId: authorization.companyId, ...(q ? { OR: [{ name: { contains: q } }, { description: { contains: q } }] } : {}) }, include: { modules: true, permissions: true, _count: { select: { memberships: true } } }, orderBy: [{ isSystem: "desc" }, { name: "asc" }] });
+  const roles = await queryRepository.companyRole.findMany({ where: { companyId: authorization.companyId, ...(q ? { OR: [{ name: { contains: q } }, { description: { contains: q } }] } : {}) }, include: { modules: true, permissions: true, _count: { select: { memberships: true } } }, orderBy: [{ isSystem: "desc" }, { name: "asc" }] });
   return <div className={`${styles.page} ${ui.managementPage}`}>
     <header className={ui.pageHeader}><div className={ui.headerCopy}><p className={ui.kicker}>Sabit tanımlar</p><h1 className={ui.pageTitle}>Rol ve Yetki Tanımları</h1><p className={ui.pageDescription}>Rolleri modül, ekran ve işlem yetkileriyle yönetin.</p></div>{canManage ? <Link href="/dashboard/access/roles/new" className={ui.primaryAction}><Plus size={16}/>Yeni Rol</Link> : null}</header>
     <section className={ui.surface}><form className={`${ui.filterBar} ${ui.searchFilterBar}`}><label className={ui.field}><span className={ui.fieldLabel}>Rol ara</span><span className={ui.controlWrap}><Search size={16} className={ui.controlIcon}/><input name="q" defaultValue={q} className={`${ui.control} ${ui.controlWithIcon}`} placeholder="Rol adı veya açıklama"/></span></label><button className={ui.filterButton}>Ara</button></form></section>

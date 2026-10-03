@@ -28,13 +28,14 @@ import {
   Users,
   KeyRound,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { logoutAction } from "./actions";
 import { ActionForm } from "./action-form";
 import { setActiveCompanyAction } from "./access-actions";
 import { SubmitButton } from "./submit-button";
-import { PERMISSIONS } from "@/lib/permission-catalog";
-import { MODULES } from "@/lib/module-catalog";
+import { MODULES } from "@/modules/registry";
+import { navigationItems, type NavigationIconKey } from "@/modules/navigation-registry";
 import styles from "./shell.module.css";
 
 type DashboardShellProps = {
@@ -58,6 +59,29 @@ function getUserFullName(user: DashboardShellProps["user"]) {
   return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.name || user.email;
 }
 
+const navigationIcons: Record<NavigationIconKey, LucideIcon> = {
+  building: Building2,
+  calendar: CalendarDays,
+  clipboard: ClipboardList,
+  clock: Clock3,
+  download: CloudDownload,
+  "file-chart": FileBarChart,
+  history: History,
+  health: HeartPulse,
+  list: ListChecks,
+  lock: FileLock2,
+  timer: Timer,
+  dashboard: LayoutDashboard,
+  device: MonitorSmartphone,
+  plane: Plane,
+  shield: ShieldCheck,
+  server: ServerCog,
+  settings: SlidersHorizontal,
+  tags: Tags,
+  users: Users,
+  key: KeyRound,
+};
+
 export function DashboardShell({ children, user, authorization, memberships }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -68,65 +92,20 @@ export function DashboardShell({ children, user, authorization, memberships }: D
   const [productionOpen, setProductionOpen] = useState(pathname.startsWith("/dashboard/production"));
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
-  const allowed = (permission: string) => authorization.isPlatformAdmin || authorization.permissions.includes(permission);
   const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || (!!authorization.companyId && authorization.modules.includes(moduleKey));
   const hasHr = hasModule(MODULES.HR);
   const hasProduction = hasModule(MODULES.PRODUCTION_PLANNING);
   const productionActive = pathname.startsWith("/dashboard/production");
 
-  const items = [
-    ...(hasHr ? [{ href: "/dashboard", label: "Operasyon Özeti", icon: LayoutDashboard }] : []),
-    ...(user.role === "SUPERADMIN"
-      ? [
-          { href: "/dashboard/firmware-updates", label: "Cihaz Yazılım Güncellemeleri", icon: CloudDownload },
-        ]
-      : hasHr ? [
-          ...(allowed(PERMISSIONS.PERSONNEL_VIEW) ? [{ href: "/dashboard/employees", label: "Personel Kayıtları", icon: Users }] : []),
-          ...(allowed(PERMISSIONS.MOVEMENT_VIEW) ? [{ href: "/dashboard/movements", label: "Personel Hareketleri", icon: ClipboardList }, { href: "/dashboard/movement-reviews", label: "İncelenecek Hareketler", icon: ListChecks }] : []),
-          ...(allowed(PERMISSIONS.LEAVE_VIEW) ? [{ href: "/dashboard/leaves", label: "İzin ve Rapor Yönetimi", icon: Plane }] : []),
-          ...(allowed(PERMISSIONS.DEVICE_VIEW) ? [{ href: "/dashboard/devices", label: "RFID Cihazları", icon: MonitorSmartphone }, { href: "/dashboard/device-health", label: "Cihaz Sağlığı", icon: HeartPulse }] : []),
-        ] : []),
-  ];
-  const reportItems = hasHr && allowed(PERMISSIONS.REPORT_VIEW) ? [
-    { href: "/dashboard/reports", label: "Rapor Merkezi", icon: FileBarChart },
-    { href: "/dashboard/reports/personnel", label: "Personel PDKS", icon: Users },
-    { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: FileBarChart },
-    { href: "/dashboard/reports/late-arrivals", label: "Geç Kalma Raporu", icon: Timer },
-    { href: "/dashboard/reports/daily-attendance", label: "Günlük Mola ve Mesai", icon: Clock3 },
-    ...(allowed(PERMISSIONS.AUDIT_VIEW) ? [{ href: "/dashboard/reports/audit", label: "Audit Raporu", icon: History }] : []),
-    { href: "/dashboard/reports/payroll", label: "Aylık Puantaj Onayı", icon: FileLock2 },
-  ] : [];
-  const calendarItems = hasHr && allowed(PERMISSIONS.CALENDAR_VIEW) ? [
-    { href: "/dashboard/calendar", label: "Takvim Görünümü", icon: CalendarDays },
-    ...(allowed(PERMISSIONS.CALENDAR_MANAGE) ? [
-      { href: "/dashboard/calendar/templates", label: "Takvim Şablonları", icon: CalendarDays },
-      { href: "/dashboard/calendar/official-holidays", label: "Resmî Tatiller", icon: CalendarDays },
-      { href: "/dashboard/calendar/special-days", label: "Şirket Özel Günleri", icon: CalendarDays },
-      { href: "/dashboard/calendar/assignments", label: "Takvim Atamaları", icon: CalendarDays },
-      { href: "/dashboard/calendar/exceptions", label: "Günlük İstisnalar", icon: CalendarDays },
-      { href: "/dashboard/calendar/conflicts", label: "Takvim Çakışmaları", icon: CalendarDays },
-      { href: "/dashboard/calendar/change-logs", label: "Değişiklik Geçmişi", icon: CalendarDays },
-    ] : []),
-  ] : [];
-  const definitionItems = [
-    ...(user.role === "SUPERADMIN"
-      ? [
-          { href: "/dashboard/users", label: "Kullanıcı Tanımları", icon: Users },
-          { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: Tags },
-        ]
-      : [
-          ...(allowed(PERMISSIONS.ACCESS_VIEW) ? [{ href: "/dashboard/access", label: "Kullanıcı Tanımlama", icon: KeyRound }, { href: "/dashboard/access/roles", label: "Rol ve Yetki Tanımları", icon: ShieldCheck }] : []),
-          ...(allowed(PERMISSIONS.ACCESS_MANAGE) ? [{ href: "/dashboard/access/teams", label: "Ekip Tanımları", icon: Users }] : []),
-          ...(!authorization.companyId || allowed(PERMISSIONS.COMPANY_VIEW) ? [{ href: "/dashboard/companies", label: "Firma Tanım", icon: Building2 }] : []),
-          ...(allowed(PERMISSIONS.SETTINGS_MANAGE) ? [{ href: "/dashboard/settings/departments", label: "Departmanlar", icon: Tags }, { href: "/dashboard/settings/branches", label: "Şubeler", icon: Building2 }, { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: Users }] : []),
-        ]),
-  ];
-  const productionItems = hasProduction ? [
-    ...(allowed(PERMISSIONS.WORK_CENTER_VIEW) ? [{ href: "/dashboard/production/work-centers", label: "İş Merkezleri", icon: Building2 }] : []),
-    ...(allowed(PERMISSIONS.CAPACITY_VIEW) ? [{ href: "/dashboard/production/capacity-planning", label: "Kapasite Planlama", icon: Timer }] : []),
-    ...(allowed(PERMISSIONS.PRODUCTION_CALENDAR_VIEW) ? [{ href: "/dashboard/production/calendar", label: "Üretim Takvimi", icon: CalendarDays }] : []),
-    ...(allowed(PERMISSIONS.PRODUCTION_REPORT_VIEW) ? [{ href: "/dashboard/production/reports", label: "Üretim Raporları", icon: FileBarChart }] : []),
-  ] : [];
+  const navigationContext = { ...authorization, isPlatformAdmin: user.role === "SUPERADMIN" || authorization.isPlatformAdmin };
+  const withIcons = (group: Parameters<typeof navigationItems>[0]) =>
+    navigationItems(group, navigationContext).map((item) => ({ ...item, icon: navigationIcons[item.icon] }));
+  const platformItems = withIcons("platform");
+  const items = hasHr ? withIcons("hr-main") : [];
+  const reportItems = hasHr ? withIcons("hr-reports") : [];
+  const calendarItems = hasHr ? withIcons("hr-calendar") : [];
+  const definitionItems = withIcons("definitions");
+  const productionItems = hasProduction ? withIcons("production") : [];
 
   return (
     <div className={styles.shell}>
@@ -155,16 +134,20 @@ export function DashboardShell({ children, user, authorization, memberships }: D
         </div>
 
         <nav className={styles.nav}>
-          {user.role === "SUPERADMIN" ? (
-            <Link
-              href="/dashboard/server-health"
-              className={`${styles.navItem} ${pathname.startsWith("/dashboard/server-health") ? styles.navItemActive : ""}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <ServerCog size={18} />
-              <span>Sunucu Durumu</span>
-            </Link>
-          ) : null}
+          {platformItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${styles.navItem} ${pathname.startsWith(item.href) ? styles.navItemActive : ""}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
           {hasHr ? <div className={styles.navGroup}>
             <button type="button" className={`${styles.navItem} ${!productionActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>İK Yönetimi</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
             {hrOpen ? <div className={styles.subNav}>

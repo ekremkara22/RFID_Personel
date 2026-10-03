@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { CalendarScopeType, SpecialDayType } from "@/generated/prisma/client";
 import { createCalendarSpecialDayAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 import { scopeLabels, specialDayTypeLabels } from "../../calendar-labels";
@@ -14,9 +14,9 @@ export default async function NewSpecialDayPage() {
   const { user } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   const [branches, departments, employees] = await Promise.all([
-    prisma.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: { companyId: user.companyId }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    queryRepository.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findMany({ where: { companyId: user.companyId }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
   ]);
 
   return (

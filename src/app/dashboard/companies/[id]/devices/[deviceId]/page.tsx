@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { DevicePurpose } from "@/generated/prisma/client";
 import { updateCompanyDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../../page.module.css";
@@ -29,8 +29,8 @@ export default async function CompanyDeviceDetailPage(props: {
   const id = parseRouteId(params.id);
   const deviceId = parseRouteId(params.deviceId);
   const [company, device] = await Promise.all([
-    prisma.company.findUnique({ where: { id } }),
-    prisma.device.findFirst({ where: { id: deviceId, companyId: id } }),
+    queryRepository.company.findUnique({ where: { id } }),
+    queryRepository.device.findFirst({ where: { id: deviceId, companyId: id } }),
   ]);
 
   if (!company || !device) {

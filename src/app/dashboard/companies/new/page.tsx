@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createCompanyAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { MODULE_CATALOG } from "@/lib/module-catalog";
 import styles from "../../page.module.css";
@@ -14,7 +14,7 @@ export default async function NewCompanyPage() {
     redirect("/dashboard");
   }
 
-  const categories = await prisma.companyCategory.findMany({
+  const categories = await queryRepository.companyCategory.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
   });

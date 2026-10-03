@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { LeaveApprovalStatus, LeaveDurationType, LeaveType } from "@/generated/prisma/client";
 import { deleteLeaveRequestAction, updateLeaveRequestAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import { can, employeeScopeWhere } from "@/lib/authorization";
@@ -32,8 +32,8 @@ export default async function LeaveDetailPage(props: { params: Promise<{ id: str
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   const id = parseRouteId((await props.params).id);
   const [leave, employees] = await Promise.all([
-    prisma.leaveRequest.findFirst({ where: { id, companyId: user.companyId, employee: employeeScopeWhere(authorization) }, include: { employee: true } }),
-    prisma.employee.findMany({ where: { ...employeeScopeWhere(authorization), isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    queryRepository.leaveRequest.findFirst({ where: { id, companyId: user.companyId, employee: employeeScopeWhere(authorization) }, include: { employee: true } }),
+    queryRepository.employee.findMany({ where: { ...employeeScopeWhere(authorization), isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
   ]);
   if (!leave) notFound();
 

@@ -11,7 +11,7 @@ import {
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import { MODULE_CATALOG } from "@/lib/module-catalog";
@@ -73,7 +73,7 @@ export default async function CompanyDetailPage(props: {
     : null;
 
   const [company, categories] = await Promise.all([
-    prisma.company.findUnique({
+    queryRepository.company.findUnique({
       where: { id },
       include: {
         users: {
@@ -108,7 +108,7 @@ export default async function CompanyDetailPage(props: {
         },
       },
     }),
-    prisma.companyCategory.findMany({
+    queryRepository.companyCategory.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
     }),

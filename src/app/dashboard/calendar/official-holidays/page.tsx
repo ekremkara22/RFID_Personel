@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { deleteCalendarSpecialDayAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { SpecialDayType } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { formatDate, scopeLabels, specialDayTypeLabels } from "../calendar-labels";
@@ -14,7 +14,7 @@ export default async function OfficialHolidaysPage(props: { searchParams?: Promi
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const holidays = await prisma.calendarSpecialDay.findMany({
+  const holidays = await queryRepository.calendarSpecialDay.findMany({
     where: {
       companyId: user.companyId,
       specialDayType: SpecialDayType.OFFICIAL_HOLIDAY,

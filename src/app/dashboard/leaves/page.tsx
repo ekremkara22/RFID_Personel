@@ -5,7 +5,7 @@ import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reor
 import { LeaveApprovalStatus, LeaveDurationType, LeaveType } from "@/generated/prisma/client";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
@@ -30,7 +30,7 @@ export default async function LeavesPage(props: { searchParams?: Promise<{ q?: s
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const leaves = await prisma.leaveRequest.findMany({ where: { companyId: user.companyId, employee: employeeScopeWhere(authorization) }, include: { employee: true }, orderBy: { startDate: "desc" }, take: 300 });
+  const leaves = await queryRepository.leaveRequest.findMany({ where: { companyId: user.companyId, employee: employeeScopeWhere(authorization) }, include: { employee: true }, orderBy: { startDate: "desc" }, take: 300 });
   const visibleLeaves = query ? leaves.filter((leave) => `${leave.employee.firstName} ${leave.employee.lastName} ${leave.description ?? ""}`.toLocaleLowerCase("tr-TR").includes(query.toLocaleLowerCase("tr-TR"))) : leaves;
   const rows = visibleLeaves.map((leave) => ({
     id: leave.id,

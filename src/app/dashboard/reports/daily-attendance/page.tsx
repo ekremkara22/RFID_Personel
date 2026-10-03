@@ -4,7 +4,7 @@ import { ExportButton } from "@/app/dashboard/export-button";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { calculateBreakMinutes } from "@/lib/attendance-sequence";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
@@ -53,18 +53,18 @@ export default async function DailyAttendanceReportPage(props: { searchParams?: 
   const selectedBranch = searchParams.branch?.trim() ?? "";
 
   const [employees, branches, calendars, logs] = await Promise.all([
-    prisma.employee.findMany({
+    queryRepository.employee.findMany({
       where: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
       orderBy: [{ department: "asc" }, { firstName: "asc" }, { lastName: "asc" }],
     }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) }, orderBy: { name: "asc" } }),
-    prisma.employeeDailyCalendar.findMany({
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) }, orderBy: { name: "asc" } }),
+    queryRepository.employeeDailyCalendar.findMany({
       where: {
         workDate: { gte: selectedDate, lt: endExclusive },
         employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
       },
     }),
-    prisma.attendanceLog.findMany({
+    queryRepository.attendanceLog.findMany({
       where: {
         scannedAt: { gte: attendanceRange.start, lt: attendanceRange.end },
         employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },

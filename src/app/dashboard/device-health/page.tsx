@@ -4,7 +4,7 @@ import { DeviceStatusRefresh } from "@/app/dashboard/device-status-refresh";
 import { can, deviceScopeWhere } from "@/lib/authorization";
 import { isDeviceOnline } from "@/lib/device-status";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import ui from "../management.module.css";
 import styles from "../page.module.css";
@@ -19,7 +19,7 @@ export default async function DeviceHealthPage() {
   const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
 
-  const devices = await prisma.device.findMany({
+  const devices = await queryRepository.device.findMany({
     where: deviceScopeWhere(authorization),
     include: { company: true },
     orderBy: [{ company: { name: "asc" } }, { name: "asc" }],

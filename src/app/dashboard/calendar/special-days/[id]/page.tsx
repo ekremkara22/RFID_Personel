@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { CalendarScopeType, SpecialDayType } from "@/generated/prisma/client";
 import { deleteCalendarSpecialDayAction, updateCalendarSpecialDayAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
@@ -15,10 +15,10 @@ export default async function SpecialDayDetailPage(props: { params: Promise<{ id
 
   const id = parseRouteId((await props.params).id);
   const [record, branches, departments, employees] = await Promise.all([
-    prisma.calendarSpecialDay.findFirst({ where: { id, companyId: user.companyId } }),
-    prisma.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: { companyId: user.companyId }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    queryRepository.calendarSpecialDay.findFirst({ where: { id, companyId: user.companyId } }),
+    queryRepository.branch.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: user.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findMany({ where: { companyId: user.companyId }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
   ]);
 
   if (!record) notFound();

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { formatDate } from "../calendar-labels";
@@ -11,7 +11,7 @@ export default async function CalendarChangeLogsPage() {
     redirect("/dashboard");
   }
 
-  const logs = await prisma.calendarChangeLog.findMany({
+  const logs = await queryRepository.calendarChangeLog.findMany({
     where: { companyId: user.companyId },
     orderBy: { changedAt: "desc" },
     take: 300,

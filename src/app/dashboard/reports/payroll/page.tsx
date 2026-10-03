@@ -7,7 +7,7 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { buildPayrollSnapshot, getDefaultPayrollMonth, getPayrollMonthRange, normalizePayrollMonth, parsePayrollSnapshot } from "@/lib/payroll-period";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -25,14 +25,14 @@ export default async function PayrollPage(props: { searchParams: Promise<{ month
   const department = params.department?.trim() ?? "";
   const range = getPayrollMonthRange(monthKey);
   const [companies, branches, departments, period] = await Promise.all([
-    prisma.company.findMany({ where: { id: companyId }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.payrollPeriod.findUnique({ where: { companyId_year_month: { companyId, year: range.year, month: range.month } }, include: { approvedBy: true, lockedBy: true } }),
+    queryRepository.company.findMany({ where: { id: companyId }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.payrollPeriod.findUnique({ where: { companyId_year_month: { companyId, year: range.year, month: range.month } }, include: { approvedBy: true, lockedBy: true } }),
   ]);
   const frozenSnapshot = parsePayrollSnapshot(period?.snapshotJson);
   const snapshot = frozenSnapshot ?? await buildPayrollSnapshot(companyId, monthKey);
-  const scopedEmployees = await prisma.employee.findMany({ where: employeeScopeWhere(authorization), select: { id: true } });
+  const scopedEmployees = await queryRepository.employee.findMany({ where: employeeScopeWhere(authorization), select: { id: true } });
   const scopedEmployeeIds = new Set(scopedEmployees.map((item) => item.id));
   const summaryRows = snapshot.summaryRows.filter((row) => scopedEmployeeIds.has(row.employeeId) && (!branch || row.branch === branch) && (!department || row.department === department));
   const employeeIds = new Set(summaryRows.map((row) => row.employeeId));

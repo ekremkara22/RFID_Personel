@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -10,7 +10,7 @@ export default async function ManagersPage(props: { searchParams?: Promise<{ q?:
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const managers = await prisma.manager.findMany({
+  const managers = await queryRepository.manager.findMany({
     where: {
       companyId: user.companyId,
       ...(query ? { OR: [{ name: { contains: query } }, { email: { contains: query } }] } : {}),

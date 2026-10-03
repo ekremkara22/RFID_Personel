@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { approvalLabels, dayTypeLabels, formatDate, scopeLabels } from "../calendar-labels";
@@ -14,7 +14,7 @@ export default async function CalendarExceptionsPage(props: { searchParams?: Pro
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim().toLocaleLowerCase("tr-TR") : "";
-  const exceptions = await prisma.calendarDailyException.findMany({
+  const exceptions = await queryRepository.calendarDailyException.findMany({
     where: { companyId: user.companyId },
     include: { branch: true, department: true, employee: true },
     orderBy: { workDate: "desc" },

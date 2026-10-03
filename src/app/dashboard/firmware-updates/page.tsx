@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { DeviceStatusRefresh } from "../device-status-refresh";
 import { SubmitButton } from "../submit-button";
 import styles from "../page.module.css";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { cancelFirmwareDeploymentAction, deployFirmwareAction } from "./actions";
 import { FirmwareTargetSelector } from "./target-selector";
@@ -27,14 +27,14 @@ export default async function FirmwareUpdatesPage(props: {
 
   const params = await props.searchParams;
   const [releases, devices, companies, branches, deployments] = await Promise.all([
-    prisma.firmwareRelease.findMany({
+    queryRepository.firmwareRelease.findMany({
       include: { createdBy: { select: { firstName: true, lastName: true, name: true, email: true } }, _count: { select: { deployments: true } } },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.device.findMany({ include: { company: true }, orderBy: [{ company: { name: "asc" } }, { name: "asc" }] }),
-    prisma.company.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { isActive: true }, include: { company: true }, orderBy: [{ company: { name: "asc" } }, { name: "asc" }] }),
-    prisma.firmwareDeployment.findMany({
+    queryRepository.device.findMany({ include: { company: true }, orderBy: [{ company: { name: "asc" } }, { name: "asc" }] }),
+    queryRepository.company.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { isActive: true }, include: { company: true }, orderBy: [{ company: { name: "asc" } }, { name: "asc" }] }),
+    queryRepository.firmwareDeployment.findMany({
       include: {
         release: true,
         device: { include: { company: true } },

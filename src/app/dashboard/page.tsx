@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import {
   APP_TIME_ZONE,
   dateOnlyFromKey,
@@ -135,8 +135,8 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
 
   const allowedCompanyWhere = isSuperadmin ? (companyIds === null ? {} : { id: { in: companyIds } }) : { id: authorization.companyId ?? -1 };
   const [filterCompanies, filterScopes] = await Promise.all([
-    prisma.company.findMany({ where: allowedCompanyWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({
+    queryRepository.company.findMany({ where: allowedCompanyWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findMany({
       where: companyScope,
       select: { companyId: true, branch: true, department: true },
       distinct: ["companyId", "branch", "department"],
@@ -183,11 +183,11 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     selectedApprovedLeaves,
     selectedAudits,
   ] = await Promise.all([
-    prisma.company.count({ where: companyWhere }),
-    prisma.user.count({ where: { role: "COMPANY_ADMIN", companyId: { in: companyIdFilter } } }),
-    prisma.employee.count({ where: employeeWhere }),
-    prisma.device.count({ where: deviceWhere }),
-    prisma.company.findMany({
+    queryRepository.company.count({ where: companyWhere }),
+    queryRepository.user.count({ where: { role: "COMPANY_ADMIN", companyId: { in: companyIdFilter } } }),
+    queryRepository.employee.count({ where: employeeWhere }),
+    queryRepository.device.count({ where: deviceWhere }),
+    queryRepository.company.findMany({
       where: companyWhere,
       include: {
         users: {
@@ -205,21 +205,21 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       orderBy: { createdAt: "desc" },
       take: isSuperadmin ? 6 : 1,
     }),
-    prisma.employee.findMany({
+    queryRepository.employee.findMany({
       where: employeeWhere,
       include: {
         company: true,
       },
       orderBy: [{ createdAt: "desc" }],
     }),
-    prisma.attendanceLog.count({
+    queryRepository.attendanceLog.count({
       where: {
         scannedAt: { gte: todayRange.start, lt: todayRange.end },
         type: "ENTRY",
         ...attendanceWhere,
       },
     }),
-    prisma.attendanceLog.findMany({
+    queryRepository.attendanceLog.findMany({
       where: {
         scannedAt: { gte: monthAttendanceStart, lt: monthAttendanceEnd },
         ...attendanceWhere,
@@ -230,7 +230,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       orderBy: { scannedAt: "desc" },
       take: 10000,
     }),
-    prisma.employeeDailyCalendar.findMany({
+    queryRepository.employeeDailyCalendar.findMany({
       where: {
         workDate: { gte: monthStart, lt: monthEnd },
         employee: employeeWhere,
@@ -238,7 +238,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       include: { employee: true },
       take: 3000,
     }),
-    prisma.attendanceLog.findMany({
+    queryRepository.attendanceLog.findMany({
       where: {
         scannedAt: { gte: todayRange.start, lt: todayRange.end },
         ...attendanceWhere,
@@ -250,7 +250,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       orderBy: { scannedAt: "desc" },
       take: 500,
     }),
-    prisma.employeeDailyCalendar.findMany({
+    queryRepository.employeeDailyCalendar.findMany({
       where: {
         workDate: selectedDate,
         employee: employeeWhere,
@@ -258,7 +258,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       include: { employee: true },
       take: 500,
     }),
-    prisma.leaveRequest.findMany({
+    queryRepository.leaveRequest.findMany({
       where: {
         employee: employeeWhere,
         approvalStatus: LeaveApprovalStatus.APPROVED,
@@ -267,7 +267,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       },
       include: { employee: true },
     }),
-    prisma.attendanceLog.findMany({
+    queryRepository.attendanceLog.findMany({
       where: {
         scannedAt: { gte: selectedRange.start, lt: selectedRange.end },
         ...attendanceWhere,
@@ -277,14 +277,14 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       },
       orderBy: { scannedAt: "asc" },
     }),
-    prisma.employeeDailyCalendar.findMany({
+    queryRepository.employeeDailyCalendar.findMany({
       where: {
         workDate: selectedDate,
         employee: employeeWhere,
       },
       include: { employee: true },
     }),
-    prisma.leaveRequest.findMany({
+    queryRepository.leaveRequest.findMany({
       where: {
         employee: employeeWhere,
         approvalStatus: LeaveApprovalStatus.APPROVED,
@@ -293,7 +293,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
       },
       include: { employee: true },
     }),
-    prisma.attendanceMovementAudit.findMany({
+    queryRepository.attendanceMovementAudit.findMany({
       where: {
         movementDateTime: { gte: selectedRange.start, lt: selectedRange.end },
         employee: employeeWhere,

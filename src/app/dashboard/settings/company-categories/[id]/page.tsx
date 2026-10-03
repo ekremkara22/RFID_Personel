@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { deleteCompanyCategoryAction, updateCompanyCategoryAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { parseRouteId } from "@/lib/ids";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 
@@ -12,9 +12,9 @@ export default async function CompanyCategoryDetailPage(props: { params: Promise
   if (user.role !== "SUPERADMIN") redirect("/dashboard");
 
   const id = parseRouteId((await props.params).id);
-  const category = await prisma.companyCategory.findUnique({ where: { id } });
+  const category = await queryRepository.companyCategory.findUnique({ where: { id } });
   if (!category) notFound();
-  const companyCount = await prisma.company.count({ where: { category: category.name } });
+  const companyCount = await queryRepository.company.count({ where: { category: category.name } });
 
   return (
     <div className={styles.page}>

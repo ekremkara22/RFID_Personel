@@ -3,7 +3,7 @@ import { ExportButton } from "@/app/dashboard/export-button";
 import { LeaveApprovalStatus } from "@/generated/prisma/client";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
@@ -79,16 +79,16 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
   const selectedBranch = searchParams.branch?.trim() || "";
 
   const [companies, branches, employees, dailyCalendars, logs, approvedLeaves] = await Promise.all([
-    prisma.company.findMany({
+    queryRepository.company.findMany({
       where: { id: authorization.companyId },
       orderBy: { name: "asc" },
     }),
-    prisma.branch.findMany({
+    queryRepository.branch.findMany({
       where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) },
       include: { company: true },
       orderBy: [{ companyId: "asc" }, { name: "asc" }],
     }),
-    prisma.employee.findMany({
+    queryRepository.employee.findMany({
       where: {
         ...employeeScopeWhere(authorization),
         ...(selectedBranch ? { branch: selectedBranch } : {}),
@@ -96,7 +96,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
       include: { company: true },
       orderBy: [{ companyId: "asc" }, { branch: "asc" }, { department: "asc" }, { firstName: "asc" }],
     }),
-    prisma.employeeDailyCalendar.findMany({
+    queryRepository.employeeDailyCalendar.findMany({
       where: {
         workDate: { gte: fromDate, lt: endExclusive },
         employee: {
@@ -108,7 +108,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
       orderBy: [{ workDate: "asc" }],
       take: 10000,
     }),
-    prisma.attendanceLog.findMany({
+    queryRepository.attendanceLog.findMany({
       where: {
         type: "ENTRY",
         scannedAt: { gte: attendanceStart, lt: attendanceEnd },
@@ -121,7 +121,7 @@ export default async function LateArrivalsReportPage(props: { searchParams?: Pro
       orderBy: [{ scannedAt: "asc" }],
       take: 10000,
     }),
-    prisma.leaveRequest.findMany({
+    queryRepository.leaveRequest.findMany({
       where: {
         companyId: authorization.companyId,
         approvalStatus: LeaveApprovalStatus.APPROVED,

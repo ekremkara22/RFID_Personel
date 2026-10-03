@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createCalendarAssignmentAction } from "@/app/dashboard/actions";
 import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
 import { AssignmentForm } from "../assignment-form";
@@ -20,11 +20,11 @@ export default async function NewCalendarAssignmentPage() {
   const scopedCompanyWhere = scopedCompanyFilter(companyIds);
 
   const [companies, templates, branches, departments, employees] = await Promise.all([
-    prisma.company.findMany({ where: companyWhere, orderBy: { name: "asc" } }),
-    prisma.workCalendarTemplate.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: scopedCompanyWhere, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    queryRepository.company.findMany({ where: companyWhere, orderBy: { name: "asc" } }),
+    queryRepository.workCalendarTemplate.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findMany({ where: scopedCompanyWhere, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
   ]);
 
   return (

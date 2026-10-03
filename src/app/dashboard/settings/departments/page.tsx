@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -15,7 +15,7 @@ export default async function DepartmentsPage(props: {
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const departments = await prisma.department.findMany({
+  const departments = await queryRepository.department.findMany({
     where: {
       companyId: user.companyId,
       ...(query ? { name: { contains: query } } : {}),

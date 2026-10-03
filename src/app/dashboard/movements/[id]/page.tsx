@@ -7,7 +7,7 @@ import { AttendanceType } from "@/generated/prisma/client";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { parseRouteId } from "@/lib/ids";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
@@ -26,7 +26,7 @@ export default async function MovementDetailPage(props: { params: Promise<{ id: 
   const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
   const id = parseRouteId((await props.params).id);
-  const log = await prisma.attendanceLog.findFirst({ where: { id, employee: employeeScopeWhere(authorization) }, include: { employee: { include: { company: true } }, device: true } });
+  const log = await queryRepository.attendanceLog.findFirst({ where: { id, employee: employeeScopeWhere(authorization) }, include: { employee: { include: { company: true } }, device: true } });
   if (!log) notFound();
 
   return (

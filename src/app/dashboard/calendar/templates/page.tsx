@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { formatDateInput, formatPlannedDuration } from "../calendar-labels";
@@ -11,7 +11,7 @@ export default async function CalendarTemplatesPage(props: { searchParams?: Prom
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const templates = await prisma.workCalendarTemplate.findMany({
+  const templates = await queryRepository.workCalendarTemplate.findMany({
     where: {
       companyId: user.companyId,
       ...(query ? { OR: [{ name: { contains: query } }, { code: { contains: query } }] } : {}),

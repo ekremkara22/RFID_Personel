@@ -6,7 +6,7 @@ import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reor
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
@@ -66,17 +66,17 @@ export default async function MovementsPage(props: {
   const toDate = getDateValue(searchParams.to);
 
   const [company, branches, departments] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
-    prisma.branch.findMany({
+    queryRepository.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
+    queryRepository.branch.findMany({
       where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" },
     }),
-    prisma.department.findMany({
+    queryRepository.department.findMany({
       where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" },
     }),
   ]);
   const branchId = branches.some((item)=>item.id === requestedBranchId) ? requestedBranchId : null; const departmentId = departments.some((item)=>item.id === requestedDepartmentId) ? requestedDepartmentId : null;
   const [logs, auditMarkers] = await Promise.all([
-    prisma.attendanceLog.findMany({
+    queryRepository.attendanceLog.findMany({
       where: {
         ...(type ? { type } : {}),
         ...(fromDate || toDate
@@ -110,7 +110,7 @@ export default async function MovementsPage(props: {
       orderBy: { scannedAt: "desc" },
       take: 500,
     }),
-    prisma.attendanceMovementAudit.findMany({
+    queryRepository.attendanceMovementAudit.findMany({
       where: { employee: employeeScopeWhere(authorization) },
       select: { employeeId: true, movementDateTime: true },
     }),
@@ -123,7 +123,7 @@ export default async function MovementsPage(props: {
     calendarKeys.set(`${log.employeeId}-${dayKey}`, { employeeId: log.employeeId, workDate });
   });
   const dailyCalendars = calendarKeys.size
-    ? await prisma.employeeDailyCalendar.findMany({
+    ? await queryRepository.employeeDailyCalendar.findMany({
         where: {
           OR: Array.from(calendarKeys.values()).map((item) => ({
             employeeId: item.employeeId,

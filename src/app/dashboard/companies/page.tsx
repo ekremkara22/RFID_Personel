@@ -4,7 +4,7 @@ import { CirclePlus, Pencil, Search } from "lucide-react";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { assertPermission, can } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 
@@ -32,7 +32,7 @@ export default async function CompaniesPage(props: {
   const queryId = Number(query);
   const hasNumericQueryId = Number.isSafeInteger(queryId) && queryId > 0;
 
-  const companies = await prisma.company.findMany({
+  const companies = await queryRepository.company.findMany({
     where: {
       ...(user.role === "SUPERADMIN" ? {} : { id: authorization.companyId ?? -1 }),
       ...(query

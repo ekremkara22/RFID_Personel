@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { createAttendanceLogAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { AttendanceType } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
@@ -36,14 +36,14 @@ export default async function NewMovementPage(props: {
     ? searchParams.returnTo
     : "/dashboard/movements";
   const [employees, devices] = await Promise.all([
-    prisma.employee.findMany({
+    queryRepository.employee.findMany({
       where: {
         ...employeeScopeWhere(authorization),
         isActive: true,
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
-    prisma.device.findMany({
+    queryRepository.device.findMany({
       where: {
         ...deviceScopeWhere(authorization),
       },

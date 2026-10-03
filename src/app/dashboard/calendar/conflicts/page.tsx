@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { CalendarCalculationStatus } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import { calculationStatusLabels, dayTypeLabels, formatDate } from "../calendar-labels";
@@ -13,7 +13,7 @@ export default async function CalendarConflictsPage() {
   }
 
   const [dailyConflicts, assignmentConflicts] = await Promise.all([
-    prisma.employeeDailyCalendar.findMany({
+    queryRepository.employeeDailyCalendar.findMany({
       where: {
         calculationStatus: { in: [CalendarCalculationStatus.CONFLICT, CalendarCalculationStatus.MISSING_DEFAULT] },
         employee: { companyId: user.companyId },
@@ -22,7 +22,7 @@ export default async function CalendarConflictsPage() {
       orderBy: { workDate: "desc" },
       take: 200,
     }),
-    prisma.calendarAssignment.findMany({
+    queryRepository.calendarAssignment.findMany({
       where: { companyId: user.companyId, conflictApproved: true },
       include: { calendarTemplate: true, branch: true, department: true, employee: true },
       orderBy: { updatedAt: "desc" },

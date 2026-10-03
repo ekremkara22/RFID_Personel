@@ -5,7 +5,7 @@ import { ExportButton } from "@/app/dashboard/export-button";
 import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayRange, getDateOnlyKey } from "@/lib/app-time";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -82,10 +82,10 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
   };
 
   const [companies, branches, departments, audits] = await Promise.all([
-    prisma.company.findMany({ where: { id: authorization.companyId }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.attendanceMovementAudit.findMany({
+    queryRepository.company.findMany({ where: { id: authorization.companyId }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.attendanceMovementAudit.findMany({
       where: {
         createdAt: { gte: getAppDayRange(getDateOnlyKey(fromDate)).start, lt: getAppDayRange(getDateOnlyKey(toExclusive)).start },
         ...(operation ? { operation } : {}),

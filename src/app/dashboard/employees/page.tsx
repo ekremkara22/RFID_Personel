@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Building2, CirclePlus, Filter, Search } from "lucide-react";
 import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { EmployeesTable } from "./employees-table";
 import styles from "../page.module.css";
@@ -22,14 +22,14 @@ export default async function EmployeesPage(props: {
   const requestedDepartmentId = Number(searchParams.departmentId);
 
   const [company, branches, departments] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length ? { id: { in: authorization.departmentIds } } : {}) }, orderBy: { name: "asc" } }),
+    queryRepository.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length ? { id: { in: authorization.departmentIds } } : {}) }, orderBy: { name: "asc" } }),
   ]);
   const branchId = branches.some((item) => item.id === requestedBranchId) ? requestedBranchId : null;
   const departmentId = departments.some((item) => item.id === requestedDepartmentId) ? requestedDepartmentId : null;
 
-  const employees = await prisma.employee.findMany({
+  const employees = await queryRepository.employee.findMany({
     where: {
       ...employeeScopeWhere(authorization),
       ...(branchId ? { branchId } : {}),

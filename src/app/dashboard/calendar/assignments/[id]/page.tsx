@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { deleteCalendarAssignmentAction, updateCalendarAssignmentAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../../page.module.css";
@@ -17,21 +17,21 @@ export default async function AssignmentDetailPage(props: { params: Promise<{ id
   const companyIds = await getAccessibleCompanyIds(user);
   const scopedCompanyWhere = scopedCompanyFilter(companyIds);
   const [assignment, companies, templates, branches, departments, employees] = await Promise.all([
-    prisma.calendarAssignment.findFirst({
+    queryRepository.calendarAssignment.findFirst({
       where: {
         id,
         ...scopedCompanyWhere,
       },
       include: { company: true, branch: true, department: true, employee: true, calendarTemplate: true },
     }),
-    prisma.company.findMany({
+    queryRepository.company.findMany({
       where: { ...(companyIds ? { id: { in: companyIds } } : {}), isActive: true },
       orderBy: { name: "asc" },
     }),
-    prisma.workCalendarTemplate.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: scopedCompanyWhere, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    queryRepository.workCalendarTemplate.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { ...scopedCompanyWhere, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findMany({ where: scopedCompanyWhere, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
   ]);
   if (!assignment) notFound();
   const scopeName = assignment.branch?.name ?? assignment.department?.name ?? (assignment.employee ? `${assignment.employee.firstName} ${assignment.employee.lastName}` : "Sirket geneli");

@@ -7,7 +7,7 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { DataScopeMode } from "@/generated/prisma/client";
 import { moduleLabel } from "@/lib/module-catalog";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import ui from "../../management.module.css";
 import styles from "../../page.module.css";
@@ -25,12 +25,12 @@ export default async function NewCompanyUserPage() {
   if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
 
   const [roles, branches, departments, employees, devices, teams] = await Promise.all([
-    prisma.companyRole.findMany({ where: { companyId: authorization.companyId, isActive: true, key: { not: "OWNER" } }, include: { permissions: true, modules: true }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
-    prisma.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }),
-    prisma.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.companyRole.findMany({ where: { companyId: authorization.companyId, isActive: true, key: { not: "OWNER" } }, include: { permissions: true, modules: true }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] }),
+    queryRepository.device.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }),
+    queryRepository.companyTeam.findMany({ where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
   ]);
   const assignableRoles = roles.filter((role) => canDelegateRole(role, authorization));
 

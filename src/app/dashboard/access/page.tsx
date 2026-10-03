@@ -3,7 +3,7 @@ import { ArrowUpRight, Filter, History, Search, ShieldCheck, UserPlus, UsersRoun
 import { CompanyMembershipStatus } from "@/generated/prisma/client";
 import { assertPermission, scopeSummary } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
@@ -33,8 +33,8 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
   const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE);
 
   const [company, memberships] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: authorization.companyId }, select: { name: true } }),
-    prisma.companyMembership.findMany({
+    queryRepository.company.findUniqueOrThrow({ where: { id: authorization.companyId }, select: { name: true } }),
+    queryRepository.companyMembership.findMany({
       where: {
         companyId: authorization.companyId,
         ...(status ? { status } : {}),

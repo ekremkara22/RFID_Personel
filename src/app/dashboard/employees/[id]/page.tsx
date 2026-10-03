@@ -5,7 +5,7 @@ import { deleteEmployeeAction, updateEmployeeAction } from "@/app/dashboard/acti
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { employeeScopeWhere } from "@/lib/authorization";
 import { parseRouteId } from "@/lib/ids";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
@@ -16,11 +16,11 @@ export default async function EmployeeDetailPage(props: { params: Promise<{ id: 
 
   const id = parseRouteId((await props.params).id);
   const [employee, companies, departments, branches, managers] = await Promise.all([
-    prisma.employee.findFirst({ where: { id, ...employeeScopeWhere(authorization) } }),
-    prisma.company.findMany({ where: { id: authorization.companyId!, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    prisma.branch.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    prisma.manager.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.employee.findFirst({ where: { id, ...employeeScopeWhere(authorization) } }),
+    queryRepository.company.findMany({ where: { id: authorization.companyId!, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.department.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.branch.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.manager.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
   ]);
   if (!employee) notFound();
 

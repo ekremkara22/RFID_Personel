@@ -3,7 +3,7 @@ import { BackLink } from "@/app/dashboard/back-link";
 import { LeaveApprovalStatus, LeaveDurationType, LeaveType } from "@/generated/prisma/client";
 import { createLeaveRequestAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
@@ -20,7 +20,7 @@ export default async function NewLeavePage() {
   const { user, authorization } = await requireSessionUser();
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
   assertPermission(authorization, PERMISSIONS.LEAVE_CREATE);
-  const employees = await prisma.employee.findMany({ where: { ...employeeScopeWhere(authorization), isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] });
+  const employees = await queryRepository.employee.findMany({ where: { ...employeeScopeWhere(authorization), isActive: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }] });
 
   return (
     <div className={styles.page}>

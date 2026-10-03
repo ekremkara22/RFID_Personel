@@ -3,7 +3,7 @@ import { Filter, MonitorSmartphone, Search } from "lucide-react";
 import { updateDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { can, deviceScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
@@ -49,7 +49,7 @@ export default async function DevicesPage(props: {
     ? selectedDeviceIdValue
     : null;
 
-  const devices = await prisma.device.findMany({
+  const devices = await queryRepository.device.findMany({
     where: {
       ...deviceScopeWhere(authorization),
       ...(query
@@ -68,14 +68,14 @@ export default async function DevicesPage(props: {
   const companyIdList = companyIds ?? [];
   const companies =
     companyIdList.length > 0
-      ? await prisma.company.findMany({
+      ? await queryRepository.company.findMany({
           where: { id: { in: companyIdList }, isActive: true },
           orderBy: { name: "asc" },
         })
       : [];
   const branches =
     companyIdList.length > 0
-      ? await prisma.branch.findMany({
+      ? await queryRepository.branch.findMany({
           where: {
             companyId: { in: companyIdList },
             isActive: true,

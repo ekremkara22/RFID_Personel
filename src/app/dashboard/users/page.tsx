@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CirclePlus, Search } from "lucide-react";
 import { Role } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { moduleLabel } from "@/lib/module-catalog";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
@@ -20,7 +20,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const users = await prisma.user.findMany({
+  const users = await queryRepository.user.findMany({
     where: {
       role: { in: [Role.SUPERADMIN, Role.COMPANY_ADMIN] },
       ...(query ? {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccessibleCompanyIds, scopedCompanyFilter } from "@/lib/access";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -12,7 +12,7 @@ export default async function BranchesPage(props: { searchParams?: Promise<{ q?:
 
   const searchParams = (await props.searchParams) ?? {};
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const branches = await prisma.branch.findMany({
+  const branches = await queryRepository.branch.findMany({
     where: {
       ...scopedCompanyFilter(companyIds),
       ...(query
