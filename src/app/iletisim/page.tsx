@@ -1,0 +1,8 @@
+import type { Metadata } from "next";
+import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import Link from "next/link";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import styles from "../marketing.module.css";
+
+export const metadata: Metadata = { title: "İletişim", description: "Flodeska iş süreçleri, RFID personel takip ve IoT çözümleri için iletişime geçin.", alternates: { canonical: "/iletisim" } };
+export default function ContactPage() { return <MarketingShell><section className={styles.pageHero}><div className="container"><div className={styles.breadcrumbs}><Link href="/">Ana Sayfa</Link> / İletişim</div><h1>Sürecinizi konuşalım.</h1><p>Mevcut çalışma biçiminizi ve dijitalleştirmek istediğiniz noktaları anlatarak başlayabilirsiniz.</p></div></section><section className={styles.section}><div className={`container ${styles.contactGrid}`}><div className={styles.contactCards}><a className={styles.contactCard} href="tel:+905078368320"><Phone size={22} /><div><strong>Telefon</strong><span>+90 507 836 83 20</span></div></a><a className={styles.contactCard} href="mailto:ekremkara22@gmail.com"><Mail size={22} /><div><strong>E-posta</strong><span>ekremkara22@gmail.com</span></div></a><div className={styles.contactCard}><MapPin size={22} /><div><strong>Adres</strong><span>Şişli / İstanbul</span></div></div></div><div className={styles.contactPanel}><MessageCircle size={30} /><h2>Doğrudan iletişim kurun</h2><p>RFID personel takip, iş süreci tasarımı veya IoT tabanlı bir ihtiyacınız varsa kısa bir ön görüşme planlayalım.</p><a className={styles.lightButton} href="https://wa.me/905078368320" target="_blank" rel="noreferrer">WhatsApp üzerinden yazın</a></div></div></section></MarketingShell>; }

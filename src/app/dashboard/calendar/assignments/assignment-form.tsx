@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import styles from "../../../page.module.css";
+import styles from "../../page.module.css";
 import formStyles from "./assignment-form.module.css";
 
 const calendarScopeTypes = ["COMPANY", "BRANCH", "DEPARTMENT", "EMPLOYEE"] as const;
