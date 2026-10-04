@@ -1,30 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
 import styles from "./site.module.css";
 
 export function ModuleSlider() {
   return (
     <section className={styles.slider} aria-roledescription="carousel" aria-label="Flodeska modülleri">
       <div className={styles.slideCopy}>
-        <span className={styles.eyebrow}>İK MODÜLÜ · AKTİF</span>
+        <span className={styles.eyebrow}>DİJİTAL SÜREÇ PLATFORMU</span>
         <h1>İş süreçleri, tek ve anlaşılır bir akışta.</h1>
         <p>
-          Flodeska; personel takibinden planlamaya, bağlı cihazlardan raporlamaya kadar
-          işletmenizin süreçlerini aynı dijital omurgada birleştirir.
+          Flodeska; insanı, süreçleri ve bağlı cihazları aynı dijital omurgada
+          birleştirerek işletmenizin çalışma biçimini görünür hale getirir.
         </p>
-        <div className={styles.slideHighlights}>
-          <span><CheckCircle2 size={18} /> RFID ile giriş, çıkış ve mola takibi</span>
-          <span><CheckCircle2 size={18} /> Canlı operasyon görünümü ve raporlama</span>
-        </div>
-        <div className={styles.heroActions}>
-          <Link href="/moduller/ik-rfid-personel-takip" className={styles.primaryButton}>
-            İK &amp; RFID modülünü incele <ArrowRight size={18} />
-          </Link>
-          <Link href="/iletisim" className={styles.secondaryButton}>Görüşme planla</Link>
-        </div>
       </div>
       <div className={styles.slideVisual}>
         <Image
@@ -34,7 +22,7 @@ export function ModuleSlider() {
           height={945}
           priority
           unoptimized
-          sizes="(max-width: 900px) 100vw, 56vw"
+          sizes="(max-width: 1200px) 100vw, 1200px"
         />
         <div className={styles.sliderStatus} aria-label="1 modülden 1. modül">01 / 01</div>
       </div>
