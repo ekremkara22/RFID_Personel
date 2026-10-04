@@ -53,6 +53,7 @@ type DashboardShellProps = {
   };
   authorization: { isPlatformAdmin: boolean; companyId: number | null; roleName: string | null; permissions: string[]; modules: string[] };
   memberships: Array<{ companyId: number; companyName: string; roleName: string }>;
+  moduleCatalog: Array<{ key: string; name: string }>;
 };
 
 function getUserFullName(user: DashboardShellProps["user"]) {
@@ -82,7 +83,7 @@ const navigationIcons: Record<NavigationIconKey, LucideIcon> = {
   key: KeyRound,
 };
 
-export function DashboardShell({ children, user, authorization, memberships }: DashboardShellProps) {
+export function DashboardShell({ children, user, authorization, memberships, moduleCatalog }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [definitionsOpen, setDefinitionsOpen] = useState(
@@ -96,6 +97,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
   const hasHr = hasModule(MODULES.HR);
   const hasProduction = hasModule(MODULES.PRODUCTION_PLANNING);
   const productionActive = pathname.startsWith("/dashboard/production");
+  const moduleName = (key: string) => moduleCatalog.find((module) => module.key === key)?.name ?? key;
 
   const navigationContext = { ...authorization, isPlatformAdmin: user.role === "SUPERADMIN" || authorization.isPlatformAdmin };
   const withIcons = (group: Parameters<typeof navigationItems>[0]) =>
@@ -149,7 +151,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
             );
           })}
           {hasHr ? <div className={styles.navGroup}>
-            <button type="button" className={`${styles.navItem} ${!productionActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>İK Yönetimi</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
+            <button type="button" className={`${styles.navItem} ${!productionActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
             {hrOpen ? <div className={styles.subNav}>
           {items.map((item) => {
             const Icon = item.icon;
@@ -169,7 +171,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
             );
           })}
 
-          {user.role !== "SUPERADMIN" && calendarItems.length ? (
+          {calendarItems.length ? (
             <div className={styles.navGroup}>
               <button
                 type="button"
@@ -207,7 +209,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
             </div>
           ) : null}
 
-          {user.role !== "SUPERADMIN" && reportItems.length ? (
+          {reportItems.length ? (
             <div className={styles.navGroup}>
               <button
                 type="button"
@@ -249,7 +251,7 @@ export function DashboardShell({ children, user, authorization, memberships }: D
           </div> : null}
 
           {productionItems.length ? <div className={styles.navGroup}>
-            <button type="button" className={`${styles.navItem} ${productionActive ? styles.navItemActive : ""}`} onClick={() => setProductionOpen((value) => !value)}><Building2 size={18}/><span>Üretim Planlama</span><ChevronDown size={16} className={`${styles.navChevron} ${productionOpen ? styles.navChevronOpen : ""}`}/></button>
+            <button type="button" className={`${styles.navItem} ${productionActive ? styles.navItemActive : ""}`} onClick={() => setProductionOpen((value) => !value)}><Building2 size={18}/><span>{moduleName(MODULES.PRODUCTION_PLANNING)}</span><ChevronDown size={16} className={`${styles.navChevron} ${productionOpen ? styles.navChevronOpen : ""}`}/></button>
             {productionOpen ? <div className={styles.subNav}>{productionItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}</div> : null}
           </div> : null}
 

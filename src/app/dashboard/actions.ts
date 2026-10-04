@@ -9,3 +9,4 @@ export * from "@/modules/calendar/actions";
 export * from "@/modules/payroll/actions";
 export * from "@/modules/attendance-review/actions";
 export * from "@/modules/auth/actions";
+export * from "@/modules/module-definitions/actions";

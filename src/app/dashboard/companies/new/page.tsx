@@ -4,7 +4,7 @@ import { createCompanyAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
-import { MODULE_CATALOG } from "@/lib/module-catalog";
+import { getModuleCatalog } from "@/modules/module-definitions/repository";
 import styles from "../../page.module.css";
 
 export default async function NewCompanyPage() {
@@ -14,10 +14,10 @@ export default async function NewCompanyPage() {
     redirect("/dashboard");
   }
 
-  const categories = await queryRepository.companyCategory.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-  });
+  const [categories, moduleCatalog] = await Promise.all([
+    queryRepository.companyCategory.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    getModuleCatalog(),
+  ]);
 
   return (
     <div className={styles.page}>
@@ -141,7 +141,7 @@ export default async function NewCompanyPage() {
 
               <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}>
                 <legend>Firma Admini Modül Yetkileri</legend>
-                <div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module) => <label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div>
+                <div className={styles.permissionCheckGrid}>{moduleCatalog.map((module) => <label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div>
               </fieldset>
             </>
           ) : null}

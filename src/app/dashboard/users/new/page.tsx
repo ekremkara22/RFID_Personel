@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createDashboardUserAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { MODULE_CATALOG } from "@/lib/module-catalog";
+import { getModuleCatalog } from "@/modules/module-definitions/repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
@@ -14,6 +14,7 @@ export default async function NewUserPage() {
   if (user.role !== "SUPERADMIN") {
     redirect("/dashboard");
   }
+  const moduleCatalog = await getModuleCatalog();
 
   return (
     <div className={`${styles.page} ${ui.managementPage}`}>
@@ -36,7 +37,7 @@ export default async function NewUserPage() {
           <label className={styles.field}><span>Sifre</span><input name="password" type="password" minLength={10} required /></label>
           <input type="hidden" name="role" value="COMPANY_ADMIN" />
           <label className={styles.field}><span>Rol</span><input value="Firma Admin" readOnly /><small>Firma kaydı kullanıcı tarafından ilk girişten sonra oluşturulur.</small></label>
-          <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini, kendi firmasını oluşturduğunda ve alt kullanıcılarını tanımladığında yalnız burada açılan modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
+          <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini, kendi firmasını oluşturduğunda ve alt kullanıcılarını tanımladığında yalnız burada açılan modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{moduleCatalog.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
 
           <div className={styles.fullWidthActionRow}>
             <SubmitButton idleLabel="Kullaniciyi Kaydet" pendingLabel="Kaydediliyor..." className={ui.primaryAction} />

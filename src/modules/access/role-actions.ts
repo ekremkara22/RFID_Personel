@@ -8,8 +8,8 @@ import { revalidatePath } from "next/cache";
 import { CompanyMembershipStatus } from "@/generated/prisma/client";
 import { assertPermission } from "@/lib/authorization";
 import { ALL_PERMISSIONS, permissionModule, PERMISSIONS } from "@/lib/permission-catalog";
-import { moduleLabel } from "@/lib/module-catalog";
 import { prisma } from "@/lib/prisma";
+import { createModuleNameMap, getModuleCatalog } from "@/modules/module-definitions/repository";
 import { membershipModuleRows } from "@/lib/role-module-sync";
 import { companyRoleDeletionMessage } from "@/lib/company-role-policy";
 import { requireSessionUser } from "@/lib/session";
@@ -27,10 +27,11 @@ async function createCompanyRoleActionImpl(formData: FormData) {
   if (!name || requested.length === 0) throw new ActionError("Rol adı ve en az bir izin zorunludur.");
   if (requested.some((permission) => !authorization.permissions.has(permission))) throw new ActionError("Sahip olmadığınız izni role ekleyemezsiniz.");
   validatePermissionsForModules(requested, selectedModuleKeys);
+  const moduleNames = createModuleNameMap(await getModuleCatalog());
   const role = await prisma.$transaction(async (tx) => {
     const created = await tx.companyRole.create({ data: { companyId: authorization.companyId!, key: `CUSTOM_${randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase()}`, name, description: description || null, modules: { create: selectedModuleKeys.map((moduleKey) => ({ moduleKey })) } } });
     await tx.companyRolePermission.createMany({ data: requested.map((permission) => ({ roleId: created.id, permission })) });
-    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: "ROLE_CREATED", summary: `${name} özel rolü ${selectedModuleKeys.map(moduleLabel).join(", ")} modülleri için oluşturuldu.`, metadataJson: JSON.stringify({ permissions: requested, moduleKeys: selectedModuleKeys }) } });
+    await tx.companyAccessAudit.create({ data: { companyId: authorization.companyId!, actorUserId: user.id, action: "ROLE_CREATED", summary: `${name} özel rolü ${selectedModuleKeys.map((key) => moduleNames.get(key) ?? key).join(", ")} modülleri için oluşturuldu.`, metadataJson: JSON.stringify({ permissions: requested, moduleKeys: selectedModuleKeys }) } });
     return created;
   });
   revalidatePath("/dashboard/access/roles"); redirect(`/dashboard/access/roles?created=${role.id}`);

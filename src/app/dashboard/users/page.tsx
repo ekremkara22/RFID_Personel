@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CirclePlus, Search } from "lucide-react";
 import { Role } from "@/generated/prisma/client";
 import { queryRepository } from "@/modules/shared/query-repository";
-import { moduleLabel } from "@/lib/module-catalog";
+import { createModuleNameMap, getModuleCatalog } from "@/modules/module-definitions/repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 
@@ -20,7 +20,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
 
   const searchParams = await props.searchParams;
   const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
-  const users = await queryRepository.user.findMany({
+  const [users, moduleCatalog] = await Promise.all([queryRepository.user.findMany({
     where: {
       role: { in: [Role.SUPERADMIN, Role.COMPANY_ADMIN] },
       ...(query ? {
@@ -41,7 +41,8 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
       moduleEntitlements: true,
     },
     orderBy: { createdAt: "desc" },
-  });
+  }), getModuleCatalog()]);
+  const moduleNamesByKey = createModuleNameMap(moduleCatalog);
 
   return (
     <div className={styles.page}>
@@ -86,9 +87,9 @@ export default async function UsersPage(props: { searchParams: Promise<{ q?: str
                 const companyNames = item.companyAccess.length > 0
                   ? item.companyAccess.map((access) => access.company.name).join(", ")
                   : item.memberships.map((membership) => membership.company.name).join(", ") || item.company?.name || "Firma henüz tanımlanmadı";
-                const moduleNames = [...new Set([
-                  ...item.moduleEntitlements.map((module) => moduleLabel(module.moduleKey)),
-                  ...item.memberships.flatMap((membership) => membership.modules.map((module) => moduleLabel(module.moduleKey))),
+                const moduleNames = item.role === Role.SUPERADMIN ? "Tüm modüller" : [...new Set([
+                  ...item.moduleEntitlements.map((module) => moduleNamesByKey.get(module.moduleKey) ?? module.moduleKey),
+                  ...item.memberships.flatMap((membership) => membership.modules.map((module) => moduleNamesByKey.get(module.moduleKey) ?? module.moduleKey)),
                 ])].join(", ");
                 return (
                   <tr key={item.id}>

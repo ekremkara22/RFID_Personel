@@ -7,7 +7,7 @@ import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
-import { moduleLabel } from "@/lib/module-catalog";
+import { createModuleNameMap, getModuleCatalog } from "@/modules/module-definitions/repository";
 
 const statusLabels: Record<CompanyMembershipStatus, string> = {
   PENDING: "Bekleyen",
@@ -32,7 +32,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
     : undefined;
   const canManage = authorization.permissions.has(PERMISSIONS.ACCESS_MANAGE);
 
-  const [company, memberships] = await Promise.all([
+  const [company, memberships, moduleCatalog] = await Promise.all([
     queryRepository.company.findUniqueOrThrow({ where: { id: authorization.companyId }, select: { name: true } }),
     queryRepository.companyMembership.findMany({
       where: {
@@ -52,7 +52,9 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
       },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
+    getModuleCatalog(),
   ]);
+  const moduleNames = createModuleNameMap(moduleCatalog);
 
   const inviteLink = params.invite?.startsWith("https://test.flodeska.com/activate/") ? params.invite : "";
 
@@ -122,7 +124,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
                     <td><strong className={ui.primaryText}>{name}</strong><span className={ui.secondaryText}>{item.user.username ? `@${item.user.username} · ` : ""}{item.user.email}</span></td>
                     <td><strong className={ui.primaryText}>{item.role.name}</strong></td>
                     <td><span className={item.status === "ACTIVE" ? ui.statusBadge : ui.statusWarning}><span className={ui.statusDot} />{statusLabels[item.status]}</span></td>
-                    <td><strong className={ui.primaryText}>{item.modules.map((module) => moduleLabel(module.moduleKey)).join(", ") || "Modül yok"}</strong><span className={ui.secondaryText}>{scopeSummary(context)}</span></td>
+                    <td><strong className={ui.primaryText}>{item.modules.map((module) => moduleNames.get(module.moduleKey) ?? module.moduleKey).join(", ") || "Modül yok"}</strong><span className={ui.secondaryText}>{scopeSummary(context)}</span></td>
                     <td><strong className={ui.primaryText}>{item.role.permissions.length}</strong><span className={ui.secondaryText}>işlem</span></td>
                     <td><Link href={`/dashboard/access/members/${item.id}`} className={ui.rowAction} aria-label={`${name} rol ve kapsamını incele`}>Yönet <ArrowUpRight size={14} /></Link></td>
                   </tr>

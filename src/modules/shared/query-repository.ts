@@ -28,6 +28,7 @@ export const queryRepository = {
   firmwareRelease: prisma.firmwareRelease,
   leaveRequest: prisma.leaveRequest,
   manager: prisma.manager,
+  moduleDefinition: prisma.moduleDefinition,
   payrollPeriod: prisma.payrollPeriod,
   roleDefinition: prisma.roleDefinition,
   user: prisma.user,

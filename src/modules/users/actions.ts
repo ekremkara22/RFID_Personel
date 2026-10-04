@@ -58,12 +58,15 @@ async function updateDashboardUserActionImpl(formData: FormData) {
   const username = normalizeOptionalUsername(getString(formData, "username"));
   const phone = getString(formData, "phone");
   const password = getString(formData, "password");
-  const moduleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
+  const submittedModuleKeys = [...new Set(getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never)))];
   const deviceIds = getIdList(formData, "deviceIds");
   const targetUser = userId
-    ? await prisma.user.findUnique({ where: { id: userId }, select: { id: true, firstName: true, lastName: true, email: true } })
+    ? await prisma.user.findUnique({ where: { id: userId }, select: { id: true, firstName: true, lastName: true, email: true, role: true } })
     : null;
   const role = await getAssignableRole(formData);
+  const moduleKeys = role === Role.COMPANY_ADMIN && targetUser?.role === Role.SUPERADMIN && submittedModuleKeys.length === 0
+    ? [...ALL_MODULE_KEYS]
+    : submittedModuleKeys;
   const firstName = submittedFirstName || targetUser?.firstName?.trim() || "";
   const lastName = submittedLastName || targetUser?.lastName?.trim() || "";
   const email = submittedEmail ?? targetUser?.email ?? null;
@@ -78,6 +81,7 @@ async function updateDashboardUserActionImpl(formData: FormData) {
     throw new ActionError("Kendi super admin rolunuzu degistiremezsiniz.");
   }
   if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new ActionError("Bu ekrandan yalnız süper admin veya firma admini yönetilebilir.");
+  if (role === Role.COMPANY_ADMIN && moduleKeys.length === 0) throw new ActionError("Firma admini için en az bir modül lisansı seçilmelidir.");
   if (password && password.length < 10) throw new ActionError("Yeni şifre en az 10 karakter olmalıdır.");
   const passwordHash = password ? await bcrypt.hash(password, 10) : null;
 

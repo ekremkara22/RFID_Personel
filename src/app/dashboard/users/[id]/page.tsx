@@ -17,7 +17,7 @@ import { DevicePurpose, Role } from "@/generated/prisma/client";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
-import { MODULE_CATALOG } from "@/lib/module-catalog";
+import { getModuleCatalog } from "@/modules/module-definitions/repository";
 import styles from "../../page.module.css";
 
 const tabs = [
@@ -62,7 +62,7 @@ export default async function UserDetailPage(props: {
     ? (searchParams.tab as TabKey)
     : "general";
 
-  const [record, roleDefinitions] = await Promise.all([
+  const [record, roleDefinitions, moduleCatalog] = await Promise.all([
     queryRepository.user.findFirst({
       where: { id },
       include: {
@@ -76,6 +76,7 @@ export default async function UserDetailPage(props: {
       },
     }),
     queryRepository.roleDefinition.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    getModuleCatalog(),
   ]);
 
   if (!record) notFound();
@@ -166,7 +167,7 @@ export default async function UserDetailPage(props: {
             </label>
 
             <label className={styles.field}><span>Firma Durumu</span><input value={selectedCompanyIdList.length ? `${selectedCompanyIdList.length} firma tanımlı` : "Firma henüz tanımlanmadı"} readOnly /><small>Firma admini firmasını kendi hesabından oluşturur.</small></label>
-            <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini ve onun oluşturacağı alt kullanıcılar yalnız seçili modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={selectedModuleKeys.has(module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
+            {record.role === Role.COMPANY_ADMIN ? <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini ve onun oluşturacağı alt kullanıcılar yalnız seçili modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{moduleCatalog.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={selectedModuleKeys.has(module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset> : <div className={`${styles.fullWidth} ${styles.helperText}`}>Süper Admin bütün modül ve yetkilere otomatik erişir; ayrıca modül lisansı seçilmez.</div>}
             {record.deviceAccess.map((access) => (
               <input key={access.deviceId} type="hidden" name="deviceIds" value={access.deviceId} />
             ))}

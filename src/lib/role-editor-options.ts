@@ -1,8 +1,8 @@
-import { MODULE_CATALOG } from "@/lib/module-catalog";
 import { MODULE_PERMISSION_SECTIONS } from "@/lib/permission-catalog";
+import type { DisplayModuleDefinition } from "@/modules/module-definitions/repository";
 
-export function roleEditorModules(availableModules: Set<string>, availablePermissions: Set<string>) {
-  return MODULE_CATALOG.filter((module) => availableModules.has(module.key)).map((module) => ({
+export function roleEditorModules(catalog: readonly DisplayModuleDefinition[], availableModules: Set<string>, availablePermissions: Set<string>) {
+  return catalog.filter((module) => availableModules.has(module.key)).map((module) => ({
     key: module.key,
     name: module.name,
     description: module.description,

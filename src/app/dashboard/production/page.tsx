@@ -3,6 +3,8 @@ import { Building2, CalendarDays, FileBarChart, Timer } from "lucide-react";
 import { can } from "@/lib/authorization";
 import { PERMISSIONS, type PermissionCode } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
+import { getModuleCatalog } from "@/modules/module-definitions/repository";
+import { MODULES } from "@/modules/registry";
 import ui from "../management.module.css";
 import styles from "./production.module.css";
 
@@ -14,10 +16,11 @@ const sections = [
 ];
 
 export default async function ProductionPlanningPage() {
-  const { authorization } = await requireSessionUser();
+  const [{ authorization }, moduleCatalog] = await Promise.all([requireSessionUser(), getModuleCatalog()]);
+  const moduleDefinition = moduleCatalog.find((item) => item.key === MODULES.PRODUCTION_PLANNING)!;
   const visibleSections = sections.filter((section) => can(authorization, section.permission as PermissionCode));
   return <div className={`${ui.managementPage}`}>
-    <header className={ui.pageHeader}><div className={ui.headerCopy}><p className={ui.kicker}>Üretim modülü</p><h1 className={ui.pageTitle}>Üretim Planlama</h1><p className={ui.pageDescription}>İş merkezlerinden raporlamaya kadar üretim planlama süreçlerini tek modülde yönetin.</p></div></header>
-    <section className={styles.moduleGrid}>{visibleSections.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className={styles.moduleCard}><div><p className={styles.cardEyebrow}>Üretim Planlama</p><h2>{item.title}</h2><p>{item.description}</p></div><span className={styles.cardIcon}><Icon size={20}/></span></Link>; })}</section>
+    <header className={ui.pageHeader}><div className={ui.headerCopy}><p className={ui.kicker}>Üretim modülü</p><h1 className={ui.pageTitle}>{moduleDefinition.name}</h1><p className={ui.pageDescription}>{moduleDefinition.description}</p></div></header>
+    <section className={styles.moduleGrid}>{visibleSections.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className={styles.moduleCard}><div><p className={styles.cardEyebrow}>{moduleDefinition.name}</p><h2>{item.title}</h2><p>{item.description}</p></div><span className={styles.cardIcon}><Icon size={20}/></span></Link>; })}</section>
   </div>;
 }

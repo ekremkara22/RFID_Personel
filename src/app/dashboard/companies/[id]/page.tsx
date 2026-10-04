@@ -14,7 +14,7 @@ import { PERMISSIONS } from "@/lib/permission-catalog";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
-import { MODULE_CATALOG } from "@/lib/module-catalog";
+import { getModuleCatalog } from "@/modules/module-definitions/repository";
 import styles from "../../page.module.css";
 
 const tabs = [
@@ -72,7 +72,7 @@ export default async function CompanyDetailPage(props: {
     ? selectedEmployeeIdValue
     : null;
 
-  const [company, categories] = await Promise.all([
+  const [company, categories, moduleCatalog] = await Promise.all([
     queryRepository.company.findUnique({
       where: { id },
       include: {
@@ -112,6 +112,7 @@ export default async function CompanyDetailPage(props: {
       where: { isActive: true },
       orderBy: { name: "asc" },
     }),
+    getModuleCatalog(),
   ]);
 
   if (!company) {
@@ -223,7 +224,7 @@ export default async function CompanyDetailPage(props: {
                   <input name="adminPassword" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
                 </label>
 
-                <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Firma Admini Modül Yetkileri</legend><div className={styles.permissionCheckGrid}>{MODULE_CATALOG.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={companyAdminMembership?.modules.some((entry)=>entry.moduleKey === module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
+                <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Firma Admini Modül Yetkileri</legend><div className={styles.permissionCheckGrid}>{moduleCatalog.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={companyAdminMembership?.modules.some((entry)=>entry.moduleKey === module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
               </>
             ) : null}
 
