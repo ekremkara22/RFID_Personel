@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CalendarDays, FileBarChart, Timer } from "lucide-react";
+import { CalendarDays, ClipboardList, FileBarChart, Settings2, Timer } from "lucide-react";
 import { can } from "@/lib/authorization";
 import { PERMISSIONS, type PermissionCode } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
@@ -9,7 +9,9 @@ import ui from "../management.module.css";
 import styles from "./production.module.css";
 
 const sections = [
-  { href: "/dashboard/production/work-centers", title: "İş Merkezleri", description: "Üretim kaynaklarını, çalışma düzenlerini ve merkez bilgilerini yönetin.", icon: Building2, permission: PERMISSIONS.WORK_CENTER_VIEW },
+  { href: "/dashboard/production/definitions", title: "Sabit Tanımlar", description: "İş merkezleri, istasyonlar ve çevrim sürelerini yönetin.", icon: Settings2, permission: PERMISSIONS.WORK_CENTER_VIEW },
+  { href: "/dashboard/production/work-orders", title: "İş Emirleri", description: "İş yüklerini ekleyin, Excel şablonunuzu alın ve içeri aktarın.", icon: ClipboardList, permission: PERMISSIONS.CAPACITY_VIEW },
+  { href: "/dashboard/production/gantt", title: "Gantt Planlama", description: "İstasyon yoğunluğunu izleyin ve işleri kolayca sıralayın.", icon: CalendarDays, permission: PERMISSIONS.CAPACITY_VIEW },
   { href: "/dashboard/production/capacity-planning", title: "Kapasite Planlama", description: "İş merkezlerinin kullanılabilir kapasitesini ve planlanan yükünü izleyin.", icon: Timer, permission: PERMISSIONS.CAPACITY_VIEW },
   { href: "/dashboard/production/calendar", title: "Üretim Takvimi", description: "Planlanan üretimleri gün, hafta ve dönem bazında takip edin.", icon: CalendarDays, permission: PERMISSIONS.PRODUCTION_CALENDAR_VIEW },
   { href: "/dashboard/production/reports", title: "Üretim Raporları", description: "Kapasite, gerçekleşme ve plan sapmalarını raporlayın.", icon: FileBarChart, permission: PERMISSIONS.PRODUCTION_REPORT_VIEW },

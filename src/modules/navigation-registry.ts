@@ -44,7 +44,9 @@ export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/reports/audit", label: "Audit Raporu", icon: "history", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW, managePermission: PERMISSIONS.AUDIT_VIEW },
   { href: "/dashboard/reports/payroll", label: "Aylık Puantaj Onayı", icon: "lock", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
 
-  { href: "/dashboard/production/work-centers", label: "İş Merkezleri", icon: "building", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
+  { href: "/dashboard/production/definitions", label: "Sabit Tanımlar", icon: "settings", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
+  { href: "/dashboard/production/work-orders", label: "İş Emirleri", icon: "clipboard", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },
+  { href: "/dashboard/production/gantt", label: "Gantt Planlama", icon: "calendar", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },
   { href: "/dashboard/production/capacity-planning", label: "Kapasite Planlama", icon: "timer", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },
   { href: "/dashboard/production/calendar", label: "Üretim Takvimi", icon: "calendar", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.PRODUCTION_CALENDAR_VIEW },
   { href: "/dashboard/production/reports", label: "Üretim Raporları", icon: "file-chart", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.PRODUCTION_REPORT_VIEW },

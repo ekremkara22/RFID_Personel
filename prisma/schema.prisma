@@ -154,36 +154,68 @@ enum CompanyInvitationStatus {
   REVOKED
 }
 
+enum ProductionStationType {
+  GENERAL
+  INJECTION
+  CNC_TURNING
+  CNC_MILLING
+  ASSEMBLY
+  QUALITY
+}
+
+enum ProductionWorkOrderStatus {
+  DRAFT
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProductionCustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  BOOLEAN
+}
+
 model Company {
-  id                  Int                      @id @default(autoincrement()) @db.UnsignedInt
-  name                String
-  contactName         String?
-  contactEmail        String?
-  contactPhone        String?
-  address             String?
-  city                String?
-  district            String?
-  category            String?
-  isActive            Boolean                  @default(true)
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
-  users               User[]
-  userAccess          UserCompanyAccess[]
-  employees           Employee[]
-  devices             Device[]
-  departments         Department[]
-  branches            Branch[]
-  managers            Manager[]
-  calendarTemplates   WorkCalendarTemplate[]
-  calendarAssignments CalendarAssignment[]
-  calendarSpecialDays CalendarSpecialDay[]
-  dailyExceptions     CalendarDailyException[]
-  payrollPeriods      PayrollPeriod[]
-  companyRoles        CompanyRole[]
-  memberships         CompanyMembership[]
-  invitations         CompanyInvitation[]
-  accessAudits        CompanyAccessAudit[]
-  teams               CompanyTeam[]
+  id                        Int                        @id @default(autoincrement()) @db.UnsignedInt
+  name                      String
+  contactName               String?
+  contactEmail              String?
+  contactPhone              String?
+  address                   String?
+  city                      String?
+  district                  String?
+  category                  String?
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  users                     User[]
+  userAccess                UserCompanyAccess[]
+  employees                 Employee[]
+  devices                   Device[]
+  departments               Department[]
+  branches                  Branch[]
+  managers                  Manager[]
+  calendarTemplates         WorkCalendarTemplate[]
+  calendarAssignments       CalendarAssignment[]
+  calendarSpecialDays       CalendarSpecialDay[]
+  dailyExceptions           CalendarDailyException[]
+  payrollPeriods            PayrollPeriod[]
+  companyRoles              CompanyRole[]
+  memberships               CompanyMembership[]
+  invitations               CompanyInvitation[]
+  accessAudits              CompanyAccessAudit[]
+  teams                     CompanyTeam[]
+  productionWorkCenters     ProductionWorkCenter[]
+  productionStations        ProductionStation[]
+  productionTools           ProductionTool[]
+  productionCycleTimes      ProductionCycleTime[]
+  productionWorkOrders      ProductionWorkOrder[]
+  productionCustomFields    ProductionCustomField[]
+  productionImportTemplates ProductionImportTemplate[]
 }
 
 model CompanyCategory {
@@ -531,6 +563,161 @@ model Manager {
   @@unique([companyId, name])
 }
 
+model ProductionWorkCenter {
+  id                 Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId          Int                   @db.UnsignedInt
+  company            Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code               String                @db.VarChar(64)
+  name               String                @db.VarChar(160)
+  description        String?               @db.Text
+  calendarTemplateId Int?                  @db.UnsignedInt
+  calendarTemplate   WorkCalendarTemplate? @relation("ProductionWorkCenterCalendar", fields: [calendarTemplateId], references: [id], onDelete: SetNull)
+  isActive           Boolean               @default(true)
+  stations           ProductionStation[]
+  workOrders         ProductionWorkOrder[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@unique([companyId, code])
+  @@index([companyId, isActive, name])
+}
+
+model ProductionStation {
+  id                 Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId          Int                   @db.UnsignedInt
+  company            Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workCenterId       Int                   @db.UnsignedInt
+  workCenter         ProductionWorkCenter  @relation(fields: [workCenterId], references: [id], onDelete: Restrict)
+  code               String                @db.VarChar(64)
+  name               String                @db.VarChar(160)
+  stationType        ProductionStationType @default(GENERAL)
+  description        String?               @db.Text
+  calendarTemplateId Int?                  @db.UnsignedInt
+  calendarTemplate   WorkCalendarTemplate? @relation("ProductionStationCalendar", fields: [calendarTemplateId], references: [id], onDelete: SetNull)
+  isActive           Boolean               @default(true)
+  cycleTimes         ProductionCycleTime[]
+  workOrders         ProductionWorkOrder[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@unique([companyId, code])
+  @@index([companyId, workCenterId, isActive])
+}
+
+model ProductionTool {
+  id          Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId   Int                   @db.UnsignedInt
+  company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code        String                @db.VarChar(64)
+  name        String                @db.VarChar(160)
+  toolType    String?               @db.VarChar(80)
+  description String?               @db.Text
+  isActive    Boolean               @default(true)
+  cycleTimes  ProductionCycleTime[]
+  workOrders  ProductionWorkOrder[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@unique([companyId, code])
+  @@index([companyId, isActive, name])
+}
+
+model ProductionCycleTime {
+  id                   Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId            Int                   @db.UnsignedInt
+  company              Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stationId            Int                   @db.UnsignedInt
+  station              ProductionStation     @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  toolId               Int?                  @db.UnsignedInt
+  tool                 ProductionTool?       @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  itemCode             String                @db.VarChar(96)
+  itemName             String?               @db.VarChar(255)
+  cycleSeconds         Int                   @db.UnsignedInt
+  cavityCount          Int                   @default(1) @db.UnsignedSmallInt
+  setupMinutes         Int                   @default(0) @db.UnsignedInt
+  validFrom            DateTime?
+  validTo              DateTime?
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  productionWorkOrders ProductionWorkOrder[]
+
+  @@index([companyId, stationId, itemCode, isActive])
+  @@index([companyId, toolId])
+}
+
+model ProductionCustomField {
+  id           Int                       @id @default(autoincrement()) @db.UnsignedInt
+  companyId    Int                       @db.UnsignedInt
+  company      Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  entity       String                    @default("WORK_ORDER") @db.VarChar(64)
+  fieldKey     String                    @db.VarChar(64)
+  label        String                    @db.VarChar(160)
+  fieldType    ProductionCustomFieldType @default(TEXT)
+  optionsJson  String?                   @db.Text
+  isRequired   Boolean                   @default(false)
+  displayOrder Int                       @default(0)
+  isActive     Boolean                   @default(true)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  @@unique([companyId, entity, fieldKey])
+  @@index([companyId, entity, isActive, displayOrder])
+}
+
+model ProductionImportTemplate {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  companyId   Int      @db.UnsignedInt
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  entity      String   @default("WORK_ORDER") @db.VarChar(64)
+  name        String   @db.VarChar(160)
+  columnsJson String   @db.LongText
+  mappingJson String?  @db.LongText
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([companyId, entity, name])
+}
+
+model ProductionWorkOrder {
+  id                   Int                       @id @default(autoincrement()) @db.UnsignedInt
+  companyId            Int                       @db.UnsignedInt
+  company              Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workOrderNo          String                    @db.VarChar(96)
+  orderNo              String?                   @db.VarChar(96)
+  itemCode             String                    @db.VarChar(96)
+  itemName             String?                   @db.VarChar(255)
+  quantity             Decimal                   @db.Decimal(14, 3)
+  workCenterId         Int                       @db.UnsignedInt
+  workCenter           ProductionWorkCenter      @relation(fields: [workCenterId], references: [id], onDelete: Restrict)
+  stationId            Int                       @db.UnsignedInt
+  station              ProductionStation         @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  toolId               Int?                      @db.UnsignedInt
+  tool                 ProductionTool?           @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  cycleTimeId          Int?                      @db.UnsignedInt
+  cycleTime            ProductionCycleTime?      @relation(fields: [cycleTimeId], references: [id], onDelete: SetNull)
+  cycleSecondsSnapshot Int                       @db.UnsignedInt
+  cavityCountSnapshot  Int                       @default(1) @db.UnsignedSmallInt
+  setupMinutesSnapshot Int                       @default(0) @db.UnsignedInt
+  calculatedMinutes    Int                       @default(0) @db.UnsignedInt
+  dueDate              DateTime?
+  plannedStartAt       DateTime?
+  plannedEndAt         DateTime?
+  sequence             Int                       @default(0)
+  status               ProductionWorkOrderStatus @default(DRAFT)
+  isScheduleLocked     Boolean                   @default(false)
+  customFieldsJson     String?                   @db.LongText
+  source               String                    @default("MANUAL") @db.VarChar(32)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  @@unique([companyId, workOrderNo])
+  @@index([companyId, stationId, sequence])
+  @@index([companyId, dueDate, status])
+}
+
 model Device {
   id                   Int                     @id @default(autoincrement()) @db.UnsignedInt
   code                 String?
@@ -684,21 +871,23 @@ model LeaveRequest {
 }
 
 model WorkCalendarTemplate {
-  id             Int                     @id @default(autoincrement()) @db.UnsignedInt
-  code           String
-  name           String
-  description    String?
-  validFrom      DateTime?
-  validTo        DateTime?
-  isDefault      Boolean                 @default(false)
-  isActive       Boolean                 @default(true)
-  companyId      Int                     @db.UnsignedInt
-  company        Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  weekdays       WorkCalendarWeekday[]
-  assignments    CalendarAssignment[]
-  dailyCalendars EmployeeDailyCalendar[]
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  id                    Int                     @id @default(autoincrement()) @db.UnsignedInt
+  code                  String
+  name                  String
+  description           String?
+  validFrom             DateTime?
+  validTo               DateTime?
+  isDefault             Boolean                 @default(false)
+  isActive              Boolean                 @default(true)
+  companyId             Int                     @db.UnsignedInt
+  company               Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  weekdays              WorkCalendarWeekday[]
+  assignments           CalendarAssignment[]
+  dailyCalendars        EmployeeDailyCalendar[]
+  productionWorkCenters ProductionWorkCenter[]  @relation("ProductionWorkCenterCalendar")
+  productionStations    ProductionStation[]     @relation("ProductionStationCalendar")
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
 
   @@unique([companyId, code])
 }

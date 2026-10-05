@@ -30,6 +30,26 @@
 .emptyPanel { min-height: 300px; display: grid; place-items: center; text-align: center; padding: 2rem; }
 .emptyPanel h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
 .emptyPanel p { max-width: 560px; margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.6; }
+.mutedCode { color: #667085; font-size: 12px; }
+.stationList { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.stationList li { display: grid; gap: 2px; }
+.stationList small { color: #667085; font-size: 12px; }
+.ganttBoard { min-width: 0; overflow-x: auto; border: 1px solid #e4e7ec; border-radius: 10px; }
+.ganttScale { min-width: 760px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 14px; border-bottom: 1px solid #e4e7ec; background: #f8fafc; color: #667085; padding: 10px 14px; font-size: 12px; font-weight: 700; }
+.ganttLane { min-width: 760px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 14px; border-bottom: 1px solid #eaecf0; padding: 12px 14px; }
+.ganttLane:last-child { border-bottom: 0; }
+.ganttLane header { display: grid; align-content: center; gap: 3px; min-width: 0; }
+.ganttLane header strong { color: #101828; font-size: 14px; }
+.ganttLane header span { color: #667085; font-size: 12px; }
+.ganttTrack { min-width: 0; min-height: 74px; display: flex; align-items: stretch; gap: 8px; border-left: 1px solid #e4e7ec; padding-left: 14px; }
+.ganttTask { width: clamp(150px, 18vw, 250px); flex: 0 0 auto; display: grid; align-content: center; gap: 4px; border: 1px solid #b2ddff; border-radius: 8px; background: #eff8ff; color: #175cd3; padding: 9px 11px; cursor: grab; user-select: none; }
+.ganttTask:focus-visible { outline: 3px solid rgba(21,112,239,.22); outline-offset: 2px; }
+.ganttTask strong { font-size: 13px; }
+.ganttTask span, .ganttTask small { color: #344054; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ganttTask small { color: #667085; }
+.ganttTaskLocked { border-color: #d0d5dd; background: #f2f4f7; color: #475467; cursor: not-allowed; }
+.ganttEmpty { width: 100%; min-height: 74px; border: 1px dashed #d0d5dd; border-radius: 8px; background: #fcfcfd; color: #667085; font: inherit; font-size: 12px; cursor: pointer; }
+@media (max-width: 760px) { .ganttBoard { margin: 0 -2px; } }
 
 @media (max-width: 760px) {
   .moduleGrid { grid-template-columns: 1fr; }
