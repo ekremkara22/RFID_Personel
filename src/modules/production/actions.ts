@@ -97,6 +97,27 @@ export async function createToolAction(formData: FormData) {
   invalidateDefinitions();
 }
 
+export async function updateToolAction(formData: FormData) {
+  const companyId = await productionContext();
+  const id = getId(formData, "id");
+  const code = getString(formData, "code").toUpperCase();
+  const name = getString(formData, "name");
+  if (!code || !name) throw new ActionError("Kalıp/aparat kodu ve adı zorunludur.");
+  const result = await prisma.productionTool.updateMany({ where: { id, companyId }, data: { code, name, toolType: getString(formData, "toolType") || null, description: getString(formData, "description") || null, isActive: formData.get("isActive") === "on" } });
+  if (!result.count) throw new ActionError("Kalıp/aparat bulunamadı.");
+  invalidateDefinitions();
+}
+
+export async function deleteToolAction(formData: FormData) {
+  const companyId = await productionContext();
+  const id = getId(formData, "id");
+  const [tool, cycleCount, orderCount] = await Promise.all([prisma.productionTool.findFirst({ where: { id, companyId } }), prisma.productionCycleTime.count({ where: { companyId, toolId: id } }), prisma.productionWorkOrder.count({ where: { companyId, toolId: id } })]);
+  if (!tool) throw new ActionError("Kalıp/aparat bulunamadı.");
+  if (cycleCount || orderCount) throw new ActionError("Bu kalıp/aparat çevrim standardı veya iş emrinde kullanılıyor. Silmek yerine pasife alın.");
+  await prisma.productionTool.delete({ where: { id } });
+  invalidateDefinitions();
+}
+
 export async function updateStationAction(formData: FormData) {
   const companyId = await productionContext();
   const id = getId(formData, "id");
@@ -142,6 +163,31 @@ export async function createCycleTimeAction(formData: FormData) {
   const toolId = getOptionalId(formData, "toolId");
   if (toolId && !await prisma.productionTool.findFirst({ where: { id: toolId, companyId } })) throw new ActionError("Kalıp/aparat bulunamadı.");
   await prisma.productionCycleTime.create({ data: { companyId, stationId, toolId, itemCode, itemName: getString(formData, "itemName") || null, cycleSeconds, cavityCount, setupMinutes } });
+  invalidateDefinitions();
+}
+
+export async function updateCycleTimeAction(formData: FormData) {
+  const companyId = await productionContext();
+  const id = getId(formData, "id");
+  const stationId = getId(formData, "stationId");
+  const itemCode = getString(formData, "itemCode").toUpperCase();
+  if (!itemCode) throw new ActionError("Parça kodu zorunludur.");
+  const station = await prisma.productionStation.findFirst({ where: { id: stationId, companyId } });
+  if (!station) throw new ActionError("İstasyon bulunamadı.");
+  const toolId = getOptionalId(formData, "toolId");
+  if (toolId && !await prisma.productionTool.findFirst({ where: { id: toolId, companyId } })) throw new ActionError("Kalıp/aparat bulunamadı.");
+  const result = await prisma.productionCycleTime.updateMany({ where: { id, companyId }, data: { stationId, toolId, itemCode, itemName: getString(formData, "itemName") || null, cycleSeconds: positiveInteger(getOptionalNumber(formData, "cycleSeconds"), "Çevrim süresi"), cavityCount: positiveInteger(getOptionalNumber(formData, "cavityCount"), "Göz adedi", 1), setupMinutes: positiveInteger(getOptionalNumber(formData, "setupMinutes"), "Hazırlık süresi", 0, 0), isActive: formData.get("isActive") === "on" } });
+  if (!result.count) throw new ActionError("Çevrim standardı bulunamadı.");
+  invalidateDefinitions();
+}
+
+export async function deleteCycleTimeAction(formData: FormData) {
+  const companyId = await productionContext();
+  const id = getId(formData, "id");
+  const [cycle, orderCount] = await Promise.all([prisma.productionCycleTime.findFirst({ where: { id, companyId } }), prisma.productionWorkOrder.count({ where: { companyId, cycleTimeId: id } })]);
+  if (!cycle) throw new ActionError("Çevrim standardı bulunamadı.");
+  if (orderCount) throw new ActionError("Bu çevrim standardı iş emirlerinde kullanılıyor. Silmek yerine pasife alın.");
+  await prisma.productionCycleTime.delete({ where: { id } });
   invalidateDefinitions();
 }
 
