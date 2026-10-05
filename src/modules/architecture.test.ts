@@ -29,7 +29,7 @@ test("platform admin sees every registered product module without a license sele
 
   assert.ok(context.isPlatformAdmin);
   assert.ok(visibleRoutes.includes("/dashboard/employees"));
-  assert.ok(visibleRoutes.includes("/dashboard/production/work-centers"));
+  assert.ok(visibleRoutes.includes("/dashboard/production/definitions"));
 });
 
 test("app pages access data through the module repository boundary", () => {

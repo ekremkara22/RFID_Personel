@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, Timer } from "lucide-react";
 import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { createCycleTimeAction } from "@/modules/production/actions";
 import ui from "../../management.module.css";
@@ -14,9 +14,9 @@ export default async function CycleTimesPage() {
   const companyId = authorization.companyId;
   const canManage = authorization.isPlatformAdmin || authorization.permissions.has(PERMISSIONS.WORK_CENTER_MANAGE);
   const [stations, tools, cycleTimes] = await Promise.all([
-    prisma.productionStation.findMany({ where: { companyId, isActive: true, workCenter: { isActive: true } }, include: { workCenter: { select: { name: true } } }, orderBy: [{ workCenter: { name: "asc" } }, { name: "asc" }] }),
-    prisma.productionTool.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
-    prisma.productionCycleTime.findMany({ where: { companyId }, include: { station: { include: { workCenter: { select: { name: true } } } }, tool: true }, orderBy: { updatedAt: "desc" }, take: 100 }),
+    queryRepository.productionStation.findMany({ where: { companyId, isActive: true, workCenter: { isActive: true } }, include: { workCenter: { select: { name: true } } }, orderBy: [{ workCenter: { name: "asc" } }, { name: "asc" }] }),
+    queryRepository.productionTool.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
+    queryRepository.productionCycleTime.findMany({ where: { companyId }, include: { station: { include: { workCenter: { select: { name: true } } } }, tool: true }, orderBy: { updatedAt: "desc" }, take: 100 }),
   ]);
   return <div className={ui.managementPage}>
     <header className={ui.pageHeader}><div className={ui.headerCopy}><p className={ui.kicker}>Sabit tanımlar</p><h1 className={ui.pageTitle}>Çevrim Süresi Standartları</h1><p className={ui.pageDescription}>Süreyi istasyon, parça ve isteğe bağlı kalıp/aparat birleşimiyle tanımlayın. İş emri oluşturulduğunda bu değerler plan kaydına sabitlenir.</p></div><div className={ui.headerActions}><Link href="/dashboard/production/definitions" className={ui.secondaryAction}>Sabit tanımlara dön</Link></div></header>

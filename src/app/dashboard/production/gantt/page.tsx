@@ -2,7 +2,7 @@ import Link from "next/link";
 import { GripVertical } from "lucide-react";
 import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { GanttBoard, type GanttLane } from "./gantt-board";
 import ui from "../../management.module.css";
@@ -11,7 +11,7 @@ export default async function GanttPage() {
   const { authorization } = await requireSessionUser();
   assertPermission(authorization, PERMISSIONS.CAPACITY_VIEW);
   if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
-  const stations = await prisma.productionStation.findMany({
+  const stations = await queryRepository.productionStation.findMany({
     where: { companyId: authorization.companyId, isActive: true, workCenter: { isActive: true } },
     include: { workCenter: { select: { name: true } }, workOrders: { where: { status: { in: ["DRAFT", "PLANNED"] } }, orderBy: [{ sequence: "asc" }, { id: "asc" }] } },
     orderBy: [{ workCenter: { name: "asc" } }, { name: "asc" }],

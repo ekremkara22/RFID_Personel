@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Building2, Factory, Plus, Settings2 } from "lucide-react";
 import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { prisma } from "@/lib/prisma";
+import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { createStationAction, createToolAction, createWorkCenterAction } from "@/modules/production/actions";
 import ui from "../../management.module.css";
@@ -15,9 +15,9 @@ export default async function ProductionDefinitionsPage() {
   const companyId = authorization.companyId;
   const canManage = authorization.isPlatformAdmin || authorization.permissions.has(PERMISSIONS.WORK_CENTER_MANAGE);
   const [workCenters, calendars, tools] = await Promise.all([
-    prisma.productionWorkCenter.findMany({ where: { companyId }, include: { stations: { orderBy: { name: "asc" } }, _count: { select: { workOrders: true } } }, orderBy: [{ isActive: "desc" }, { name: "asc" }] }),
-    prisma.workCalendarTemplate.findMany({ where: { companyId, isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.productionTool.findMany({ where: { companyId }, orderBy: [{ isActive: "desc" }, { name: "asc" }] }),
+    queryRepository.productionWorkCenter.findMany({ where: { companyId }, include: { stations: { orderBy: { name: "asc" } }, _count: { select: { workOrders: true } } }, orderBy: [{ isActive: "desc" }, { name: "asc" }] }),
+    queryRepository.workCalendarTemplate.findMany({ where: { companyId, isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    queryRepository.productionTool.findMany({ where: { companyId }, orderBy: [{ isActive: "desc" }, { name: "asc" }] }),
   ]);
 
   return <div className={ui.managementPage}>
