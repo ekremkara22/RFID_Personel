@@ -91,6 +91,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
   );
   const [hrOpen, setHrOpen] = useState(!pathname.startsWith("/dashboard/production"));
   const [productionOpen, setProductionOpen] = useState(pathname.startsWith("/dashboard/production"));
+  const [productionDefinitionsOpen, setProductionDefinitionsOpen] = useState(pathname.startsWith("/dashboard/production/definitions"));
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
   const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || (!!authorization.companyId && authorization.modules.includes(moduleKey));
@@ -108,6 +109,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
   const calendarItems = hasHr ? withIcons("hr-calendar") : [];
   const definitionItems = withIcons("definitions");
   const productionItems = hasProduction ? withIcons("production") : [];
+  const productionDefinitionItems = hasProduction ? withIcons("production-definitions") : [];
 
   return (
     <div className={styles.shell}>
@@ -252,7 +254,15 @@ export function DashboardShell({ children, user, authorization, memberships, mod
 
           {productionItems.length ? <div className={styles.navGroup}>
             <button type="button" className={`${styles.navItem} ${productionActive ? styles.navItemActive : ""}`} onClick={() => setProductionOpen((value) => !value)}><Building2 size={18}/><span>{moduleName(MODULES.PRODUCTION_PLANNING)}</span><ChevronDown size={16} className={`${styles.navChevron} ${productionOpen ? styles.navChevronOpen : ""}`}/></button>
-            {productionOpen ? <div className={styles.subNav}>{productionItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}</div> : null}
+            {productionOpen ? <div className={styles.subNav}>
+              {productionDefinitionItems.length ? <div className={styles.nestedNavGroup}>
+                <button type="button" className={`${styles.subNavItem} ${pathname.startsWith("/dashboard/production/definitions") ? styles.subNavItemActive : ""}`} onClick={() => setProductionDefinitionsOpen((value) => !value)}>
+                  <SlidersHorizontal size={16}/><span>Sabit Tanımlar</span><ChevronDown size={14} className={`${styles.navChevron} ${productionDefinitionsOpen ? styles.navChevronOpen : ""}`}/>
+                </button>
+                {productionDefinitionsOpen ? <div className={styles.nestedSubNav}>{productionDefinitionItems.map((item) => { const Icon = item.icon; const isActive = pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={`${styles.nestedSubNavItem} ${isActive ? styles.nestedSubNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={14}/><span>{item.label}</span></Link>; })}</div> : null}
+              </div> : null}
+              {productionItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}
+            </div> : null}
           </div> : null}
 
           {definitionItems.length > 0 ? (

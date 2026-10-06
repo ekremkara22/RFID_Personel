@@ -32,6 +32,15 @@ body {
   line-height: 1.5;
 }
 
+html { scroll-behavior: smooth; }
+
+body { text-rendering: optimizeLegibility; }
+
+:focus-visible {
+  outline: 3px solid rgba(11, 105, 199, 0.35);
+  outline-offset: 3px;
+}
+
 a {
   color: inherit;
   text-decoration: none;

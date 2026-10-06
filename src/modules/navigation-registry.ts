@@ -2,7 +2,7 @@ import { PERMISSIONS } from "@/lib/permission-catalog";
 import { MODULES, type ModuleKey } from "@/modules/registry";
 
 export type NavigationIconKey = "building" | "calendar" | "clipboard" | "clock" | "download" | "file-chart" | "history" | "health" | "list" | "lock" | "timer" | "dashboard" | "device" | "plane" | "shield" | "server" | "settings" | "tags" | "users" | "key";
-export type NavigationGroup = "platform" | "hr-main" | "hr-calendar" | "hr-reports" | "production" | "definitions";
+export type NavigationGroup = "platform" | "hr-main" | "hr-calendar" | "hr-reports" | "production" | "production-definitions" | "definitions";
 export type NavigationAudience = "platform" | "company" | "all";
 
 export type NavigationDefinition = {
@@ -44,10 +44,15 @@ export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/reports/audit", label: "Audit Raporu", icon: "history", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW, managePermission: PERMISSIONS.AUDIT_VIEW },
   { href: "/dashboard/reports/payroll", label: "Aylık Puantaj Onayı", icon: "lock", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
 
-  { href: "/dashboard/production/work-centers", label: "İş Merkezleri", icon: "building", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
+  { href: "/dashboard/production/work-orders", label: "İş Emirleri", icon: "clipboard", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },
+  { href: "/dashboard/production/gantt", label: "Gantt Planlama", icon: "calendar", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },
   { href: "/dashboard/production/capacity-planning", label: "Kapasite Planlama", icon: "timer", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },
   { href: "/dashboard/production/calendar", label: "Üretim Takvimi", icon: "calendar", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.PRODUCTION_CALENDAR_VIEW },
   { href: "/dashboard/production/reports", label: "Üretim Raporları", icon: "file-chart", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.PRODUCTION_REPORT_VIEW },
+
+  { href: "/dashboard/production/definitions/work-centers", label: "İş Merkezleri", icon: "building", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
+  { href: "/dashboard/production/definitions/stations", label: "İstasyonlar", icon: "settings", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
+  { href: "/dashboard/production/definitions/tools", label: "Kalıp ve Ekipman", icon: "tags", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
 
   { href: "/dashboard/users", label: "Kullanıcı Tanımları", icon: "users", group: "definitions", audience: "platform" },
   { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: "tags", group: "definitions", audience: "platform" },
