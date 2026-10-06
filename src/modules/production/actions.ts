@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS, type PermissionCode } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +11,7 @@ import { getId, getOptionalId, getOptionalNumber, getString } from "@/modules/sh
 import * as XLSX from "xlsx";
 
 const basePath = "/dashboard/production";
+const stationTypes = new Set(["GENERAL", "INJECTION", "CNC_TURNING", "CNC_MILLING", "ASSEMBLY", "QUALITY"]);
 
 async function productionContext(permission: PermissionCode = PERMISSIONS.WORK_CENTER_MANAGE) {
   const { authorization } = await requireSessionUser();
@@ -31,6 +33,12 @@ function invalidateDefinitions() {
   revalidatePath(`${basePath}/gantt`);
 }
 
+async function validateCalendarTemplate(companyId: number, calendarTemplateId: number | null) {
+  if (!calendarTemplateId) return;
+  const calendar = await prisma.workCalendarTemplate.findFirst({ where: { id: calendarTemplateId, companyId, isActive: true }, select: { id: true } });
+  if (!calendar) throw new ActionError("Seçilen çalışma takvimi bu firmaya ait değil veya aktif değil.");
+}
+
 export async function createWorkCenterAction(formData: FormData) {
   const companyId = await productionContext();
   const code = getString(formData, "code").toUpperCase();
@@ -38,9 +46,10 @@ export async function createWorkCenterAction(formData: FormData) {
   const description = getString(formData, "description") || null;
   const calendarTemplateId = getOptionalId(formData, "calendarTemplateId");
   if (!code || !name) throw new ActionError("İş merkezi kodu ve adı zorunludur.");
-
+  await validateCalendarTemplate(companyId, calendarTemplateId);
   await prisma.productionWorkCenter.create({ data: { companyId, code, name, description, calendarTemplateId } });
   invalidateDefinitions();
+  redirect(`${basePath}/definitions/work-centers`);
 }
 
 export async function updateWorkCenterAction(formData: FormData) {
@@ -49,9 +58,11 @@ export async function updateWorkCenterAction(formData: FormData) {
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
   if (!code || !name) throw new ActionError("İş merkezi kodu ve adı zorunludur.");
+  const calendarTemplateId = getOptionalId(formData, "calendarTemplateId");
+  await validateCalendarTemplate(companyId, calendarTemplateId);
   const result = await prisma.productionWorkCenter.updateMany({
     where: { id, companyId },
-    data: { code, name, description: getString(formData, "description") || null, calendarTemplateId: getOptionalId(formData, "calendarTemplateId"), isActive: formData.get("isActive") === "on" },
+    data: { code, name, description: getString(formData, "description") || null, calendarTemplateId, isActive: formData.get("isActive") === "on" },
   });
   if (!result.count) throw new ActionError("İş merkezi bulunamadı.");
   invalidateDefinitions();
@@ -69,6 +80,7 @@ export async function deleteWorkCenterAction(formData: FormData) {
   if (stationCount || orderCount) throw new ActionError("Bu iş merkezi istasyon veya iş emrinde kullanılıyor. Silmek yerine pasife alın.");
   await prisma.productionWorkCenter.delete({ where: { id } });
   invalidateDefinitions();
+  redirect(`${basePath}/definitions/work-centers`);
 }
 
 export async function createStationAction(formData: FormData) {
@@ -76,16 +88,21 @@ export async function createStationAction(formData: FormData) {
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
   const workCenterId = getId(formData, "workCenterId");
+  const stationType = getString(formData, "stationType") || "GENERAL";
+  const calendarTemplateId = getOptionalId(formData, "calendarTemplateId");
   if (!code || !name) throw new ActionError("İstasyon kodu ve adı zorunludur.");
+  if (!stationTypes.has(stationType)) throw new ActionError("İstasyon türü geçersiz.");
   const workCenter = await prisma.productionWorkCenter.findFirst({ where: { id: workCenterId, companyId } });
   if (!workCenter) throw new ActionError("Bağlı iş merkezi bulunamadı.");
+  await validateCalendarTemplate(companyId, calendarTemplateId);
   await prisma.productionStation.create({ data: {
     companyId, workCenterId, code, name,
-    stationType: getString(formData, "stationType") as never || "GENERAL",
+    stationType: stationType as never,
     description: getString(formData, "description") || null,
-    calendarTemplateId: getOptionalId(formData, "calendarTemplateId"),
+    calendarTemplateId,
   } });
   invalidateDefinitions();
+  redirect(`${basePath}/definitions/stations`);
 }
 
 export async function createToolAction(formData: FormData) {
@@ -95,6 +112,7 @@ export async function createToolAction(formData: FormData) {
   if (!code || !name) throw new ActionError("Kalıp/aparat kodu ve adı zorunludur.");
   await prisma.productionTool.create({ data: { companyId, code, name, toolType: getString(formData, "toolType") || null, description: getString(formData, "description") || null } });
   invalidateDefinitions();
+  redirect(`${basePath}/definitions/tools`);
 }
 
 export async function updateToolAction(formData: FormData) {
@@ -116,21 +134,26 @@ export async function deleteToolAction(formData: FormData) {
   if (cycleCount || orderCount) throw new ActionError("Bu kalıp/aparat çevrim standardı veya iş emrinde kullanılıyor. Silmek yerine pasife alın.");
   await prisma.productionTool.delete({ where: { id } });
   invalidateDefinitions();
+  redirect(`${basePath}/definitions/tools`);
 }
 
 export async function updateStationAction(formData: FormData) {
   const companyId = await productionContext();
   const id = getId(formData, "id");
   const workCenterId = getId(formData, "workCenterId");
+  const stationType = getString(formData, "stationType") || "GENERAL";
+  const calendarTemplateId = getOptionalId(formData, "calendarTemplateId");
   const code = getString(formData, "code").toUpperCase();
   const name = getString(formData, "name");
   if (!code || !name) throw new ActionError("İstasyon kodu ve adı zorunludur.");
+  if (!stationTypes.has(stationType)) throw new ActionError("İstasyon türü geçersiz.");
   const workCenter = await prisma.productionWorkCenter.findFirst({ where: { id: workCenterId, companyId } });
   if (!workCenter) throw new ActionError("Bağlı iş merkezi bulunamadı.");
+  await validateCalendarTemplate(companyId, calendarTemplateId);
   const result = await prisma.productionStation.updateMany({ where: { id, companyId }, data: {
-    workCenterId, code, name, stationType: getString(formData, "stationType") as never || "GENERAL",
+    workCenterId, code, name, stationType: stationType as never,
     description: getString(formData, "description") || null,
-    calendarTemplateId: getOptionalId(formData, "calendarTemplateId"), isActive: formData.get("isActive") === "on",
+    calendarTemplateId, isActive: formData.get("isActive") === "on",
   } });
   if (!result.count) throw new ActionError("İstasyon bulunamadı.");
   invalidateDefinitions();
@@ -148,6 +171,7 @@ export async function deleteStationAction(formData: FormData) {
   if (cycleCount || orderCount) throw new ActionError("Bu istasyon çevrim standardı veya iş emrinde kullanılıyor. Silmek yerine pasife alın.");
   await prisma.productionStation.delete({ where: { id } });
   invalidateDefinitions();
+  redirect(`${basePath}/definitions/stations`);
 }
 
 export async function createCycleTimeAction(formData: FormData) {
