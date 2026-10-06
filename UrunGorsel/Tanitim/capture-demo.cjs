@@ -1,6 +1,6 @@
-const { chromium } = require('playwright');
-const path = require('node:path');
 (async () => {
+ const { chromium } = await import('playwright');
+ const path = await import('node:path');
  const browser = await chromium.launch({ headless:true, channel:'msedge' });
  try {
   const page = await browser.newPage({viewport:{width:1600,height:1100},deviceScaleFactor:1.5});
