@@ -10,8 +10,15 @@ test("tek cihazdaki hareketleri girişten sonra mola çıkış/giriş olarak sı
   assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }, { type: "BREAK_START" }, { type: "BREAK_END" }], isNearPlannedEnd: false }), "BREAK_START");
 });
 
-test("mesai bitimine yakın basımı mevcut adımdan bağımsız çıkış sayar", () => {
+test("mesai bitimine yakın ve açık molası olmayan basımı çıkış sayar", () => {
   assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }], isNearPlannedEnd: true }), "EXIT");
+});
+
+test("mesai bitimine yakın olsa da açık molayı önce kapatır", () => {
+  assert.equal(inferBidirectionalMovement({
+    logs: [{ type: "ENTRY" }, { type: "BREAK_START" }],
+    isNearPlannedEnd: true,
+  }), "BREAK_END");
 });
 
 test("geçici çıkıştan sonraki okutmayı engellemez", () => {

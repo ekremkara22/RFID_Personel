@@ -13,13 +13,16 @@ export function inferBidirectionalMovement(params: {
 }): AttendanceType {
   const { logs, isNearPlannedEnd } = params;
   if (logs.length === 0) return "ENTRY";
-  if (isNearPlannedEnd) return "EXIT";
 
-  // Geçici EXIT kaydı aynı gün yapılacak yeni okutmayı kilitlemez.
+  // Açık mola, mesai bitiş toleransından önce kapatılır. Böylece mesai
+  // bitimine yakın bir mola dönüşü yanlışlıkla kesin çıkışa dönüşmez.
+  // Geçici EXIT kayıtları aynı gün yapılacak yeni okutmayı kilitlemez.
   const breakMovementCount = logs.filter(
     (log) => BREAK_START_TYPES.has(log.type) || BREAK_END_TYPES.has(log.type),
   ).length;
-  return breakMovementCount % 2 === 0 ? "BREAK_START" : "BREAK_END";
+  if (breakMovementCount % 2 === 1) return "BREAK_END";
+  if (isNearPlannedEnd) return "EXIT";
+  return "BREAK_START";
 }
 
 export type AttendanceSequenceAnalysis = {
