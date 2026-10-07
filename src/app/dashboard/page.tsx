@@ -10,9 +10,9 @@ import {
   MonitorSmartphone,
   ShieldCheck,
   Users,
+  Download,
 } from "lucide-react";
-import { ExportButton } from "@/app/dashboard/export-button";
-import { LeaveApprovalStatus } from "@/generated/prisma/client";
+import { LeaveApprovalStatus, type AttendanceType } from "@/generated/prisma/client";
 import { queryRepository } from "@/modules/shared/query-repository";
 import {
   APP_TIME_ZONE,
@@ -34,15 +34,6 @@ import ui from "./management.module.css";
 import { redirect } from "next/navigation";
 import { canAccessModule } from "@/lib/authorization";
 import { MODULES } from "@/lib/module-catalog";
-
-const attendanceLabels = {
-  ENTRY: "Giriş",
-  EXIT: "Çıkış",
-  BREAK_START: "Mola Çıkış",
-  BREAK_END: "Mola Giriş",
-  MEAL_START: "Yemek Çıkış",
-  MEAL_END: "Yemek Giriş",
-} as const;
 
 function getRoleLabel(role: string) {
   return role === "SUPERADMIN" ? "Super Admin" : "Firma Admin";
@@ -79,7 +70,7 @@ function formatMinutes(minutes: number) {
 }
 
 function getEmployeeBreakSummary(
-  logs: Array<{ id: number; type: keyof typeof attendanceLabels; scannedAt: Date }>,
+  logs: Array<{ id: number; type: AttendanceType; scannedAt: Date }>,
   rangeEnd: Date | null,
 ) {
   void rangeEnd;
@@ -90,6 +81,20 @@ function getEmployeeBreakSummary(
 function isLateEntry(scannedAt: Date, plannedStart?: string | null) {
   const plannedStartMinutes = timeToMinutes(plannedStart);
   return plannedStartMinutes !== null && getAppMinutes(scannedAt) > plannedStartMinutes;
+}
+
+function operationReportHref(params: {
+  period: "daily" | "weekly" | "monthly";
+  date: string;
+  companyId: string;
+  branch: string;
+  department: string;
+}) {
+  const query = new URLSearchParams({ period: params.period, date: params.date });
+  if (params.companyId) query.set("companyId", params.companyId);
+  if (params.branch) query.set("branch", params.branch);
+  if (params.department) query.set("department", params.department);
+  return `/api/reports/operation-summary?${query.toString()}`;
 }
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
@@ -525,15 +530,12 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         { label: "Geç Kalan Sayısı", value: lateTodayCount, icon: AlertTriangle },
         { label: "İzinli Sayısı", value: leaveEmployeeIds.size, icon: CalendarDays },
       ];
-  const dashboardExportRows = todayLogsForDashboard.map((log) => ({
-    employee: `${log.employee.firstName} ${log.employee.lastName}`.trim(),
-    department: log.employee.department,
-    type: attendanceLabels[log.type],
-    scannedAt: formatDate(log.scannedAt),
-    rfidCardId: log.rfidCardId ?? log.employee.rfidCardId ?? "-",
-    device: log.device?.name ?? "-",
-    reviewStatus: selectedOperationalRows.find((row) => row.employeeId === log.employeeId)?.movementStatus ?? "NORMAL",
-  }));
+  const reportLinkParams = {
+    date: getDateOnlyKey(selectedDate),
+    companyId: selectedCompanyId?.toString() ?? "",
+    branch: selectedBranch,
+    department: selectedDepartment,
+  };
   return (
     <div className={`${styles.page} ${ui.managementPage}`}>
       {!isSuperadmin ? (
@@ -551,21 +553,12 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
             </p>
           </div>
           {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <div className={ui.headerActions}>
-            <ExportButton
-              rows={dashboardExportRows}
-              columns={[
-                { key: "employee", label: "Personel" },
-                { key: "department", label: "Departman" },
-                { key: "type", label: "Hareket" },
-                { key: "scannedAt", label: "Tarih" },
-                { key: "rfidCardId", label: "RFID Kart" },
-                { key: "device", label: "Cihaz" },
-                { key: "reviewStatus", label: "Hareket Kontrol Durumu" },
-              ]}
-              filename={`${getDateOnlyKey(selectedDate)}-personel-hareketleri`}
-              className={ui.secondaryAction}
-              label="Rapor İndir"
-            />
+            {(["daily", "weekly", "monthly"] as const).map((period) => (
+              <a key={period} href={operationReportHref({ ...reportLinkParams, period })} className={ui.secondaryAction}>
+                <Download size={15} aria-hidden="true" />
+                <span>{period === "daily" ? "Günlük" : period === "weekly" ? "Haftalık" : "Aylık"}</span>
+              </a>
+            ))}
           </div> : null}
         </header>
       ) : null}
