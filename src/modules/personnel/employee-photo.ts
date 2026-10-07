@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ActionError } from "@/lib/action-error";
 
@@ -14,4 +14,17 @@ export async function saveEmployeePhoto(formData: FormData, fallback?: string | 
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
   return `/uploads/employees/${filename}`;
+}
+
+export async function deleteEmployeePhoto(photoUrl?: string | null) {
+  const uploadPrefix = "/uploads/employees/";
+  if (!photoUrl?.startsWith(uploadPrefix)) return;
+
+  const filename = path.basename(photoUrl);
+  if (`${uploadPrefix}${filename}` !== photoUrl) return;
+
+  const filePath = path.join(process.cwd(), "public", "uploads", "employees", filename);
+  await unlink(filePath).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") throw error;
+  });
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, UserRound } from "lucide-react";
-import { deleteEmployeeAction, updateEmployeeAction } from "@/app/dashboard/actions";
+import { ArrowLeft, Trash2, UserRound } from "lucide-react";
+import { deleteEmployeeAction, removeEmployeePhotoAction, updateEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { employeeScopeWhere } from "@/lib/authorization";
 import { parseRouteId } from "@/lib/ids";
@@ -44,7 +44,10 @@ export default async function EmployeeDetailPage(props: { params: Promise<{ id: 
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={employee.photoUrl} alt={`${employee.firstName} ${employee.lastName}`} />
             </div> : <div className={ui.profileImagePlaceholder}><UserRound size={28} /><span>Fotoğraf yok</span></div>}
-            <label className={ui.formField}><span>Fotoğrafı değiştir</span><input name="photo" type="file" accept="image/*" /></label>
+            <div className={ui.profilePhotoControls}>
+              <label className={ui.formField}><span>Fotoğrafı değiştir</span><input name="photo" type="file" accept="image/*" /></label>
+              {employee.photoUrl ? <button type="submit" formAction={removeEmployeePhotoAction} className={ui.dangerAction} aria-label={`${employee.firstName} ${employee.lastName} fotoğrafını sil`}><Trash2 size={15} />Fotoğrafı Sil</button> : null}
+            </div>
           </div>
         </section>
 

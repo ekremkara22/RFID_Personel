@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CirclePlus, Filter, Search } from "lucide-react";
+import { CirclePlus, Filter } from "lucide-react";
 import { AttendanceType } from "@/generated/prisma/client";
 import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reorderable-data-table";
 import { can, employeeScopeWhere } from "@/lib/authorization";
@@ -39,7 +39,7 @@ function getDateValue(value?: string) {
 
 export default async function MovementsPage(props: {
   searchParams: Promise<{
-    q?: string;
+    employeeId?: string;
     branchId?: string;
     departmentId?: string;
     type?: string;
@@ -54,9 +54,8 @@ export default async function MovementsPage(props: {
   }
 
   const searchParams = await props.searchParams;
-  const query = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   if (!authorization.companyId) redirect("/dashboard");
-  const requestedBranchId = Number(searchParams.branchId); const requestedDepartmentId = Number(searchParams.departmentId);
+  const requestedEmployeeId = Number(searchParams.employeeId); const requestedBranchId = Number(searchParams.branchId); const requestedDepartmentId = Number(searchParams.departmentId);
   const type =
     typeof searchParams.type === "string" &&
     Object.values(AttendanceType).includes(searchParams.type as AttendanceType)
@@ -65,8 +64,13 @@ export default async function MovementsPage(props: {
   const fromDate = getDateValue(searchParams.from);
   const toDate = getDateValue(searchParams.to);
 
-  const [company, branches, departments] = await Promise.all([
+  const [company, employees, branches, departments] = await Promise.all([
     queryRepository.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
+    queryRepository.employee.findMany({
+      where: employeeScopeWhere(authorization),
+      select: { id: true, firstName: true, lastName: true, registrationNumber: true },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    }),
     queryRepository.branch.findMany({
       where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" },
     }),
@@ -74,10 +78,12 @@ export default async function MovementsPage(props: {
       where: { companyId: authorization.companyId, isActive: true }, orderBy: { name: "asc" },
     }),
   ]);
+  const employeeId = employees.some((item) => item.id === requestedEmployeeId) ? requestedEmployeeId : null;
   const branchId = branches.some((item)=>item.id === requestedBranchId) ? requestedBranchId : null; const departmentId = departments.some((item)=>item.id === requestedDepartmentId) ? requestedDepartmentId : null;
   const [logs, auditMarkers] = await Promise.all([
     queryRepository.attendanceLog.findMany({
       where: {
+        ...(employeeId ? { employeeId } : {}),
         ...(type ? { type } : {}),
         ...(fromDate || toDate
           ? {
@@ -91,16 +97,6 @@ export default async function MovementsPage(props: {
           ...employeeScopeWhere(authorization),
           ...(branchId ? { branchId } : {}),
           ...(departmentId ? { departmentId } : {}),
-          ...(query
-            ? {
-                OR: [
-                  { firstName: { contains: query } },
-                  { lastName: { contains: query } },
-                  { email: { contains: query } },
-                  { rfidCardId: { contains: query } },
-                ],
-              }
-            : {}),
         },
       },
       include: {
@@ -202,7 +198,7 @@ export default async function MovementsPage(props: {
 
       <section className={ui.surface} aria-label="Hareket filtreleri">
         <form className={ui.formGridThree}>
-          <label className={ui.field}><span className={ui.fieldLabel}>Personel veya RFID</span><span className={ui.controlWrap}><Search className={ui.controlIcon} size={16} /><input className={`${ui.control} ${ui.controlWithIcon}`} name="q" defaultValue={query} placeholder="Ad, e-posta veya kart" /></span></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Personel</span><select className={ui.control} name="employeeId" defaultValue={employeeId ?? ""}><option value="">Tüm personeller</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}{employee.registrationNumber ? ` · ${employee.registrationNumber}` : ""}</option>)}</select></label>
           <label className={ui.field}><span className={ui.fieldLabel}>Şube</span><select className={ui.control} name="branchId" defaultValue={branchId ?? ""}><option value="">Tüm şubeler</option>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           <label className={ui.field}><span className={ui.fieldLabel}>Departman</span><select className={ui.control} name="departmentId" defaultValue={departmentId ?? ""}><option value="">Tüm departmanlar</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           <label className={ui.field}><span className={ui.fieldLabel}>Hareket tipi</span><select className={ui.control} name="type" defaultValue={type}><option value="">Tüm hareketler</option>{Object.values(AttendanceType).map((item) => <option key={item} value={item}>{attendanceLabels[item]}</option>)}</select></label>

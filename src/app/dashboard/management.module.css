@@ -704,6 +704,8 @@
 .profileImage,
 .profileImagePlaceholder { width: 104px; height: 104px; display: grid; place-items: center; overflow: hidden; border: 1px solid #d0d5dd; border-radius: 10px; background: #fff; color: #667085; font-size: 12px; font-weight: 650; text-align: center; }
 .profileImage img { width: 100%; height: 100%; object-fit: cover; }
+.profilePhotoControls { min-width: 0; display: grid; gap: 10px; justify-items: start; }
+.profilePhotoControls .formField { width: 100%; }
 .checkField { min-height: 40px; display: flex; align-items: center; gap: 9px; color: #344054; font-size: 13px; font-weight: 600; }
 
 .dangerZone { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid #fecdca; border-radius: 10px; background: #fffbfa; padding: 14px 16px; }

@@ -9,7 +9,7 @@ import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { getString, getId, normalizeOptionalEmail, normalizeOptionalRfidCardId, getOptionalDate } from "@/modules/shared/action-helpers";
-import { saveEmployeePhoto } from "@/modules/personnel/employee-photo";
+import { deleteEmployeePhoto, saveEmployeePhoto } from "@/modules/personnel/employee-photo";
 
 async function assertCompanyDepartment(companyId: number, department: string) {
   const existingDepartment = await prisma.department.findFirst({
@@ -144,6 +144,35 @@ export async function updateEmployeeAction(formData: FormData) {
     },
   });
 
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/employees");
+  revalidatePath(`/dashboard/employees/${employeeId}`);
+}
+
+export async function removeEmployeePhotoAction(formData: FormData) {
+  const { authorization } = await requireSessionUser(); assertPermission(authorization, PERMISSIONS.PERSONNEL_UPDATE);
+  if (!authorization.companyId) throw new Error("Aktif firma secilmedi.");
+
+  const employeeId = getId(formData, "employeeId");
+  if (!employeeId) throw new Error("Personel bilgisi eksik.");
+
+  const currentEmployee = await prisma.employee.findFirst({
+    where: { id: employeeId, ...employeeScopeWhere(authorization) },
+    select: { photoUrl: true },
+  });
+  if (!currentEmployee) throw new Error("Personel bulunamadi veya yetki kapsaminizin disinda.");
+
+  const result = await prisma.employee.updateMany({
+    where: { id: employeeId, ...employeeScopeWhere(authorization) },
+    data: { photoUrl: null },
+  });
+  if (result.count !== 1) throw new Error("Personel fotografi kaldirilamadi.");
+
+  try {
+    await deleteEmployeePhoto(currentEmployee.photoUrl);
+  } catch (error) {
+    console.error("Personel fotograf dosyasi silinemedi.", error);
+  }
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/employees");
   revalidatePath(`/dashboard/employees/${employeeId}`);
