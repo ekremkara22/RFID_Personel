@@ -28,8 +28,8 @@ const districtOptions = ["Merkez", "Kadikoy", "Besiktas", "Sariyer", "Cankaya", 
 const purposeLabels = {
   ENTRY: "Giris okuyucusu",
   EXIT: "Cikis okuyucusu",
-  BREAK_START: "Mola baslangic okuyucusu",
-  BREAK_END: "Mola bitis okuyucusu",
+  BREAK_START: "Mola başlangıç okuyucusu",
+  BREAK_END: "Mola bitiş okuyucusu",
   BIDIRECTIONAL: "Cift yonlu okuyucu",
 } as const;
 

@@ -4,8 +4,9 @@ import { CirclePlus, Filter } from "lucide-react";
 import { AttendanceType } from "@/generated/prisma/client";
 import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reorderable-data-table";
 import { can, employeeScopeWhere } from "@/lib/authorization";
+import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
+import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppDayRange, getAppMinutes, getDateOnlyKey, parseAppDateTimeInput } from "@/lib/app-time";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
@@ -13,28 +14,12 @@ import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
 
-const attendanceLabels = {
-  ENTRY: "Giris",
-  EXIT: "Cikis",
-  BREAK_START: "Mola Çıkış",
-  BREAK_END: "Mola Giriş",
-  MEAL_START: "Yemek Çıkış",
-  MEAL_END: "Yemek Giriş",
-} as const;
-
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
     dateStyle: "short",
     timeStyle: "short",
     timeZone: APP_TIME_ZONE,
   }).format(date);
-}
-
-function getDateValue(value?: string) {
-  if (!value) return undefined;
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 export default async function MovementsPage(props: {
@@ -55,14 +40,19 @@ export default async function MovementsPage(props: {
 
   const searchParams = await props.searchParams;
   if (!authorization.companyId) redirect("/dashboard");
+  const todayRange = getAppDayRange(new Date());
+  const defaultFromValue = `${todayRange.dayKey}T00:01`;
+  const defaultToValue = `${todayRange.dayKey}T23:59`;
+  const fromValue = parseAppDateTimeInput(searchParams.from) ? searchParams.from! : defaultFromValue;
+  const toValue = parseAppDateTimeInput(searchParams.to) ? searchParams.to! : defaultToValue;
   const requestedEmployeeId = Number(searchParams.employeeId); const requestedBranchId = Number(searchParams.branchId); const requestedDepartmentId = Number(searchParams.departmentId);
   const type =
     typeof searchParams.type === "string" &&
     Object.values(AttendanceType).includes(searchParams.type as AttendanceType)
       ? (searchParams.type as AttendanceType)
       : "";
-  const fromDate = getDateValue(searchParams.from);
-  const toDate = getDateValue(searchParams.to);
+  const fromDate = parseAppDateTimeInput(fromValue);
+  const toDate = parseAppDateTimeInput(toValue, { endOfMinute: true });
 
   const [company, employees, branches, departments] = await Promise.all([
     queryRepository.company.findUniqueOrThrow({ where: { id: authorization.companyId } }),
@@ -179,7 +169,7 @@ export default async function MovementsPage(props: {
     employeeDetail: log.employee.email ?? "E-posta yok",
     department: log.employee.department,
     organizationDetail: `${log.employee.company.name} · ${log.employee.branch ?? "Şubesiz"}`,
-    type: attendanceLabels[log.type],
+    type: ATTENDANCE_TYPE_LABELS[log.type],
     scannedAt: formatDate(log.scannedAt),
     status: getAttendanceStatus(log),
     reviewStatus: reviewStatusByLogId.get(log.id) ?? "NORMAL",
@@ -201,9 +191,9 @@ export default async function MovementsPage(props: {
           <label className={ui.field}><span className={ui.fieldLabel}>Personel</span><select className={ui.control} name="employeeId" defaultValue={employeeId ?? ""}><option value="">Tüm personeller</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}{employee.registrationNumber ? ` · ${employee.registrationNumber}` : ""}</option>)}</select></label>
           <label className={ui.field}><span className={ui.fieldLabel}>Şube</span><select className={ui.control} name="branchId" defaultValue={branchId ?? ""}><option value="">Tüm şubeler</option>{branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           <label className={ui.field}><span className={ui.fieldLabel}>Departman</span><select className={ui.control} name="departmentId" defaultValue={departmentId ?? ""}><option value="">Tüm departmanlar</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label className={ui.field}><span className={ui.fieldLabel}>Hareket tipi</span><select className={ui.control} name="type" defaultValue={type}><option value="">Tüm hareketler</option>{Object.values(AttendanceType).map((item) => <option key={item} value={item}>{attendanceLabels[item]}</option>)}</select></label>
-          <label className={ui.field}><span className={ui.fieldLabel}>Başlangıç</span><input className={ui.control} name="from" type="datetime-local" defaultValue={searchParams.from ?? ""} /></label>
-          <label className={ui.field}><span className={ui.fieldLabel}>Bitiş</span><input className={ui.control} name="to" type="datetime-local" defaultValue={searchParams.to ?? ""} /></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Hareket tipi</span><select className={ui.control} name="type" defaultValue={type}><option value="">Tüm hareketler</option>{Object.values(AttendanceType).map((item) => <option key={item} value={item}>{ATTENDANCE_TYPE_LABELS[item]}</option>)}</select></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Başlangıç</span><input className={ui.control} name="from" type="datetime-local" defaultValue={fromValue} /></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Bitiş</span><input className={ui.control} name="to" type="datetime-local" defaultValue={toValue} /></label>
           <button type="submit" className={ui.filterButton}><Filter size={15} />Filtrele</button>
         </form>
       </section>

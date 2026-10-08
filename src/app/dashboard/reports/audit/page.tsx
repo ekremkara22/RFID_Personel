@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Filter, History } from "lucide-react";
-import { AttendanceAuditOperation, AttendanceType } from "@/generated/prisma/client";
+import { AttendanceAuditOperation } from "@/generated/prisma/client";
+import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
 import { ExportButton } from "@/app/dashboard/export-button";
 import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
@@ -17,15 +18,6 @@ type SearchParams = {
   operation?: string;
   from?: string;
   to?: string;
-};
-
-const attendanceLabels: Record<AttendanceType, string> = {
-  ENTRY: "Giriş",
-  EXIT: "Çıkış",
-  BREAK_START: "Mola Çıkış",
-  BREAK_END: "Mola Giriş",
-  MEAL_START: "Yemek Çıkış",
-  MEAL_END: "Yemek Giriş",
 };
 
 const operationLabels: Record<AttendanceAuditOperation, string> = {
@@ -104,8 +96,8 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
     branch: audit.employee.branch ?? "-",
     department: audit.employee.department,
     movementDateTime: formatDateTime(audit.movementDateTime),
-    oldValue: audit.oldType ? `${attendanceLabels[audit.oldType]} / ${audit.oldScannedAt ? formatDateTime(audit.oldScannedAt) : "-"}` : "-",
-    newValue: audit.newType ? `${attendanceLabels[audit.newType]} / ${audit.newScannedAt ? formatDateTime(audit.newScannedAt) : "-"}` : "-",
+    oldValue: audit.oldType ? `${ATTENDANCE_TYPE_LABELS[audit.oldType]} / ${audit.oldScannedAt ? formatDateTime(audit.oldScannedAt) : "-"}` : "-",
+    newValue: audit.newType ? `${ATTENDANCE_TYPE_LABELS[audit.newType]} / ${audit.newScannedAt ? formatDateTime(audit.newScannedAt) : "-"}` : "-",
     changedBy: userName(audit.changedBy),
     changedAt: formatDateTime(audit.createdAt),
     reason: audit.correctionReason,
@@ -160,8 +152,8 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
                   <td><strong>{operationLabels[audit.operation]}</strong></td>
                   <td><strong>{audit.employee.firstName} {audit.employee.lastName}</strong><p className={styles.tableSubText}>{audit.employee.company.name} · {audit.employee.branch ?? "Şubesiz"} · {audit.employee.department}</p></td>
                   <td>{formatDateTime(audit.movementDateTime)}</td>
-                  <td>{audit.oldType ? attendanceLabels[audit.oldType] : "-"}<p className={styles.tableSubText}>{audit.oldScannedAt ? formatDateTime(audit.oldScannedAt) : "-"}</p></td>
-                  <td>{audit.newType ? attendanceLabels[audit.newType] : "-"}<p className={styles.tableSubText}>{audit.newScannedAt ? formatDateTime(audit.newScannedAt) : "-"}</p></td>
+                  <td>{audit.oldType ? ATTENDANCE_TYPE_LABELS[audit.oldType] : "-"}<p className={styles.tableSubText}>{audit.oldScannedAt ? formatDateTime(audit.oldScannedAt) : "-"}</p></td>
+                  <td>{audit.newType ? ATTENDANCE_TYPE_LABELS[audit.newType] : "-"}<p className={styles.tableSubText}>{audit.newScannedAt ? formatDateTime(audit.newScannedAt) : "-"}</p></td>
                   <td>{userName(audit.changedBy)}</td>
                   <td>{formatDateTime(audit.createdAt)}</td>
                   <td>{audit.correctionReason}</td>

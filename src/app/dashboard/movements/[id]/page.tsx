@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { deleteAttendanceLogAction, updateAttendanceLogAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { AttendanceType } from "@/generated/prisma/client";
+import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
 import { can, employeeScopeWhere } from "@/lib/authorization";
 import { parseRouteId } from "@/lib/ids";
 import { PERMISSIONS } from "@/lib/permission-catalog";
@@ -11,8 +12,6 @@ import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
-
-const labels: Record<AttendanceType, string> = { ENTRY: "Giriş", EXIT: "Çıkış", BREAK_START: "Mola çıkış", BREAK_END: "Mola giriş", MEAL_START: "Yemek çıkış", MEAL_END: "Yemek giriş" };
 
 function formatInputDate(date: Date) {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(date).replace(" ", "T");
@@ -32,7 +31,7 @@ export default async function MovementDetailPage(props: { params: Promise<{ id: 
   return (
     <div className={`${styles.page} ${ui.managementPage}`}>
       <header className={ui.pageHeader}>
-        <div className={ui.headerCopy}><p className={ui.kicker}>Hareket inceleme</p><h1 className={ui.pageTitle}>{log.employee.firstName} {log.employee.lastName}</h1><p className={ui.pageDescription}>{labels[log.type]} · {formatDate(log.scannedAt)}</p></div>
+        <div className={ui.headerCopy}><p className={ui.kicker}>Hareket inceleme</p><h1 className={ui.pageTitle}>{log.employee.firstName} {log.employee.lastName}</h1><p className={ui.pageDescription}>{ATTENDANCE_TYPE_LABELS[log.type]} · {formatDate(log.scannedAt)}</p></div>
         <div className={ui.headerActions}><Link href="/dashboard/movements" className={ui.secondaryAction}><ArrowLeft size={16} />Hareket listesi</Link></div>
       </header>
 
@@ -53,7 +52,7 @@ export default async function MovementDetailPage(props: { params: Promise<{ id: 
         <section className={ui.formSection}>
           <div className={ui.formSectionHeader}><h2>Hareketi düzelt</h2><p>Değişiklik audit kaydına eski ve yeni değerleriyle yazılır.</p></div>
           <div className={ui.formGrid}>
-            <label className={ui.formField}><span>Hareket tipi</span><select name="type" defaultValue={log.type}>{Object.values(AttendanceType).map((type) => <option key={type} value={type}>{labels[type]}</option>)}</select></label>
+            <label className={ui.formField}><span>Hareket tipi</span><select name="type" defaultValue={log.type}>{Object.values(AttendanceType).map((type) => <option key={type} value={type}>{ATTENDANCE_TYPE_LABELS[type]}</option>)}</select></label>
             <label className={ui.formField}><span>Hareket zamanı</span><input type="datetime-local" name="scannedAt" defaultValue={formatInputDate(log.scannedAt)} required /></label>
             <label className={`${ui.formField} ${ui.formFullWidth}`}><span>Düzeltme açıklaması</span><textarea name="correctionReason" required placeholder="Neden düzeltildiğini açıkça yazın" /></label>
           </div>

@@ -37,8 +37,8 @@ const roleLabels: Record<Role, string> = {
 const purposeLabels: Record<DevicePurpose, string> = {
   ENTRY: "Giris okuyucusu",
   EXIT: "Cikis okuyucusu",
-  BREAK_START: "Mola baslangic okuyucusu",
-  BREAK_END: "Mola bitis okuyucusu",
+  BREAK_START: "Mola başlangıç okuyucusu",
+  BREAK_END: "Mola bitiş okuyucusu",
   BIDIRECTIONAL: "Cift yonlu okuyucu",
 };
 

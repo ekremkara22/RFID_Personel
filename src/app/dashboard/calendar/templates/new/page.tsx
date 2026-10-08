@@ -44,7 +44,7 @@ export default async function NewCalendarTemplatePage() {
 
           <div className={`${styles.tableWrap} ${styles.fullWidth}`}>
             <table className={styles.table}>
-              <thead><tr><th>Gun</th><th>Durum</th><th>Giris</th><th>Cikis</th><th>Mola Baslangic</th><th>Mola Bitis</th><th>Mola dk</th><th>Gece</th><th>Kontroller</th></tr></thead>
+              <thead><tr><th>Gun</th><th>Durum</th><th>Giris</th><th>Cikis</th><th>Mola Başlangıç</th><th>Mola Bitiş</th><th>Mola dk</th><th>Gece</th><th>Kontroller</th></tr></thead>
               <tbody>
                 {Object.entries(weekdayLabels).map(([weekday, label]) => {
                   const weekdayNumber = Number(weekday);

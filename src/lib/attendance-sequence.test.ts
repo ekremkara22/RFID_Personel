@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { analyzeAttendanceSequence, calculateBreakMinutes, EXIT_TOLERANCE_MINUTES, inferBidirectionalMovement } from "./attendance-sequence";
 
-test("tek cihazdaki hareketleri girişten sonra mola çıkış/giriş olarak sırayla sınıflandırır", () => {
+test("tek cihazdaki hareketleri girişten sonra mola başlangıç/bitiş olarak sırayla sınıflandırır", () => {
   assert.equal(EXIT_TOLERANCE_MINUTES, 10);
   assert.equal(inferBidirectionalMovement({ logs: [], isNearPlannedEnd: false }), "ENTRY");
   assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }], isNearPlannedEnd: false }), "BREAK_START");

@@ -55,3 +55,20 @@ export function getAppDayRange(day: Date | string) {
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { dayKey, start, end, dateOnly: start };
 }
+
+export function parseAppDateTimeInput(value?: string, options?: { endOfMinute?: boolean }) {
+  const match = value?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return undefined;
+
+  const [, dayKey, hourValue, minuteValue, secondValue] = match;
+  const hour = Number(hourValue);
+  const minute = Number(minuteValue);
+  const second = Number(secondValue ?? 0);
+  if (hour > 23 || minute > 59 || second > 59) return undefined;
+
+  const day = getAppDayRange(dayKey);
+  if (getAppDayKey(day.start) !== dayKey) return undefined;
+
+  const endOfMinuteMilliseconds = options?.endOfMinute && secondValue === undefined ? 59_999 : 0;
+  return new Date(day.start.getTime() + ((hour * 60 + minute) * 60 + second) * 1_000 + endOfMinuteMilliseconds);
+}

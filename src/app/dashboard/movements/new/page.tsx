@@ -4,21 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { createAttendanceLogAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { AttendanceType } from "@/generated/prisma/client";
+import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
-
-const attendanceLabels = {
-  ENTRY: "Giris",
-  EXIT: "Cikis",
-  BREAK_START: "Mola Çıkış",
-  BREAK_END: "Mola Giriş",
-  MEAL_START: "Yemek Çıkış",
-  MEAL_END: "Yemek Giriş",
-} as const;
 
 function formatInputDate(date: Date) {
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
@@ -84,7 +76,7 @@ export default async function NewMovementPage(props: {
               <select name="type" required defaultValue={AttendanceType.ENTRY}>
                 {Object.values(AttendanceType).map((item) => (
                   <option key={item} value={item}>
-                    {attendanceLabels[item]}
+                    {ATTENDANCE_TYPE_LABELS[item]}
                   </option>
                 ))}
               </select>

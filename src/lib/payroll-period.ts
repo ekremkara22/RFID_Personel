@@ -1,4 +1,5 @@
 import { AttendanceType, PayrollPeriodStatus } from "@/generated/prisma/client";
+import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
 import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
 import { dateOnlyFromKey, getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
@@ -82,15 +83,6 @@ function formatTime(date?: Date | null) {
   }).format(date);
 }
 
-const movementLabels: Record<AttendanceType, string> = {
-  ENTRY: "Giriş",
-  EXIT: "Çıkış",
-  BREAK_START: "Mola çıkış",
-  BREAK_END: "Mola giriş",
-  MEAL_START: "Yemek çıkış",
-  MEAL_END: "Yemek giriş",
-};
-
 export async function buildPayrollSnapshot(companyId: number, monthKey: string): Promise<PayrollSnapshot> {
   const range = getPayrollMonthRange(monthKey);
   const [company, employees, calendars, logs] = await Promise.all([
@@ -173,7 +165,7 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
       breakMinutes: analysis.totalMinutes,
       workedMinutes,
       movementCount: dayLogs.length,
-      movements: dayLogs.map((log) => `${formatTime(log.scannedAt)} ${movementLabels[log.type]}`).join(" | "),
+      movements: dayLogs.map((log) => `${formatTime(log.scannedAt)} ${ATTENDANCE_TYPE_LABELS[log.type]}`).join(" | "),
       issues: issues.join(", ") || "Normal",
     });
   }
