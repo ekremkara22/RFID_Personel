@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { runAttendanceFinalizer } from "../src/lib/attendance-finalizer";
 import { prisma } from "../src/lib/prisma";
 
