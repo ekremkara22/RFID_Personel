@@ -28,6 +28,7 @@ import styles from "./page.module.css";
 import { PersonnelChart } from "./personnel-chart";
 import { OperationFilters } from "./operation-filters";
 import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
+import { getScheduledShiftBounds } from "@/lib/attendance-finalization-rules";
 import { can, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import ui from "./management.module.css";
@@ -316,7 +317,22 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
         latestEntryExitByEmployee.set(log.employeeId, log);
       }
     });
-  const currentlyInside = Array.from(latestEntryExitByEmployee.values()).filter((log) => log.type === "ENTRY").length;
+  const dashboardCalendarByEmployee = new Map(
+    todayDailyCalendarsForDashboard.map((calendar) => [calendar.employeeId, calendar]),
+  );
+  const dashboardEmployeeById = new Map(scopedEmployees.map((employee) => [employee.id, employee]));
+  const dashboardNow = new Date();
+  const currentlyInside = selectedRange.dayKey === currentDayRange.dayKey
+    ? Array.from(latestEntryExitByEmployee.values()).filter((log) => {
+        if (log.type !== "ENTRY") return false;
+        const calendar = dashboardCalendarByEmployee.get(log.employeeId);
+        const employee = dashboardEmployeeById.get(log.employeeId);
+        const bounds = calendar && employee
+          ? getScheduledShiftBounds(calendar, employee.company.attendanceFinalizationDelayMinutes)
+          : null;
+        return !bounds || dashboardNow < bounds.dueAt;
+      }).length
+    : 0;
   const leaveEmployeeIds = new Set(todayApprovedLeaves.map((leave) => leave.employeeId));
   const firstTodayEntryByEmployee = new Map<number, (typeof todayLogsForDashboard)[number]>();
   todayLogsForDashboard
@@ -480,13 +496,22 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   const maxDepartmentBreakMinutes = Math.max(...monthlyBreakRows.map((row) => row.totalMinutes), 1);
   const latestSelectedLogByEmployee = new Map<number, (typeof selectedLogsForCritical)[number]>();
   selectedLogsForCritical.forEach((log) => latestSelectedLogByEmployee.set(log.employeeId, log));
+  const isSelectedShiftOpen = (employeeId: number) => {
+    if (!isSelectedToday) return false;
+    const calendar = selectedCalendarByEmployee.get(employeeId);
+    const employee = dashboardEmployeeById.get(employeeId);
+    const bounds = calendar && employee
+      ? getScheduledShiftBounds(calendar, employee.company.attendanceFinalizationDelayMinutes)
+      : null;
+    return !bounds || dashboardNow < bounds.dueAt;
+  };
   const selectedWorkingEmployees = scopedEmployees.filter((employee) => {
-    if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id)) return false;
+    if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id) || !isSelectedShiftOpen(employee.id)) return false;
     const latest = latestSelectedLogByEmployee.get(employee.id);
     return latest?.type === "ENTRY" || latest?.type === "BREAK_END" || latest?.type === "MEAL_END";
   });
   const selectedOnBreakEmployees = scopedEmployees.filter((employee) => {
-    if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id)) return false;
+    if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id) || !isSelectedShiftOpen(employee.id)) return false;
     const latest = latestSelectedLogByEmployee.get(employee.id);
     return latest?.type === "BREAK_START" || latest?.type === "MEAL_START";
   });

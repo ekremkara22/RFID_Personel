@@ -9,6 +9,9 @@ Test ortamı canlıdan aşağıdaki kaynaklarla ayrılır:
 - Veritabanı: `rfid_personel_staging`
 - Adres: `https://test.flodeska.com`
 - OTA firmware dizini: `/var/lib/rfid-personel-staging/firmware`
+- Hareket kesinleştirme zamanlayıcısı: `rfid-personel-staging-attendance-finalizer.timer` (5 dakikada bir)
+
+Kesinleştirme görevi her personelin ilgili iş gününde çözümlenen takvimini kullanır. Firma ayarındaki tolerans varsayılan olarak vardiya bitiminden 120 dakika sonradır. Personel, departman, şube ve firma takvimleri arasında en özel kapsam önceliklidir.
 
 ## Yayın akışı
 

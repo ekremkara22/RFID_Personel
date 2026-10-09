@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   calculateGrossMinutes,
   calculateNetMinutes,
+  compareCalendarAssignments,
   formatMinutes,
   isDateWithinRange,
   resolveEmploymentStatus,
@@ -38,4 +39,18 @@ test("pasif personel tarih araligindan bagimsiz pasif kalir", () => {
 test("tarih araligi sinirlari dahil calisir", () => {
   assert.equal(isDateWithinRange(new Date("2026-08-24"), new Date("2026-08-24"), new Date("2026-08-24")), true);
   assert.equal(isDateWithinRange(new Date("2026-08-23"), new Date("2026-08-24"), null), false);
+});
+
+test("takvim atamasinda kapsam ozgullugu oncelikten once gelir", () => {
+  const company = { scopeType: "COMPANY", priority: 1, updatedAt: new Date("2026-10-01") };
+  const branch = { scopeType: "BRANCH", priority: 50, updatedAt: new Date("2026-10-01") };
+  const department = { scopeType: "DEPARTMENT", priority: 75, updatedAt: new Date("2026-10-01") };
+  const employee = { scopeType: "EMPLOYEE", priority: 100, updatedAt: new Date("2026-10-01") };
+
+  assert.deepEqual([company, employee, branch, department].sort(compareCalendarAssignments), [
+    employee,
+    department,
+    branch,
+    company,
+  ]);
 });

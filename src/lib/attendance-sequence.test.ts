@@ -1,28 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { analyzeAttendanceSequence, calculateBreakMinutes, EXIT_TOLERANCE_MINUTES, inferBidirectionalMovement } from "./attendance-sequence";
+import { analyzeAttendanceSequence, calculateBreakMinutes, inferBidirectionalMovement } from "./attendance-sequence";
 
 test("tek cihazdaki hareketleri girişten sonra mola başlangıç/bitiş olarak sırayla sınıflandırır", () => {
-  assert.equal(EXIT_TOLERANCE_MINUTES, 10);
-  assert.equal(inferBidirectionalMovement({ logs: [], isNearPlannedEnd: false }), "ENTRY");
-  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }], isNearPlannedEnd: false }), "BREAK_START");
-  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }, { type: "BREAK_START" }], isNearPlannedEnd: false }), "BREAK_END");
-  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }, { type: "BREAK_START" }, { type: "BREAK_END" }], isNearPlannedEnd: false }), "BREAK_START");
-});
-
-test("mesai bitimine yakın ve açık molası olmayan basımı çıkış sayar", () => {
-  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }], isNearPlannedEnd: true }), "EXIT");
-});
-
-test("mesai bitimine yakın olsa da açık molayı önce kapatır", () => {
-  assert.equal(inferBidirectionalMovement({
-    logs: [{ type: "ENTRY" }, { type: "BREAK_START" }],
-    isNearPlannedEnd: true,
-  }), "BREAK_END");
+  assert.equal(inferBidirectionalMovement({ logs: [] }), "ENTRY");
+  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }] }), "BREAK_START");
+  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }, { type: "BREAK_START" }] }), "BREAK_END");
+  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }, { type: "BREAK_START" }, { type: "BREAK_END" }] }), "BREAK_START");
 });
 
 test("geçici çıkıştan sonraki okutmayı engellemez", () => {
-  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }, { type: "EXIT" }], isNearPlannedEnd: false }), "BREAK_START");
+  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }, { type: "EXIT" }] }), "BREAK_START");
 });
 
 test("yalnızca kesin eşleşen mola çiftlerini toplar", () => {

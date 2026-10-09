@@ -180,42 +180,43 @@ enum ProductionCustomFieldType {
 }
 
 model Company {
-  id                        Int                        @id @default(autoincrement()) @db.UnsignedInt
-  name                      String
-  contactName               String?
-  contactEmail              String?
-  contactPhone              String?
-  address                   String?
-  city                      String?
-  district                  String?
-  category                  String?
-  isActive                  Boolean                    @default(true)
-  createdAt                 DateTime                   @default(now())
-  updatedAt                 DateTime                   @updatedAt
-  users                     User[]
-  userAccess                UserCompanyAccess[]
-  employees                 Employee[]
-  devices                   Device[]
-  departments               Department[]
-  branches                  Branch[]
-  managers                  Manager[]
-  calendarTemplates         WorkCalendarTemplate[]
-  calendarAssignments       CalendarAssignment[]
-  calendarSpecialDays       CalendarSpecialDay[]
-  dailyExceptions           CalendarDailyException[]
-  payrollPeriods            PayrollPeriod[]
-  companyRoles              CompanyRole[]
-  memberships               CompanyMembership[]
-  invitations               CompanyInvitation[]
-  accessAudits              CompanyAccessAudit[]
-  teams                     CompanyTeam[]
-  productionWorkCenters     ProductionWorkCenter[]
-  productionStations        ProductionStation[]
-  productionTools           ProductionTool[]
-  productionCycleTimes      ProductionCycleTime[]
-  productionWorkOrders      ProductionWorkOrder[]
-  productionCustomFields    ProductionCustomField[]
-  productionImportTemplates ProductionImportTemplate[]
+  id                                 Int                        @id @default(autoincrement()) @db.UnsignedInt
+  name                               String
+  contactName                        String?
+  contactEmail                       String?
+  contactPhone                       String?
+  address                            String?
+  city                               String?
+  district                           String?
+  category                           String?
+  isActive                           Boolean                    @default(true)
+  attendanceFinalizationDelayMinutes Int                        @default(120)
+  createdAt                          DateTime                   @default(now())
+  updatedAt                          DateTime                   @updatedAt
+  users                              User[]
+  userAccess                         UserCompanyAccess[]
+  employees                          Employee[]
+  devices                            Device[]
+  departments                        Department[]
+  branches                           Branch[]
+  managers                           Manager[]
+  calendarTemplates                  WorkCalendarTemplate[]
+  calendarAssignments                CalendarAssignment[]
+  calendarSpecialDays                CalendarSpecialDay[]
+  dailyExceptions                    CalendarDailyException[]
+  payrollPeriods                     PayrollPeriod[]
+  companyRoles                       CompanyRole[]
+  memberships                        CompanyMembership[]
+  invitations                        CompanyInvitation[]
+  accessAudits                       CompanyAccessAudit[]
+  teams                              CompanyTeam[]
+  productionWorkCenters              ProductionWorkCenter[]
+  productionStations                 ProductionStation[]
+  productionTools                    ProductionTool[]
+  productionCycleTimes               ProductionCycleTime[]
+  productionWorkOrders               ProductionWorkOrder[]
+  productionCustomFields             ProductionCustomField[]
+  productionImportTemplates          ProductionImportTemplate[]
 }
 
 model CompanyCategory {
@@ -842,8 +843,8 @@ model AttendanceMovementAudit {
   oldScannedAt     DateTime?
   newScannedAt     DateTime?
   operation        AttendanceAuditOperation
-  changedById      Int                      @db.UnsignedInt
-  changedBy        User                     @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  changedById      Int?                     @db.UnsignedInt
+  changedBy        User?                    @relation(fields: [changedById], references: [id], onDelete: Restrict)
   correctionReason String                   @db.Text
   createdAt        DateTime                 @default(now())
 
@@ -991,32 +992,35 @@ model CalendarDailyException {
 }
 
 model EmployeeDailyCalendar {
-  id                  Int                       @id @default(autoincrement()) @db.UnsignedInt
-  employeeId          Int                       @db.UnsignedInt
-  employee            Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  workDate            DateTime
-  employmentStatus    EmploymentStatus
-  dayType             WorkDayType
-  plannedStart        String?
-  plannedEnd          String?
-  plannedBreakStart   String?
-  plannedBreakEnd     String?
-  crossesMidnight     Boolean                   @default(false)
-  plannedBreakMinutes Int                       @default(0)
-  plannedGrossMinutes Int                       @default(0)
-  plannedNetMinutes   Int                       @default(0)
-  checkLateArrival    Boolean                   @default(false)
-  checkEarlyDeparture Boolean                   @default(false)
-  checkAbsence        Boolean                   @default(false)
-  leaveId             Int?                      @db.UnsignedInt
-  leave               LeaveRequest?             @relation(fields: [leaveId], references: [id], onDelete: SetNull)
-  calendarTemplateId  Int?                      @db.UnsignedInt
-  calendarTemplate    WorkCalendarTemplate?     @relation(fields: [calendarTemplateId], references: [id], onDelete: SetNull)
-  ruleSourceType      String
-  ruleSourceId        Int?                      @db.UnsignedInt
-  calculationStatus   CalendarCalculationStatus @default(CALCULATED)
-  calculationReason   String
-  calculatedAt        DateTime                  @default(now())
+  id                           Int                       @id @default(autoincrement()) @db.UnsignedInt
+  employeeId                   Int                       @db.UnsignedInt
+  employee                     Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workDate                     DateTime
+  employmentStatus             EmploymentStatus
+  dayType                      WorkDayType
+  plannedStart                 String?
+  plannedEnd                   String?
+  plannedBreakStart            String?
+  plannedBreakEnd              String?
+  crossesMidnight              Boolean                   @default(false)
+  plannedBreakMinutes          Int                       @default(0)
+  plannedGrossMinutes          Int                       @default(0)
+  plannedNetMinutes            Int                       @default(0)
+  checkLateArrival             Boolean                   @default(false)
+  checkEarlyDeparture          Boolean                   @default(false)
+  checkAbsence                 Boolean                   @default(false)
+  leaveId                      Int?                      @db.UnsignedInt
+  leave                        LeaveRequest?             @relation(fields: [leaveId], references: [id], onDelete: SetNull)
+  calendarTemplateId           Int?                      @db.UnsignedInt
+  calendarTemplate             WorkCalendarTemplate?     @relation(fields: [calendarTemplateId], references: [id], onDelete: SetNull)
+  ruleSourceType               String
+  ruleSourceId                 Int?                      @db.UnsignedInt
+  calculationStatus            CalendarCalculationStatus @default(CALCULATED)
+  calculationReason            String
+  calculatedAt                 DateTime                  @default(now())
+  attendanceFinalizedAt        DateTime?
+  attendanceFinalizationStatus String?                   @db.VarChar(32)
+  attendanceFinalizationNote   String?                   @db.Text
 
   @@unique([employeeId, workDate])
 }

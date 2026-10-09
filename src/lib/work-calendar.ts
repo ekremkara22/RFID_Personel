@@ -12,10 +12,13 @@ import { prisma } from "@/lib/prisma";
 import {
   calculateGrossMinutes,
   calculateNetMinutes,
+  compareCalendarAssignments,
   isDateWithinRange,
   resolveEmploymentStatus,
   startOfLocalDay,
 } from "@/lib/work-calendar-rules";
+import { getScheduledShiftBounds } from "@/lib/attendance-finalization-rules";
+import { getAppDayRange } from "@/lib/app-time";
 
 const nonWorkingSpecialTypes = new Set<SpecialDayType>([
   SpecialDayType.OFFICIAL_HOLIDAY,
@@ -300,7 +303,7 @@ export async function resolveEmployeeWorkCalendar(employeeId: number, workDateIn
 
   const matchingAssignments = assignments.filter(
     (item) => scopeMatchesEmployee(item, employee) && isDateWithinRange(workDate, item.validFrom, item.validTo),
-  );
+  ).sort(compareCalendarAssignments);
   const topAssignment = matchingAssignments[0];
 
   if (
@@ -409,4 +412,32 @@ export async function saveResolvedEmployeeWorkCalendar(employeeId: number, workD
     },
     create: result,
   });
+}
+
+export async function resolveEmployeeAttendanceCalendar(
+  employeeId: number,
+  scannedAt: Date,
+  finalizationDelayMinutes: number,
+) {
+  const currentDay = getAppDayRange(scannedAt);
+  const previousWorkDate = new Date(currentDay.start.getTime() - 24 * 60 * 60_000);
+  const [currentCalendar, previousCalendar] = await Promise.all([
+    saveResolvedEmployeeWorkCalendar(employeeId, currentDay.dateOnly),
+    saveResolvedEmployeeWorkCalendar(employeeId, previousWorkDate),
+  ]);
+  const previousBounds = getScheduledShiftBounds(previousCalendar, finalizationDelayMinutes);
+
+  if (
+    previousCalendar.crossesMidnight &&
+    previousBounds &&
+    scannedAt >= previousBounds.shiftStart &&
+    scannedAt <= previousBounds.dueAt
+  ) {
+    return { calendar: previousCalendar, bounds: previousBounds };
+  }
+
+  return {
+    calendar: currentCalendar,
+    bounds: getScheduledShiftBounds(currentCalendar, finalizationDelayMinutes),
+  };
 }

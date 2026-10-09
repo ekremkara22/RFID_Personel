@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getAppDayRange, getAppMinutes } from "@/lib/app-time";
+import { getAppDayRange } from "@/lib/app-time";
+import { DUPLICATE_SCAN_WINDOW_MS } from "@/lib/attendance-finalization-rules";
 import { normalizeClientEventId, resolveDeviceScanTime } from "@/lib/device-scan";
-import { timeToMinutes } from "@/lib/work-calendar-rules";
-import { saveResolvedEmployeeWorkCalendar } from "@/lib/work-calendar";
-import { EXIT_TOLERANCE_MINUTES, inferBidirectionalMovement } from "@/lib/attendance-sequence";
+import { resolveEmployeeAttendanceCalendar } from "@/lib/work-calendar";
+import { inferBidirectionalMovement } from "@/lib/attendance-sequence";
 import { assertPayrollPeriodUnlocked } from "@/lib/payroll-period";
 
 function normalizeCardId(cardId: string) {
   return cardId.trim().toUpperCase();
-}
-
-function isNearTime(nowMinutes: number, plannedTime?: string | null) {
-  const plannedMinutes = timeToMinutes(plannedTime);
-  return plannedMinutes !== null && Math.abs(nowMinutes - plannedMinutes) <= EXIT_TOLERANCE_MINUTES;
 }
 
 function successResponse(params: {
@@ -38,18 +33,23 @@ async function inferAttendanceType(params: {
   employeeId: number;
   devicePurpose: DevicePurpose;
   scannedAt: Date;
+  finalizationDelayMinutes: number;
 }) {
   const day = getAppDayRange(params.scannedAt);
-  const [todayLogs, dailyCalendar] = await Promise.all([
-    prisma.attendanceLog.findMany({
-      where: {
-        employeeId: params.employeeId,
-        scannedAt: { gte: day.start, lt: day.end },
-      },
-      orderBy: { scannedAt: "asc" },
-    }),
-    saveResolvedEmployeeWorkCalendar(params.employeeId, day.dateOnly),
-  ]);
+  const resolved = await resolveEmployeeAttendanceCalendar(
+    params.employeeId,
+    params.scannedAt,
+    params.finalizationDelayMinutes,
+  );
+  const todayLogs = await prisma.attendanceLog.findMany({
+    where: {
+      employeeId: params.employeeId,
+      scannedAt: resolved.bounds
+        ? { gte: resolved.bounds.collectionStart, lte: params.scannedAt }
+        : { gte: day.start, lt: day.end },
+    },
+    orderBy: { scannedAt: "asc" },
+  });
 
   if (todayLogs.length === 0) {
     return AttendanceType.ENTRY;
@@ -60,10 +60,7 @@ async function inferAttendanceType(params: {
   if (params.devicePurpose === DevicePurpose.BREAK_START) return AttendanceType.BREAK_START;
   if (params.devicePurpose === DevicePurpose.BREAK_END) return AttendanceType.BREAK_END;
 
-  return inferBidirectionalMovement({
-    logs: todayLogs,
-    isNearPlannedEnd: isNearTime(getAppMinutes(params.scannedAt), dailyCalendar.plannedEnd),
-  });
+  return inferBidirectionalMovement({ logs: todayLogs });
 }
 
 export async function POST(request: Request) {
@@ -145,10 +142,30 @@ export async function POST(request: Request) {
 
     await assertPayrollPeriodUnlocked(employee.companyId, scannedAt);
 
+    const duplicateScan = await prisma.attendanceLog.findFirst({
+      where: {
+        employeeId: employee.id,
+        deviceId: device.id,
+        scannedAt: {
+          gte: new Date(scannedAt.getTime() - DUPLICATE_SCAN_WINDOW_MS),
+          lte: new Date(scannedAt.getTime() + DUPLICATE_SCAN_WINDOW_MS),
+        },
+      },
+      orderBy: { scannedAt: "asc" },
+    });
+    if (duplicateScan) {
+      await prisma.device.update({
+        where: { id: device.id },
+        data: { lastSeenAt: new Date(), lastDataTransferAt: new Date() },
+      });
+      return successResponse({ log: duplicateScan, employee, device, duplicate: true });
+    }
+
     const nextType = await inferAttendanceType({
       employeeId: employee.id,
       devicePurpose: device.purpose,
       scannedAt,
+      finalizationDelayMinutes: device.company.attendanceFinalizationDelayMinutes,
     });
 
     const [log] = await prisma.$transaction([

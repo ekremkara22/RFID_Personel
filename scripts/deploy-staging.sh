@@ -22,6 +22,11 @@ npm run build
 
 chown -R www-data:www-data "$APP_DIR/.next"
 
+install -m 0644 "$APP_DIR/deploy/staging/rfid-personel-staging-attendance-finalizer.service" /etc/systemd/system/rfid-personel-staging-attendance-finalizer.service
+install -m 0644 "$APP_DIR/deploy/staging/rfid-personel-staging-attendance-finalizer.timer" /etc/systemd/system/rfid-personel-staging-attendance-finalizer.timer
+systemctl daemon-reload
+systemctl enable --now rfid-personel-staging-attendance-finalizer.timer
+
 systemctl restart "$SERVICE"
 systemctl is-active --quiet "$SERVICE"
 

@@ -40,7 +40,8 @@ function formatDateTime(date: Date) {
   }).format(date);
 }
 
-function userName(user: { firstName: string | null; lastName: string | null; name: string | null; email: string }) {
+function userName(user: { firstName: string | null; lastName: string | null; name: string | null; email: string } | null) {
+  if (!user) return "Sistem";
   return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.name || user.email;
 }
 
@@ -109,7 +110,7 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
         <div>
           <p className={styles.eyebrow}>Raporlar / Audit</p>
           <h1 className={styles.title}>Hareket Audit Raporu</h1>
-          <p className={styles.subtitle}>Manuel ekleme, düzenleme ve silme işlemlerini kullanıcı, tarih ve değişen değerleriyle inceleyin.</p>
+          <p className={styles.subtitle}>Manuel ve otomatik hareket değişikliklerini aktör, tarih, eski/yeni değer ve gerekçesiyle inceleyin.</p>
         </div>
         <div className={styles.heroMeta}>
           {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton

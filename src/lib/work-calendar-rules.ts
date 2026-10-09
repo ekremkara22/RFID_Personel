@@ -6,6 +6,24 @@ export type EmploymentInput = {
 
 export type EmploymentStatusResult = "ACTIVE" | "PASSIVE" | "BEFORE_HIRE" | "AFTER_TERMINATION";
 
+const calendarScopeWeights: Record<string, number> = {
+  COMPANY: 1,
+  BRANCH: 2,
+  DEPARTMENT: 3,
+  EMPLOYEE: 4,
+};
+
+export function compareCalendarAssignments(
+  first: { scopeType: string; priority: number; updatedAt: Date },
+  second: { scopeType: string; priority: number; updatedAt: Date },
+) {
+  return (
+    (calendarScopeWeights[second.scopeType] ?? 0) - (calendarScopeWeights[first.scopeType] ?? 0) ||
+    first.priority - second.priority ||
+    second.updatedAt.getTime() - first.updatedAt.getTime()
+  );
+}
+
 export function startOfLocalDay(date: Date) {
   const nextDate = new Date(date);
   nextDate.setHours(0, 0, 0, 0);

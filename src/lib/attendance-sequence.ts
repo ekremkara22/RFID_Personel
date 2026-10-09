@@ -1,7 +1,5 @@
 import type { AttendanceType } from "@/generated/prisma/client";
 
-export const EXIT_TOLERANCE_MINUTES = 10;
-
 type Movement = { id?: number; type: AttendanceType; scannedAt?: Date };
 
 const BREAK_START_TYPES = new Set<AttendanceType>(["BREAK_START", "MEAL_START"]);
@@ -9,19 +7,16 @@ const BREAK_END_TYPES = new Set<AttendanceType>(["BREAK_END", "MEAL_END"]);
 
 export function inferBidirectionalMovement(params: {
   logs: Movement[];
-  isNearPlannedEnd: boolean;
 }): AttendanceType {
-  const { logs, isNearPlannedEnd } = params;
+  const { logs } = params;
   if (logs.length === 0) return "ENTRY";
 
-  // Açık mola, mesai bitiş toleransından önce kapatılır. Böylece mesai
-  // bitimine yakın bir mola dönüşü yanlışlıkla kesin çıkışa dönüşmez.
-  // Geçici EXIT kayıtları aynı gün yapılacak yeni okutmayı kilitlemez.
+  // Çift yönlü cihazdaki gün içi tür geçicidir. Kesin çıkış, personelin
+  // çözümlenmiş vardiya bitişi ve firma toleransı dolduktan sonra belirlenir.
   const breakMovementCount = logs.filter(
     (log) => BREAK_START_TYPES.has(log.type) || BREAK_END_TYPES.has(log.type),
   ).length;
   if (breakMovementCount % 2 === 1) return "BREAK_END";
-  if (isNearPlannedEnd) return "EXIT";
   return "BREAK_START";
 }
 

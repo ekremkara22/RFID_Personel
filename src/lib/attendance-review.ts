@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { AttendanceLog, Employee } from "@/generated/prisma/client";
 import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
+import { findDuplicateScanIds } from "@/lib/attendance-finalization-rules";
 import { dateOnlyFromKey, getAppDayKey } from "@/lib/app-time";
 
 export const DELAYED_UPLOAD_THRESHOLD_MS = 5 * 60_000;
@@ -13,6 +14,7 @@ export type AttendanceReviewCase = {
   issueLabels: string[];
   unmatchedLogIds: number[];
   delayedLogIds: number[];
+  duplicateLogIds: number[];
   fingerprint: string;
 };
 
@@ -40,14 +42,16 @@ export function buildAttendanceReviewCases(
     const delayedLogIds = dayLogs
       .filter((log) => log.receivedAt && log.receivedAt.getTime() - log.scannedAt.getTime() > DELAYED_UPLOAD_THRESHOLD_MS)
       .map((log) => log.id);
+    const duplicateLogIds = findDuplicateScanIds(dayLogs);
     const issueLabels: string[] = [];
     if (dayKey < todayKey && dayLogs.length > 0 && !hasExit) issueLabels.push("Eksik çıkış");
     if (analysis.unmatchedLogIds.length > 0) issueLabels.push("Eşleşmeyen mola/hareket");
     if (delayedLogIds.length > 0) issueLabels.push("Gecikmeli kayıt");
+    if (duplicateLogIds.length > 0) issueLabels.push("Tekrarlı okutma şüphesi");
     if (issueLabels.length === 0) continue;
 
     const fingerprint = createHash("sha256")
-      .update(`${dayLogs[0].employeeId}|${dayKey}|${issueLabels.join("|")}|${analysis.unmatchedLogIds.join(",")}|${delayedLogIds.join(",")}`)
+      .update(`${dayLogs[0].employeeId}|${dayKey}|${issueLabels.join("|")}|${analysis.unmatchedLogIds.join(",")}|${delayedLogIds.join(",")}|${duplicateLogIds.join(",")}`)
       .digest("hex");
     cases.push({
       employee: dayLogs[0].employee,
@@ -57,6 +61,7 @@ export function buildAttendanceReviewCases(
       issueLabels,
       unmatchedLogIds: analysis.unmatchedLogIds,
       delayedLogIds,
+      duplicateLogIds,
       fingerprint,
     });
   }

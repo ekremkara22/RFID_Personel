@@ -269,6 +269,20 @@ export default async function CompanyDetailPage(props: {
               <input name="contactName" defaultValue={company.contactName ?? ""} />
             </label>
 
+            <label className={styles.field}>
+              <span>Mesai Sonu Kesinleştirme Toleransı</span>
+              <input
+                name="attendanceFinalizationDelayMinutes"
+                type="number"
+                min={30}
+                max={720}
+                step={30}
+                defaultValue={company.attendanceFinalizationDelayMinutes}
+                required
+              />
+              <small>Hareketler vardiya bitiminden bu kadar dakika sonra kesinleştirilir. Varsayılan: 120 dakika.</small>
+            </label>
+
             <label className={`${styles.field} ${styles.fullWidth}`}>
               <span>Firma Adres</span>
               <textarea name="address" rows={4} defaultValue={company.address ?? ""} />

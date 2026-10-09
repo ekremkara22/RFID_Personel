@@ -11,7 +11,15 @@ import { ALL_MODULE_KEYS, defaultRoleModules } from "@/lib/module-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { isValidOptionalUsername, normalizeOptionalUsername } from "@/lib/user-identity";
-import { getString, getStringList, getId, getReturnTo, redirectToReturnPath } from "@/modules/shared/action-helpers";
+import { getString, getStringList, getId, getOptionalNumber, getReturnTo, redirectToReturnPath } from "@/modules/shared/action-helpers";
+
+function getAttendanceFinalizationDelayMinutes(formData: FormData) {
+  const value = getOptionalNumber(formData, "attendanceFinalizationDelayMinutes") ?? 120;
+  if (!Number.isInteger(value) || value < 30 || value > 720) {
+    throw new ActionError("Mesai sonu kesinleştirme toleransı 30–720 dakika arasında olmalıdır.");
+  }
+  return value;
+}
 
 export async function createCompanyAction(formData: FormData) {
   const { user } = await requireSessionUser();
@@ -28,6 +36,7 @@ export async function createCompanyAction(formData: FormData) {
   const city = getString(formData, "city");
   const district = getString(formData, "district");
   const category = getString(formData, "category");
+  const attendanceFinalizationDelayMinutes = getAttendanceFinalizationDelayMinutes(formData);
   const adminFirstName = getString(formData, "adminFirstName");
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
@@ -57,6 +66,7 @@ export async function createCompanyAction(formData: FormData) {
         city: city || null,
         district: district || null,
         category: category || null,
+        attendanceFinalizationDelayMinutes,
       },
     });
 
@@ -130,6 +140,7 @@ async function updateCompanyActionImpl(formData: FormData) {
   const city = getString(formData, "city");
   const district = getString(formData, "district");
   const category = getString(formData, "category");
+  const attendanceFinalizationDelayMinutes = getAttendanceFinalizationDelayMinutes(formData);
   const adminFirstName = getString(formData, "adminFirstName");
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
@@ -169,6 +180,7 @@ async function updateCompanyActionImpl(formData: FormData) {
         city: city || null,
         district: district || null,
         category: category || null,
+        attendanceFinalizationDelayMinutes,
         isActive,
       },
     });
