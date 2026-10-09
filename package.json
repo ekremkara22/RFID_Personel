@@ -18,7 +18,7 @@
     "rbac:seed:staging": "tsx scripts/seed-rbac-staging-demo.ts",
     "calendar:backfill": "node --env-file=.env --import tsx scripts/backfill-attendance-calendars.ts",
     "calendar:remove-finalizer": "node --env-file=.env --import tsx scripts/remove-daily-attendance-finalizer.ts",
-    "attendance:finalize": "node --import tsx scripts/finalize-attendance.ts",
+    "attendance:finalize": "tsx scripts/finalize-attendance.ts",
     "seed": "tsx prisma/seed.ts"
   },
   "engines": {
