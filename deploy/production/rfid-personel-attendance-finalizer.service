@@ -1,0 +1,15 @@
+[Unit]
+Description=RFID Personel production attendance finalizer
+After=network.target mariadb.service
+Requires=mariadb.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/rfid-personel-takip
+EnvironmentFile=/var/www/rfid-personel-takip/.env
+ExecStart=/usr/bin/npm run attendance:finalize
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

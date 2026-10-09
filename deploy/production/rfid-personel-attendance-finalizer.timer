@@ -1,0 +1,11 @@
+[Unit]
+Description=Run production attendance finalizer every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=rfid-personel-attendance-finalizer.service
+
+[Install]
+WantedBy=timers.target
