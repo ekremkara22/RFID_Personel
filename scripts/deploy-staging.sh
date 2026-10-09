@@ -20,7 +20,7 @@ npm run test
 npm run lint
 npm run build
 
-chown -R www-data:www-data "$APP_DIR/.next"
+chown -R www-data:www-data "$APP_DIR/.next" "$APP_DIR/src/generated"
 
 install -m 0644 "$APP_DIR/deploy/staging/rfid-personel-staging-attendance-finalizer.service" /etc/systemd/system/rfid-personel-staging-attendance-finalizer.service
 install -m 0644 "$APP_DIR/deploy/staging/rfid-personel-staging-attendance-finalizer.timer" /etc/systemd/system/rfid-personel-staging-attendance-finalizer.timer
