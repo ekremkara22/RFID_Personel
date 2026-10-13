@@ -106,6 +106,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   if (user.role === "COMPANY_ADMIN" && !authorization.companyId) redirect("/dashboard/companies/new");
   if (!canAccessModule(authorization, MODULES.HR)) {
     if (canAccessModule(authorization, MODULES.PRODUCTION_PLANNING)) redirect("/dashboard/production");
+    if (canAccessModule(authorization, MODULES.ACCOUNTING)) redirect("/dashboard/accounting");
     redirect("/login");
   }
   const isSuperadmin = user.role === "SUPERADMIN";
