@@ -28,6 +28,7 @@ import {
   Tags,
   Users,
   KeyRound,
+  ShoppingBag,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -55,6 +56,8 @@ type DashboardShellProps = {
   authorization: { isPlatformAdmin: boolean; companyId: number | null; roleName: string | null; permissions: string[]; modules: string[] };
   memberships: Array<{ companyId: number; companyName: string; roleName: string }>;
   moduleCatalog: Array<{ key: string; name: string }>;
+  showStoreLink?: boolean;
+  licenseNotice?: { tone: "info" | "warning"; text: string } | null;
 };
 
 function getUserFullName(user: DashboardShellProps["user"]) {
@@ -85,7 +88,7 @@ const navigationIcons: Record<NavigationIconKey, LucideIcon> = {
   key: KeyRound,
 };
 
-export function DashboardShell({ children, user, authorization, memberships, moduleCatalog }: DashboardShellProps) {
+export function DashboardShell({ children, user, authorization, memberships, moduleCatalog, showStoreLink = false, licenseNotice = null }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [definitionsOpen, setDefinitionsOpen] = useState(
@@ -144,6 +147,16 @@ export function DashboardShell({ children, user, authorization, memberships, mod
         </div>
 
         <nav className={styles.nav}>
+          {showStoreLink ? (
+            <Link
+              href="/dashboard/store"
+              className={`${styles.navItem} ${pathname.startsWith("/dashboard/store") ? styles.navItemActive : ""}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <ShoppingBag size={18} />
+              <span>Modüller ve Lisanslar</span>
+            </Link>
+          ) : null}
           {platformItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -159,7 +172,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
             );
           })}
           {hasHr ? <div className={styles.navGroup}>
-            <button type="button" className={`${styles.navItem} ${!productionActive && !accountingActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
+            <button type="button" className={`${styles.navItem} ${!productionActive && !accountingActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") && !pathname.startsWith("/dashboard/store") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
             {hrOpen ? <div className={styles.subNav}>
           {items.map((item) => {
             const Icon = item.icon;
@@ -348,7 +361,15 @@ export function DashboardShell({ children, user, authorization, memberships, mod
           </div>
         </header>
 
-        <main className={styles.content}>{children}</main>
+        <main className={styles.content}>
+          {licenseNotice && !pathname.startsWith("/dashboard/store") ? (
+            <div className={styles.licenseBanner} data-tone={licenseNotice.tone} role="status">
+              <span>{licenseNotice.text}</span>
+              <Link href="/dashboard/store" className={styles.licenseBannerLink}>Modülleri incele</Link>
+            </div>
+          ) : null}
+          {children}
+        </main>
       </div>
     </div>
   );

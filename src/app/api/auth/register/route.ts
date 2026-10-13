@@ -1,0 +1,81 @@
+import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { attachSessionCookie } from "@/lib/session-cookie";
+import { trialEndDate } from "@/lib/module-license-policy";
+
+const WINDOW_MS = 15 * 60 * 1000;
+const MAX_ATTEMPTS_PER_WINDOW = 10;
+// Best-effort throttle per process; it limits scripted sign-up bursts without extra infrastructure.
+const attemptsByIp = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string, now: number) {
+  const entry = attemptsByIp.get(ip);
+  if (!entry || entry.resetAt <= now) {
+    attemptsByIp.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    if (attemptsByIp.size > 5000) {
+      for (const [key, value] of attemptsByIp) if (value.resetAt <= now) attemptsByIp.delete(key);
+    }
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > MAX_ATTEMPTS_PER_WINDOW;
+}
+
+function text(value: unknown, max: number) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+export async function POST(request: Request) {
+  try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+    if (isRateLimited(ip, Date.now())) {
+      return NextResponse.json({ error: "Çok fazla kayıt denemesi yapıldı. Lütfen birkaç dakika sonra tekrar deneyin." }, { status: 429 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const firstName = text(body?.firstName, 100);
+    const lastName = text(body?.lastName, 100);
+    const email = text(body?.email, 191).toLowerCase();
+    const phone = text(body?.phone, 32);
+    const password = typeof body?.password === "string" ? body.password : "";
+    // Hidden field humans never fill; bots that complete every input are ignored.
+    const website = text(body?.website, 200);
+
+    if (website) return NextResponse.json({ error: "Kayıt tamamlanamadı." }, { status: 400 });
+    if (!firstName || !lastName) return NextResponse.json({ error: "Ad ve soyad alanlarını doldurun." }, { status: 400 });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Geçerli bir e-posta adresi girin." }, { status: 400 });
+    if (phone && !/^[0-9+()\s-]{7,32}$/.test(phone)) return NextResponse.json({ error: "Telefon numarası yalnız rakam, boşluk, +, - ve parantez içerebilir." }, { status: 400 });
+    if (password.length < 10 || password.length > 128) return NextResponse.json({ error: "Şifre en az 10, en fazla 128 karakter olmalıdır." }, { status: 400 });
+
+    const existing = await prisma.user.findFirst({ where: { OR: [{ email }, { username: email }] }, select: { id: true } });
+    if (existing) {
+      return NextResponse.json({ error: "Bu e-posta adresiyle kayıtlı bir hesap var. Giriş yapmayı deneyin." }, { status: 409 });
+    }
+
+    const now = new Date();
+    const user = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        name: `${firstName} ${lastName}`.trim(),
+        email,
+        phone: phone || null,
+        password: await bcrypt.hash(password, 10),
+        role: "COMPANY_ADMIN",
+        companyId: null,
+        selfRegistered: true,
+        trialEndsAt: trialEndDate(now),
+      },
+    });
+
+    const response = NextResponse.json({ success: true, redirectTo: "/dashboard/store" }, { status: 201 });
+    return await attachSessionCookie(request, response, { id: user.id, email: user.email, name: user.name ?? email, role: user.role, companyId: null });
+  } catch (error) {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2002") {
+      return NextResponse.json({ error: "Bu e-posta adresiyle kayıtlı bir hesap var. Giriş yapmayı deneyin." }, { status: 409 });
+    }
+    console.error("Register route error", error);
+    return NextResponse.json({ error: "Kayıt sırasında beklenmeyen bir hata oluştu." }, { status: 500 });
+  }
+}

@@ -21,7 +21,7 @@ export default async function ModuleDefinitionsPage() {
         <div className={ui.headerCopy}>
           <p className={ui.kicker}>Sabit tanımlar</p>
           <h1 className={ui.pageTitle}>Modüller</h1>
-          <p className={ui.pageDescription}>Uygulamadaki modüllerin kullanıcıya görünen adlarını ve açıklamalarını yönetin.</p>
+          <p className={ui.pageDescription}>Uygulamadaki modüllerin kullanıcıya görünen adlarını, açıklamalarını, fiyat bilgisini ve Shopier satış bağlantılarını yönetin.</p>
         </div>
         <span className={ui.countBadge}>{modules.length} modül</span>
       </header>
@@ -49,9 +49,18 @@ export default async function ModuleDefinitionsPage() {
                   <span>Modül adı</span>
                   <input name="name" defaultValue={module.name} minLength={2} maxLength={100} required />
                 </label>
+                <label className={styles.field}>
+                  <span>Fiyat bilgisi</span>
+                  <input name="priceLabel" defaultValue={module.priceLabel ?? ""} maxLength={100} placeholder="ör. Aylık 1.500 TL + KDV" />
+                </label>
                 <label className={`${styles.field} ${styles.fullWidth}`}>
                   <span>Açıklama</span>
                   <textarea name="description" defaultValue={module.description} maxLength={500} rows={3} />
+                </label>
+                <label className={`${styles.field} ${styles.fullWidth}`}>
+                  <span>Shopier satın alma bağlantısı</span>
+                  <input name="purchaseUrl" type="url" defaultValue={module.purchaseUrl ?? ""} maxLength={500} placeholder="https://www.shopier.com/..." inputMode="url" />
+                  <small>Müşterinin &quot;Modüller ve Lisanslar&quot; sayfasındaki &quot;Satın al&quot; butonu bu ürün sayfasını açar. Boş bırakılırsa buton gösterilmez.</small>
                 </label>
                 <div className={styles.fullWidthActionRow}>
                   <SubmitButton idleLabel="Kaydet" pendingLabel="Kaydediliyor..." className={ui.primaryAction} />

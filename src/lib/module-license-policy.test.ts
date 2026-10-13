@@ -38,3 +38,40 @@ test("lisans veya rol olmadan modül erişimi verilmez", () => {
   assert.equal(licensedModules("CUSTOM", [], ["HR"]).size, 0);
   assert.equal(licensedModules("CUSTOM", ["PRODUCTION_PLANNING"], ["HR"]).size, 0);
 });
+
+test("deneme süresi boyunca tüm modüller açıktır, süre bitince yalnız geçerli lisanslar kalır", async () => {
+  const { effectiveLicenseKeys, licenseState, trialDaysLeft, trialEndDate } = await import("./module-license-policy");
+  const { ALL_MODULE_KEYS } = await import("./module-catalog");
+  const start = new Date("2026-10-01T09:00:00Z");
+  const holder = { trialEndsAt: trialEndDate(start), moduleEntitlements: [] as { moduleKey: string; expiresAt: Date | null }[] };
+
+  assert.deepEqual(effectiveLicenseKeys(holder, start).sort(), [...ALL_MODULE_KEYS].sort());
+  assert.equal(trialDaysLeft(holder, start), 14);
+  assert.equal(licenseState(holder, start), "TRIAL");
+
+  const afterTrial = new Date("2026-10-15T09:00:01Z");
+  assert.deepEqual(effectiveLicenseKeys(holder, afterTrial), []);
+  assert.equal(licenseState(holder, afterTrial), "TRIAL_EXPIRED");
+
+  holder.moduleEntitlements.push({ moduleKey: "HR", expiresAt: null }, { moduleKey: "ACCOUNTING", expiresAt: new Date("2026-10-10T00:00:00Z") });
+  assert.deepEqual(effectiveLicenseKeys(holder, afterTrial), ["HR"]);
+  assert.equal(licenseState(holder, afterTrial), "LICENSED");
+});
+
+test("deneme kaydı olmayan mevcut kullanıcıların lisansları değişmez", async () => {
+  const { effectiveLicenseKeys, licenseState } = await import("./module-license-policy");
+  const holder = { trialEndsAt: null, moduleEntitlements: [{ moduleKey: "HR", expiresAt: null }, { moduleKey: "PRODUCTION_PLANNING", expiresAt: null }] };
+  assert.deepEqual(effectiveLicenseKeys(holder), ["HR", "PRODUCTION_PLANNING"]);
+  assert.equal(licenseState(holder), "LICENSED");
+  assert.equal(licenseState({ trialEndsAt: null, moduleEntitlements: [] }), "NO_LICENSE");
+});
+
+test("lisans bitiş tarihi seçilen günün sonuna kadar geçerlidir", async () => {
+  const { licenseDateFromInput, licenseDateToInput } = await import("./module-license-policy");
+  const end = licenseDateFromInput("2026-10-27")!;
+  assert.equal(end.toISOString(), "2026-10-27T21:00:00.000Z");
+  assert.equal(licenseDateToInput(end), "2026-10-27");
+  assert.equal(licenseDateFromInput(""), null);
+  assert.equal(licenseDateFromInput("2026-02-30"), undefined);
+  assert.equal(licenseDateFromInput("27.10.2026"), undefined);
+});

@@ -31,7 +31,7 @@ export default async function NewCompanyPage() {
               : "Kendi yonetecegin firma kaydini bu ekrandan olusturabilirsin."}
           </p>
         </div>
-        <BackLink href="/dashboard/companies" />
+        <BackLink href={user.role === "SUPERADMIN" ? "/dashboard/companies" : "/dashboard/store"} />
       </section>
 
       <section className={`glass-panel ${styles.sectionCard}`}>
@@ -43,7 +43,7 @@ export default async function NewCompanyPage() {
         </div>
 
         <form action={createCompanyAction} className={styles.formGrid}>
-          <input type="hidden" name="returnTo" value="/dashboard/companies" />
+          <input type="hidden" name="returnTo" value={user.role === "SUPERADMIN" ? "/dashboard/companies" : "/dashboard"} />
           <label className={styles.field}>
             <span>Firma Adi</span>
             <input name="companyName" required placeholder="Ornek Teknoloji A.S." />

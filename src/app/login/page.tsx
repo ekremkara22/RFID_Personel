@@ -126,6 +126,8 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <p className={styles.switchText}>Hesabınız yok mu? <Link href="/register">Kayıt olun, 14 gün ücretsiz deneyin</Link></p>
+
           <Link href="/" className={styles.backLink}>
             <ArrowLeft size={16} /> Ana sayfaya dön
           </Link>

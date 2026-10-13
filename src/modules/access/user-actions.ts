@@ -193,7 +193,11 @@ async function transferCompanyOwnershipActionImpl(formData: FormData) {
   const [target, ownerRole, adminRole] = await Promise.all([prisma.companyMembership.findFirst({ where: { id: targetMembershipId, companyId: authorization.companyId, status: CompanyMembershipStatus.ACTIVE } }), prisma.companyRole.findUnique({ where: { companyId_key: { companyId: authorization.companyId, key: "OWNER" } } }), prisma.companyRole.findUnique({ where: { companyId_key: { companyId: authorization.companyId, key: "ADMIN" } } })]);
   if (!target || target.userId === user.id || !ownerRole || !adminRole) throw new ActionError("Sahiplik devri hedefi geçersiz.");
   await prisma.$transaction(async (tx) => {
-    if (authorization.modules.size) await tx.userModuleEntitlement.createMany({ data: [...authorization.modules].map((moduleKey) => ({ userId: target.userId, moduleKey })), skipDuplicates: true });
+    // Carry the owner's real licenses (with expiry) and trial over; copying the effective
+    // module set would turn trial access into permanent licenses.
+    const currentOwner = await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: { selfRegistered: true, trialEndsAt: true, moduleEntitlements: { select: { moduleKey: true, expiresAt: true } } } });
+    if (currentOwner.moduleEntitlements.length) await tx.userModuleEntitlement.createMany({ data: currentOwner.moduleEntitlements.map((item) => ({ userId: target.userId, moduleKey: item.moduleKey, expiresAt: item.expiresAt })), skipDuplicates: true });
+    if (currentOwner.trialEndsAt) await tx.user.update({ where: { id: target.userId }, data: { trialEndsAt: currentOwner.trialEndsAt, selfRegistered: currentOwner.selfRegistered } });
     await tx.companyMembership.update({ where: { id: target.id }, data: { roleId: ownerRole.id, scopeMode: DataScopeMode.COMPANY, sessionVersion: { increment: 1 } } });
     await tx.membershipModule.createMany({ data: ALL_MODULE_KEYS.map((moduleKey) => ({ membershipId: target.id, moduleKey })), skipDuplicates: true });
     await tx.companyMembership.update({ where: { id: authorization.membershipId! }, data: { roleId: adminRole.id, sessionVersion: { increment: 1 } } });

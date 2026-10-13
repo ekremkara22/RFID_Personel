@@ -100,6 +100,9 @@ function operationReportHref(params: {
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
   const { user, authorization } = await requireSessionUser();
+  const isLicenseOwner = user.role === "COMPANY_ADMIN" && (authorization.roleKey === "OWNER" || authorization.roleKey === "PENDING_COMPANY_OWNER");
+  // Owners without an open module (trial over, nothing purchased) or without a company land on their license page.
+  if (isLicenseOwner && (authorization.modules.size === 0 || !authorization.companyId)) redirect("/dashboard/store");
   if (!authorization.isPlatformAdmin && authorization.modules.size === 0) {
     return <div className={`${styles.page} ${ui.managementPage}`}><section className={ui.surface}><h1 className={ui.pageTitle}>Açık modül bulunmuyor</h1><p className={ui.pageDescription}>Hesabınıza veya firmanıza açık bir modül bulunmuyor. Modül erişimi için süper adminle, rol yetkileri için firma yöneticinizle iletişime geçin. Yetki tekrar verildiğinde ilgili modüller kullanılabilir olacaktır.</p></section></div>;
   }

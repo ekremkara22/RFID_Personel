@@ -1,0 +1,157 @@
+.noticeDanger {
+  border-color: #fecdca;
+  background: #fef3f2;
+}
+
+.noticeDanger h2 {
+  color: #b42318;
+}
+
+.moduleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.moduleCard {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 16px;
+}
+
+.moduleHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.moduleTitle {
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.moduleTitle h3 {
+  margin: 0;
+  color: #101828;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* Expiry dates make the license badge longer than the shared badge expects. */
+.moduleTitle > span {
+  white-space: normal;
+}
+
+.moduleDescription {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.highlightList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.highlightList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.highlightList svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #12b76a;
+}
+
+.moduleFooter {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--ui-border);
+  padding-top: 12px;
+}
+
+.price {
+  color: #101828;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.footerHint {
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  counter-increment: step;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 13px;
+  color: var(--ui-muted);
+  line-height: 1.5;
+}
+
+.steps li::before {
+  content: counter(step);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eff8ff;
+  color: #175cd3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.steps strong {
+  color: #101828;
+  font-size: 14px;
+}
+
+.email {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #175cd3;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+@media (max-width: 860px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+}

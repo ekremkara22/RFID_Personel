@@ -344,3 +344,42 @@
   padding: 0.45rem;
   font-size: 0.72rem;
 }
+
+.licenseBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  border: 1px solid #b2ddff;
+  border-radius: 10px;
+  background: #eff8ff;
+  padding: 10px 14px;
+  color: #1849a9;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.licenseBanner[data-tone="warning"] {
+  border-color: #fecdca;
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.licenseBannerLink {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.licenseBannerLink:hover,
+.licenseBannerLink:focus-visible {
+  background: rgba(255, 255, 255, 0.7);
+}

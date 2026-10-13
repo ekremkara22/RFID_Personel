@@ -2,9 +2,22 @@ import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/clien
 import { prisma } from "@/lib/prisma";
 import { ALL_PERMISSIONS, PERMISSIONS } from "@/lib/permission-catalog";
 import { ALL_MODULE_KEYS } from "@/lib/module-catalog";
-import { licensedModules } from "@/lib/module-license-policy";
+import { effectiveLicenseKeys, licensedModules } from "@/lib/module-license-policy";
 import type { AuthorizationContext } from "@/lib/authorization-scope";
 export * from "@/lib/authorization-scope";
+
+/** The user whose platform licenses (and trial) apply to the whole company. */
+export async function findCompanyLicensePrincipal(companyId: number) {
+  const principals = await prisma.companyMembership.findMany({
+    where: { companyId, status: CompanyMembershipStatus.ACTIVE, role: { key: { in: ["OWNER", "ADMIN"] }, isActive: true } },
+    select: { userId: true, role: { select: { key: true } }, user: { select: { companyId: true, trialEndsAt: true, moduleEntitlements: { select: { moduleKey: true, expiresAt: true } } } } },
+    orderBy: { id: "asc" },
+  });
+  // Pre-RBAC companies have a primary ADMIN rather than an OWNER membership.
+  return principals.find((item) => item.role.key === "OWNER")
+    ?? principals.find((item) => item.user.companyId === companyId)
+    ?? null;
+}
 
 export async function getAuthorizationContext(user: { id: number; role: string }, requestedCompanyId?: number | null): Promise<AuthorizationContext> {
   if (user.role === "SUPERADMIN") {
@@ -26,23 +39,17 @@ export async function getAuthorizationContext(user: { id: number; role: string }
   });
   const membership = memberships.find((item) => item.companyId === requestedCompanyId) ?? memberships[0];
   if (!membership) {
-    const entitlements = await prisma.userModuleEntitlement.findMany({
-      where: { userId: user.id },
-      select: { moduleKey: true },
+    const holder = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { trialEndsAt: true, moduleEntitlements: { select: { moduleKey: true, expiresAt: true } } },
     });
-    return { isPlatformAdmin: false, userId: user.id, companyId: null, membershipId: null, membershipStatus: null, sessionVersion: 0, roleKey: "PENDING_COMPANY_OWNER", roleName: "Firma yöneticisi", permissions: new Set(), modules: new Set(entitlements.map((item) => item.moduleKey)), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [] };
+    return { isPlatformAdmin: false, userId: user.id, companyId: null, membershipId: null, membershipStatus: null, sessionVersion: 0, roleKey: "PENDING_COMPANY_OWNER", roleName: "Firma yöneticisi", permissions: new Set(), modules: new Set(holder ? effectiveLicenseKeys(holder) : []), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [] };
   }
   // The current owner's platform licenses are the ceiling for every company member.
   // Read on each request so revocation also applies to already signed-in users.
-  const principals = await prisma.companyMembership.findMany({
-    where: { companyId: membership.companyId, status: CompanyMembershipStatus.ACTIVE, role: { key: { in: ["OWNER", "ADMIN"] }, isActive: true } },
-    select: { userId: true, role: { select: { key: true } }, user: { select: { companyId: true, moduleEntitlements: { select: { moduleKey: true } } } } },
-    orderBy: { id: "asc" },
-  });
-  // Pre-RBAC companies have a primary ADMIN rather than an OWNER membership.
-  const principal = principals.find((item) => item.role.key === "OWNER")
-    ?? principals.find((item) => item.user.companyId === membership.companyId);
-  const companyLicenses = principal?.user.moduleEntitlements.map((item) => item.moduleKey) ?? [];
+  const principal = await findCompanyLicensePrincipal(membership.companyId);
+  // Trial and license expiry are evaluated here so closing happens without a background job.
+  const companyLicenses = principal ? effectiveLicenseKeys(principal.user) : [];
   const isLicensePrincipal = principal?.userId === user.id;
   return {
     isPlatformAdmin: false,

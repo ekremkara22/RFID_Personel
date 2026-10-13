@@ -18,6 +18,7 @@ import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
 import { getModuleCatalog } from "@/modules/module-definitions/repository";
+import { isEntitlementActive, licenseDateToInput, licenseState, trialDaysLeft } from "@/lib/module-license-policy";
 import styles from "../../page.module.css";
 
 const tabs = [
@@ -85,10 +86,9 @@ export default async function UserDetailPage(props: {
   if (record.companyId) selectedCompanyIds.add(record.companyId);
   const selectedDeviceIds = new Set(record.deviceAccess.map((access) => access.deviceId));
   const selectedCompanyIdList = Array.from(selectedCompanyIds);
-  const selectedModuleKeys = new Set([
-    ...record.moduleEntitlements.map((module) => module.moduleKey),
-    ...record.memberships.flatMap((membership) => membership.modules.map((module) => module.moduleKey)),
-  ]);
+  // Licenses come only from the user's entitlements; membership module rows are role
+  // configuration and showing them here made removed licenses look still assigned.
+  const entitlementByKey = new Map(record.moduleEntitlements.map((module) => [module.moduleKey, module]));
   const roleOptions = (roleDefinitions.length > 0
     ? roleDefinitions.map((role) => ({ code: role.code, name: role.name }))
     : Object.values(Role).map((role) => ({ code: role, name: roleLabels[role] }))).filter((role) => role.code !== Role.EMPLOYEE);
@@ -117,6 +117,9 @@ export default async function UserDetailPage(props: {
   // eslint-disable-next-line react-hooks/purity
   const checkedAt = Date.now();
   const onlineCount = visibleDevices.filter((device) => isDeviceOnline(device.lastSeenAt, checkedAt)).length;
+  const licenseNow = new Date(checkedAt);
+  const currentLicenseState = licenseState(record, licenseNow);
+  const formatLicenseDate = (date: Date) => new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeZone: APP_TIME_ZONE }).format(new Date(date.getTime() - 1));
   const formatDeviceDate = (date: Date | null) => date
     ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "medium", timeZone: APP_TIME_ZONE }).format(date)
     : "Henüz yok";
@@ -167,7 +170,40 @@ export default async function UserDetailPage(props: {
             </label>
 
             <label className={styles.field}><span>Firma Durumu</span><input value={selectedCompanyIdList.length ? `${selectedCompanyIdList.length} firma tanımlı` : "Firma henüz tanımlanmadı"} readOnly /><small>Firma admini firmasını kendi hesabından oluşturur.</small></label>
-            {record.role === Role.COMPANY_ADMIN ? <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini ve onun oluşturacağı alt kullanıcılar yalnız seçili modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{moduleCatalog.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={selectedModuleKeys.has(module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset> : <div className={`${styles.fullWidth} ${styles.helperText}`}>Süper Admin bütün modül ve yetkilere otomatik erişir; ayrıca modül lisansı seçilmez.</div>}
+            {record.role === Role.COMPANY_ADMIN ? (
+              <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}>
+                <legend>Lisans ve Deneme</legend>
+                <div className={ui.licenseSummary}>
+                  {currentLicenseState === "TRIAL" ? <span className={ui.statusWarning}>Denemede · {trialDaysLeft(record, licenseNow)} gün kaldı</span>
+                    : currentLicenseState === "LICENSED" ? <span className={ui.statusBadge}>Lisanslı</span>
+                      : currentLicenseState === "TRIAL_EXPIRED" ? <span className={ui.statusDanger}>Deneme bitti · erişim kapalı</span>
+                        : <span className={ui.statusNeutral}>Lisans yok · erişim kapalı</span>}
+                  <span>{record.selfRegistered ? "Kendi kaydını oluşturdu" : "Yönetici tarafından eklendi"} · {new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeZone: APP_TIME_ZONE }).format(record.createdAt)}</span>
+                </div>
+                <p className={styles.scopeHint}>Deneme süresince tüm modüller açıktır. Deneme bittiğinde yalnız lisanslı ve süresi dolmamış modüller açık kalır; firma admini ve alt kullanıcıları bu modüllerle sınırlıdır. Bitiş tarihi boş bırakılan lisans süresizdir.</p>
+                <div className={ui.licenseList}>
+                  <div className={ui.licenseRow}>
+                    <div><strong>Deneme süresi</strong><small>{record.trialEndsAt ? `${formatLicenseDate(record.trialEndsAt)} gününün sonunda biter` : "Bu hesapta deneme uygulanmıyor"}</small></div>
+                    <span />
+                    <label className={ui.licenseDate}><span>Deneme bitişi</span><input type="date" name="trialEndsAt" defaultValue={licenseDateToInput(record.trialEndsAt)} aria-label="Deneme bitiş tarihi" /></label>
+                  </div>
+                  {moduleCatalog.map((module) => {
+                    const entitlement = entitlementByKey.get(module.key);
+                    const expired = entitlement ? !isEntitlementActive(entitlement, licenseNow) : false;
+                    return (
+                      <div key={module.key} className={ui.licenseRow}>
+                        <div>
+                          <strong>{module.name}</strong>
+                          <small>{!entitlement ? "Lisans yok" : expired ? `Süresi doldu (${formatLicenseDate(entitlement.expiresAt!)})` : entitlement.expiresAt ? `${formatLicenseDate(entitlement.expiresAt)} tarihine kadar lisanslı` : "Süresiz lisanslı"}</small>
+                        </div>
+                        <label className={ui.licenseToggle}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={!!entitlement} />Lisanslı</label>
+                        <label className={ui.licenseDate}><span>Lisans bitişi</span><input type="date" name={`expiresAt_${module.key}`} defaultValue={licenseDateToInput(entitlement?.expiresAt ?? null)} aria-label={`${module.name} lisans bitiş tarihi`} /></label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : <div className={`${styles.fullWidth} ${styles.helperText}`}>Süper Admin bütün modül ve yetkilere otomatik erişir; ayrıca modül lisansı seçilmez.</div>}
             {record.deviceAccess.map((access) => (
               <input key={access.deviceId} type="hidden" name="deviceIds" value={access.deviceId} />
             ))}

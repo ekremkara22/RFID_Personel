@@ -2,13 +2,12 @@ import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient, DataScopeMode, CompanyMembershipStatus } from "../src/generated/prisma/client";
 import { READY_COMPANY_ROLES } from "../src/lib/permission-catalog";
-import { MODULES, defaultRoleModules } from "../src/lib/module-catalog";
+import { defaultRoleModules } from "../src/lib/module-catalog";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is not configured.");
 const parsedUrl = new URL(databaseUrl);
 const database = parsedUrl.pathname.replace(/^\//, "");
-const isStagingDatabase = database.toLowerCase().includes("staging");
 const explicitlyAllowedDatabase = process.env.RBAC_MIGRATION_TARGET_DATABASE?.trim();
 if (!database.toLowerCase().includes("staging") && explicitlyAllowedDatabase !== database) {
   throw new Error(`Canlı RBAC geçişi için RBAC_MIGRATION_TARGET_DATABASE hedef veritabanı adıyla birebir eşleşmelidir. Hedef: ${database}`);
@@ -43,28 +42,8 @@ async function main() {
     const roles = await ensureRoles(company.id);
     report.companies += 1;
     report.roles += READY_COMPANY_ROLES.length;
-    if (isStagingDatabase) {
-      const accountingRoleIds = ["OWNER", "ADMIN", "PAYROLL"].map((key) => roles.get(key)!).filter(Boolean);
-      const accountingMemberships = await prisma.companyMembership.findMany({
-        where: { companyId: company.id, roleId: { in: accountingRoleIds }, status: CompanyMembershipStatus.ACTIVE },
-        select: { id: true, userId: true },
-      });
-      await prisma.companyRoleModule.createMany({
-        data: accountingRoleIds.map((roleId) => ({ roleId, moduleKey: MODULES.ACCOUNTING })),
-        skipDuplicates: true,
-      });
-      if (accountingMemberships.length) {
-        await prisma.membershipModule.createMany({
-          data: accountingMemberships.map((membership) => ({ membershipId: membership.id, moduleKey: MODULES.ACCOUNTING })),
-          skipDuplicates: true,
-        });
-        await prisma.userModuleEntitlement.createMany({
-          data: accountingMemberships.map((membership) => ({ userId: membership.userId, moduleKey: MODULES.ACCOUNTING })),
-          skipDuplicates: true,
-        });
-        report.moduleGrants += accountingMemberships.length;
-      }
-    }
+    // License grants are never made here: this script runs on every deploy, so granting
+    // a module would silently undo licenses an admin removed on the user screen.
     const legacyUsers = await prisma.user.findMany({
       where: { role: "COMPANY_ADMIN", OR: [{ companyId: company.id }, { companyAccess: { some: { companyId: company.id } } }] },
       select: { id: true, email: true, deviceAccess: { where: { device: { companyId: company.id } }, select: { deviceId: true } } },

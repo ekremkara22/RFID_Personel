@@ -1938,3 +1938,23 @@
 }
 
 .permissionSummary { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+.searchSelect {
+  min-height: 2.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+}
+
+@media (max-width: 640px) {
+  .searchForm:has(.searchSelect) {
+    flex-wrap: wrap;
+  }
+
+  .searchForm:has(.searchSelect) .searchSelect {
+    flex: 1 1 140px;
+  }
+}

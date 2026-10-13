@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Role } from "@/generated/prisma/client";
 import { ALL_MODULE_KEYS } from "@/lib/module-catalog";
+import { licenseDateFromInput } from "@/lib/module-license-policy";
 import { prisma } from "@/lib/prisma";
 import { isValidOptionalUsername, normalizeOptionalUsername } from "@/lib/user-identity";
 import { getString, getStringList, getId, getIdList, normalizeOptionalEmail, getAssignableRole, getReturnTo, redirectToReturnPath, assertSuperadminUser } from "@/modules/shared/action-helpers";
@@ -81,18 +82,32 @@ async function updateDashboardUserActionImpl(formData: FormData) {
     throw new ActionError("Kendi super admin rolunuzu degistiremezsiniz.");
   }
   if (role !== Role.SUPERADMIN && role !== Role.COMPANY_ADMIN) throw new ActionError("Bu ekrandan yalnız süper admin veya firma admini yönetilebilir.");
-  if (role === Role.COMPANY_ADMIN && moduleKeys.length === 0) throw new ActionError("Firma admini için en az bir modül lisansı seçilmelidir.");
   if (password && password.length < 10) throw new ActionError("Yeni şifre en az 10 karakter olmalıdır.");
+  // Removing every license is allowed: it closes the account's module access (e.g. unpaid customer).
+  const trialEndsAt = licenseDateFromInput(getString(formData, "trialEndsAt"));
+  if (trialEndsAt === undefined) throw new ActionError("Deneme bitiş tarihi geçersiz.");
+  const expiryByKey = new Map(moduleKeys.map((moduleKey) => [moduleKey, licenseDateFromInput(getString(formData, `expiresAt_${moduleKey}`))]));
+  if ([...expiryByKey.values()].some((value) => value === undefined)) throw new ActionError("Lisans bitiş tarihlerinden biri geçersiz.");
   const passwordHash = password ? await bcrypt.hash(password, 10) : null;
 
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
-      data: { firstName, lastName, username, name: `${firstName} ${lastName}`.trim(), email, phone: phone || null, role, ...(passwordHash ? { password: passwordHash } : {}) },
+      data: { firstName, lastName, username, name: `${firstName} ${lastName}`.trim(), email, phone: phone || null, role, ...(role === Role.COMPANY_ADMIN ? { trialEndsAt } : {}), ...(passwordHash ? { password: passwordHash } : {}) },
     });
-    await tx.userModuleEntitlement.deleteMany({ where: { userId } });
+    await tx.userModuleEntitlement.deleteMany({ where: role === Role.COMPANY_ADMIN ? { userId, moduleKey: { notIn: moduleKeys } } : { userId } });
     if (role === Role.COMPANY_ADMIN) {
-      if (moduleKeys.length) await tx.userModuleEntitlement.createMany({ data: moduleKeys.map((moduleKey) => ({ userId, moduleKey })) });
+      for (const moduleKey of moduleKeys) {
+        const expiresAt = expiryByKey.get(moduleKey) ?? null;
+        await tx.userModuleEntitlement.upsert({
+          where: { userId_moduleKey: { userId, moduleKey } },
+          create: { userId, moduleKey, expiresAt },
+          update: { expiresAt },
+        });
+      }
+      // Membership module rows are not a license source; drop removed modules there too so
+      // no screen keeps showing a license the admin has just taken away.
+      await tx.membershipModule.deleteMany({ where: { membership: { userId, role: { key: "OWNER" } }, moduleKey: { notIn: moduleKeys } } });
       // Keep role and membership configuration intact when a license is disabled.
       // Authorization intersects it with the owner's current licenses on every request.
       const memberships = await tx.companyMembership.findMany({ where: { userId, role: { key: "OWNER" } }, select: { companyId: true } });

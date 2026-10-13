@@ -14,7 +14,6 @@ import { PERMISSIONS } from "@/lib/permission-catalog";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { parseRouteId } from "@/lib/ids";
 import { requireSessionUser } from "@/lib/session";
-import { getModuleCatalog } from "@/modules/module-definitions/repository";
 import styles from "../../page.module.css";
 
 const tabs = [
@@ -72,7 +71,7 @@ export default async function CompanyDetailPage(props: {
     ? selectedEmployeeIdValue
     : null;
 
-  const [company, categories, moduleCatalog] = await Promise.all([
+  const [company, categories] = await Promise.all([
     queryRepository.company.findUnique({
       where: { id },
       include: {
@@ -112,7 +111,6 @@ export default async function CompanyDetailPage(props: {
       where: { isActive: true },
       orderBy: { name: "asc" },
     }),
-    getModuleCatalog(),
   ]);
 
   if (!company) {
@@ -120,7 +118,6 @@ export default async function CompanyDetailPage(props: {
   }
 
   const companyAdmin = company.users[0] ?? null;
-  const companyAdminMembership = company.memberships.find((membership) => membership.userId === companyAdmin?.id) ?? null;
   const selectedEmployee =
     company.employees.find((employee) => employee.id === selectedEmployeeId) ?? company.employees[0] ?? null;
 
@@ -224,7 +221,7 @@ export default async function CompanyDetailPage(props: {
                   <input name="adminPassword" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
                 </label>
 
-                <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Firma Admini Modül Yetkileri</legend><div className={styles.permissionCheckGrid}>{moduleCatalog.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key} defaultChecked={companyAdminMembership?.modules.some((entry)=>entry.moduleKey === module.key)}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>
+                <div className={`${styles.fullWidth} ${styles.helperText}`}>Firma admininin modül lisansları ve deneme süresi <Link href={companyAdmin ? `/dashboard/users/${companyAdmin.id}` : "/dashboard/users"} className={styles.inlineAction}>Kullanıcı Tanımları</Link> ekranından yönetilir.</div>
               </>
             ) : null}
 

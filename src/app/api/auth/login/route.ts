@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME, signToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { attachSessionCookie } from "@/lib/session-cookie";
 
 export async function POST(request: Request) {
   try {
@@ -55,7 +55,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const canCreateFirstCompany = user.role === "COMPANY_ADMIN" && user.moduleEntitlements.length > 0;
+    // Self-registered owners always reach their license page, even after the trial ends,
+    // so they can purchase a module instead of being locked out of the panel.
+    const canCreateFirstCompany = user.role === "COMPANY_ADMIN" && (user.moduleEntitlements.length > 0 || user.selfRegistered);
     if (user.role !== "SUPERADMIN" && user.memberships.length === 0 && !canCreateFirstCompany) {
       return NextResponse.json(
         { error: "Aktif firma üyeliğiniz veya atanmış modül lisansınız bulunmuyor. Sistem yöneticinizle görüşün." },
@@ -67,14 +69,6 @@ export async function POST(request: Request) {
       `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
       user.name ||
       user.email;
-
-    const token = await signToken({
-      id: user.id,
-      email: user.email,
-      name: fullName,
-      role: user.role,
-      companyId: user.memberships[0]?.companyId ?? user.companyId,
-    });
 
     const response = NextResponse.json({
       success: true,
@@ -89,19 +83,13 @@ export async function POST(request: Request) {
       },
     });
 
-    const forwardedProto = request.headers.get("x-forwarded-proto");
-    const isHttpsRequest =
-      request.url.startsWith("https://") || forwardedProto === "https";
-
-    response.cookies.set(AUTH_COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isHttpsRequest,
-      path: "/",
-      maxAge: 60 * 60 * 24,
+    return await attachSessionCookie(request, response, {
+      id: user.id,
+      email: user.email,
+      name: fullName,
+      role: user.role,
+      companyId: user.memberships[0]?.companyId ?? user.companyId,
     });
-
-    return response;
   } catch (error) {
     console.error("Login route error", error);
 

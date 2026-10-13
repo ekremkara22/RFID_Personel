@@ -8,6 +8,9 @@ export type DisplayModuleDefinition = {
   name: string;
   description: string;
   href: string;
+  highlights: readonly string[];
+  purchaseUrl: string | null;
+  priceLabel: string | null;
 };
 
 export async function getModuleCatalog(): Promise<DisplayModuleDefinition[]> {
@@ -23,6 +26,9 @@ export async function getModuleCatalog(): Promise<DisplayModuleDefinition[]> {
       name: definition?.name.trim() || module.name,
       description: definition?.description?.trim() || module.description,
       href: module.href,
+      highlights: module.highlights,
+      purchaseUrl: definition?.purchaseUrl?.trim() || null,
+      priceLabel: definition?.priceLabel?.trim() || null,
     };
   });
 }

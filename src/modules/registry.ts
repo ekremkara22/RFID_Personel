@@ -13,6 +13,7 @@ export const MODULE_REGISTRY = [
     description: "Personel, PDKS, izin, takvim, cihaz ve insan kaynakları raporları.",
     href: "/dashboard",
     defaultRoles: ["OWNER", "ADMIN", "HR", "SCOPE_MANAGER", "PAYROLL", "DEVICE_TECH", "EMPLOYEE", "OBSERVER"],
+    highlights: ["RFID kartlı giriş-çıkış ve mola takibi", "İzin, rapor ve çalışma takvimi yönetimi", "Puantaj, geç kalma ve departman raporları"],
   },
   {
     key: MODULES.PRODUCTION_PLANNING,
@@ -20,6 +21,7 @@ export const MODULE_REGISTRY = [
     description: "İş merkezleri, kapasite planlama, üretim takvimi ve üretim raporları.",
     href: "/dashboard/production",
     defaultRoles: ["OWNER", "ADMIN"],
+    highlights: ["İş emirleri ve Gantt planlama", "İş merkezi, istasyon ve kalıp tanımları", "Kapasite ve çevrim süresi analizi"],
   },
   {
     key: MODULES.ACCOUNTING,
@@ -27,6 +29,7 @@ export const MODULE_REGISTRY = [
     description: "Maaş hesaplama, brütten nete, netten brüte ve bordro sabitleri.",
     href: "/dashboard/accounting",
     defaultRoles: ["OWNER", "ADMIN", "PAYROLL"],
+    highlights: ["Brütten nete ve netten brüte maaş hesaplama", "Güncel bordro sabitleri ve vergi dilimleri", "Hesaplama sonuçlarını dışa aktarma"],
   },
 ] as const satisfies ReadonlyArray<{
   key: ModuleKey;
@@ -34,6 +37,7 @@ export const MODULE_REGISTRY = [
   description: string;
   href: string;
   defaultRoles: readonly string[];
+  highlights: readonly string[];
 }>;
 
 export const ALL_MODULE_KEYS = MODULE_REGISTRY.map((item) => item.key);

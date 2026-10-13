@@ -16,6 +16,9 @@
 .panelButton, .primaryButton, .secondaryButton { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9px; font-size: 14px; font-weight: 700; }
 .panelButton, .primaryButton { background: #0b69c7; color: #fff; }
 .panelButton { padding: 0 18px; }
+.headerButtons { display: flex; align-items: center; gap: 8px; }
+.trialButton { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border: 1px solid #cfd8e3; border-radius: 9px; background: #fff; color: #10253f; font-size: 14px; font-weight: 700; }
+.trialButton:hover { border-color: #8aa0b8; background: #f7f9fb; }
 .primaryButton { padding: 0 20px; }
 .panelButton:hover, .primaryButton:hover { background: #0959aa; }
 .secondaryButton { padding: 0 20px; border: 1px solid #cfd8e3; color: #10253f; background: #fff; }
@@ -48,7 +51,7 @@
 
 @media (max-width: 900px) {
   .nav { display: none; }
-  .panelButton { margin-left: auto; }
+  .headerButtons { margin-left: auto; }
   .slider { padding: 50px 0 0; }
   .slideCopy { margin-bottom: 28px; }
   .slideCopy h1 { font-size: clamp(38px, 11vw, 56px); }
@@ -59,10 +62,16 @@
 @media (max-width: 560px) {
   .headerInner { min-height: 64px; gap: 12px; }
   .brand, .brand img { width: 136px; }
-  .panelButton { min-height: 40px; padding: 0 12px; font-size: 13px; }
+  .panelButton, .trialButton { min-height: 40px; padding: 0 12px; font-size: 13px; }
+  .headerButtons { gap: 6px; }
   .heroActions { display: grid; }
   .primaryButton, .secondaryButton { width: 100%; }
   .footerGrid { grid-template-columns: 1fr; gap: 34px; }
   .footerGrid > :first-child { grid-column: auto; }
   .footerBottom { flex-direction: column; }
+}
+
+@media (max-width: 400px) {
+  .brand, .brand img { width: 108px; }
+  .panelButton, .trialButton { padding: 0 10px; font-size: 12px; }
 }

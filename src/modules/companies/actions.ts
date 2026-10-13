@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS, READY_COMPANY_ROLES } from "@/lib/permission-catalog";
 import { ALL_MODULE_KEYS, defaultRoleModules } from "@/lib/module-catalog";
+import { effectiveLicenseKeys } from "@/lib/module-license-policy";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { isValidOptionalUsername, normalizeOptionalUsername } from "@/lib/user-identity";
@@ -44,13 +45,18 @@ export async function createCompanyAction(formData: FormData) {
   const adminPhone = getString(formData, "adminPhone");
   const adminPassword = getString(formData, "adminPassword");
   const requestedModuleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
-  const entitlementRows = user.role === "COMPANY_ADMIN"
-    ? await prisma.userModuleEntitlement.findMany({ where: { userId: user.id }, select: { moduleKey: true } })
-    : [];
+  const licenseHolder = user.role === "COMPANY_ADMIN"
+    ? await prisma.user.findUnique({ where: { id: user.id }, select: { trialEndsAt: true, moduleEntitlements: { select: { moduleKey: true, expiresAt: true } } } })
+    : null;
+  // Membership modules mirror what the owner may use now; trial users get every module,
+  // and authorization still intersects them with live licenses after the trial ends.
   const moduleKeys = user.role === "SUPERADMIN"
     ? requestedModuleKeys
-    : entitlementRows.map((item) => item.moduleKey).filter((key) => ALL_MODULE_KEYS.includes(key as never));
+    : (licenseHolder ? effectiveLicenseKeys(licenseHolder) : []).filter((key) => ALL_MODULE_KEYS.includes(key as never));
 
+  if (user.role === "COMPANY_ADMIN" && !moduleKeys.length) {
+    throw new Error("Firma oluşturmak için açık bir modül lisansınız veya deneme süreniz bulunmuyor.");
+  }
   if (!companyName || !moduleKeys.length || (user.role === "SUPERADMIN" && (!adminFirstName || !adminLastName || !adminEmail || !adminUsername || !adminPassword))) {
     throw new Error("Sirket ve firma yoneticisi bilgileri eksik.");
   }
@@ -147,13 +153,12 @@ async function updateCompanyActionImpl(formData: FormData) {
   const adminUsername = normalizeOptionalUsername(getString(formData, "adminUsername"));
   const adminPhone = getString(formData, "adminPhone");
   const adminPassword = getString(formData, "adminPassword");
-  const moduleKeys = getStringList(formData, "moduleKeys").filter((key) => ALL_MODULE_KEYS.includes(key as never));
   const isActive = user.role === "SUPERADMIN" ? formData.get("isActive") === "on" : true;
 
   if (
     !companyId ||
     !companyName ||
-    (user.role === "SUPERADMIN" && (!adminId || !adminFirstName || !adminLastName || !adminEmail || !moduleKeys.length))
+    (user.role === "SUPERADMIN" && (!adminId || !adminFirstName || !adminLastName || !adminEmail))
   ) {
     throw new ActionError("Firma ve admin bilgileri eksik.");
   }
@@ -199,11 +204,8 @@ async function updateCompanyActionImpl(formData: FormData) {
         },
       });
 
-      await tx.userModuleEntitlement.deleteMany({ where: { userId: adminId } });
-      await tx.userModuleEntitlement.createMany({
-        data: moduleKeys.map((moduleKey) => ({ userId: adminId, moduleKey })),
-      });
-
+      // Module licenses are managed only on the user screen (Kullanıcı Tanımları) so that
+      // removing a license there is not undone by saving the company form.
       await tx.userCompanyAccess.upsert({
         where: {
           userId_companyId: {
@@ -216,14 +218,6 @@ async function updateCompanyActionImpl(formData: FormData) {
           companyId,
         },
         update: {},
-      });
-      const adminMembership = await tx.companyMembership.findFirst({ where: { companyId, userId: adminId } });
-      if (!adminMembership) throw new Error("Firma admin üyeliği bulunamadı.");
-      await tx.membershipModule.deleteMany({ where: { membershipId: adminMembership.id } });
-      await tx.membershipModule.createMany({ data: moduleKeys.map((moduleKey) => ({ membershipId: adminMembership.id, moduleKey })) });
-      await tx.companyMembership.updateMany({
-        where: { companyId },
-        data: { sessionVersion: { increment: 1 } },
       });
     }
   });

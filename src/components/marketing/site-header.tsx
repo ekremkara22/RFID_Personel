@@ -21,9 +21,14 @@ export function SiteHeader() {
           <Link href="/#hakkimizda">Hakkımızda</Link>
           <Link href="/iletisim">İletişim</Link>
         </nav>
-        <Link href="/login" className={styles.panelButton}>
-          Panel Girişi
-        </Link>
+        <div className={styles.headerButtons}>
+          <Link href="/register" className={styles.trialButton}>
+            Ücretsiz Dene
+          </Link>
+          <Link href="/login" className={styles.panelButton}>
+            Panel Girişi
+          </Link>
+        </div>
       </div>
     </header>
   );
