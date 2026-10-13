@@ -1,8 +1,8 @@
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { MODULES, type ModuleKey } from "@/modules/registry";
 
-export type NavigationIconKey = "building" | "calendar" | "clipboard" | "clock" | "download" | "file-chart" | "history" | "health" | "list" | "lock" | "timer" | "dashboard" | "device" | "plane" | "shield" | "server" | "settings" | "tags" | "users" | "key";
-export type NavigationGroup = "platform" | "hr-main" | "hr-calendar" | "hr-reports" | "production" | "production-definitions" | "definitions";
+export type NavigationIconKey = "building" | "calculator" | "calendar" | "clipboard" | "clock" | "download" | "file-chart" | "history" | "health" | "list" | "lock" | "timer" | "dashboard" | "device" | "plane" | "shield" | "server" | "settings" | "tags" | "users" | "key";
+export type NavigationGroup = "platform" | "hr-main" | "hr-calendar" | "hr-reports" | "production" | "production-definitions" | "accounting" | "definitions";
 export type NavigationAudience = "platform" | "company" | "all";
 
 export type NavigationDefinition = {
@@ -53,6 +53,9 @@ export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/production/definitions/work-centers", label: "İş Merkezleri", icon: "building", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
   { href: "/dashboard/production/definitions/stations", label: "İstasyonlar", icon: "settings", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
   { href: "/dashboard/production/definitions/tools", label: "Kalıp ve Ekipman", icon: "tags", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
+
+  { href: "/dashboard/accounting", label: "Muhasebe Özeti", icon: "dashboard", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
+  { href: "/dashboard/accounting/salary-calculation", label: "Maaş Hesaplama", icon: "calculator", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
 
   { href: "/dashboard/users", label: "Kullanıcı Tanımları", icon: "users", group: "definitions", audience: "platform" },
   { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: "tags", group: "definitions", audience: "platform" },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  Calculator,
   CalendarDays,
   ClipboardList,
   Clock3,
@@ -62,6 +63,7 @@ function getUserFullName(user: DashboardShellProps["user"]) {
 
 const navigationIcons: Record<NavigationIconKey, LucideIcon> = {
   building: Building2,
+  calculator: Calculator,
   calendar: CalendarDays,
   clipboard: ClipboardList,
   clock: Clock3,
@@ -89,15 +91,18 @@ export function DashboardShell({ children, user, authorization, memberships, mod
   const [definitionsOpen, setDefinitionsOpen] = useState(
     pathname.startsWith("/dashboard/settings") || pathname.startsWith("/dashboard/access") || pathname.startsWith("/dashboard/companies"),
   );
-  const [hrOpen, setHrOpen] = useState(!pathname.startsWith("/dashboard/production"));
+  const [hrOpen, setHrOpen] = useState(!pathname.startsWith("/dashboard/production") && !pathname.startsWith("/dashboard/accounting"));
   const [productionOpen, setProductionOpen] = useState(pathname.startsWith("/dashboard/production"));
   const [productionDefinitionsOpen, setProductionDefinitionsOpen] = useState(pathname.startsWith("/dashboard/production/definitions"));
+  const [accountingOpen, setAccountingOpen] = useState(pathname.startsWith("/dashboard/accounting"));
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
   const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || (!!authorization.companyId && authorization.modules.includes(moduleKey));
   const hasHr = hasModule(MODULES.HR);
   const hasProduction = hasModule(MODULES.PRODUCTION_PLANNING);
+  const hasAccounting = hasModule(MODULES.ACCOUNTING);
   const productionActive = pathname.startsWith("/dashboard/production");
+  const accountingActive = pathname.startsWith("/dashboard/accounting");
   const moduleName = (key: string) => moduleCatalog.find((module) => module.key === key)?.name ?? key;
 
   const navigationContext = { ...authorization, isPlatformAdmin: user.role === "SUPERADMIN" || authorization.isPlatformAdmin };
@@ -110,6 +115,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
   const definitionItems = withIcons("definitions");
   const productionItems = hasProduction ? withIcons("production") : [];
   const productionDefinitionItems = hasProduction ? withIcons("production-definitions") : [];
+  const accountingItems = hasAccounting ? withIcons("accounting") : [];
 
   return (
     <div className={styles.shell}>
@@ -153,7 +159,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
             );
           })}
           {hasHr ? <div className={styles.navGroup}>
-            <button type="button" className={`${styles.navItem} ${!productionActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
+            <button type="button" className={`${styles.navItem} ${!productionActive && !accountingActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
             {hrOpen ? <div className={styles.subNav}>
           {items.map((item) => {
             const Icon = item.icon;
@@ -263,6 +269,11 @@ export function DashboardShell({ children, user, authorization, memberships, mod
               </div> : null}
               {productionItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}
             </div> : null}
+          </div> : null}
+
+          {accountingItems.length ? <div className={styles.navGroup}>
+            <button type="button" className={`${styles.navItem} ${accountingActive ? styles.navItemActive : ""}`} onClick={() => setAccountingOpen((value) => !value)}><Calculator size={18}/><span>{moduleName(MODULES.ACCOUNTING)}</span><ChevronDown size={16} className={`${styles.navChevron} ${accountingOpen ? styles.navChevronOpen : ""}`}/></button>
+            {accountingOpen ? <div className={styles.subNav}>{accountingItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href || (item.href !== "/dashboard/accounting" && pathname.startsWith(item.href)); return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}</div> : null}
           </div> : null}
 
           {definitionItems.length > 0 ? (

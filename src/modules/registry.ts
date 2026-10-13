@@ -1,6 +1,7 @@
 export const MODULES = {
   HR: "HR",
   PRODUCTION_PLANNING: "PRODUCTION_PLANNING",
+  ACCOUNTING: "ACCOUNTING",
 } as const;
 
 export type ModuleKey = (typeof MODULES)[keyof typeof MODULES];
@@ -20,6 +21,13 @@ export const MODULE_REGISTRY = [
     href: "/dashboard/production",
     defaultRoles: ["OWNER", "ADMIN"],
   },
+  {
+    key: MODULES.ACCOUNTING,
+    name: "Muhasebe",
+    description: "Maaş hesaplama, brütten nete, netten brüte ve bordro sabitleri.",
+    href: "/dashboard/accounting",
+    defaultRoles: ["OWNER", "ADMIN", "PAYROLL"],
+  },
 ] as const satisfies ReadonlyArray<{
   key: ModuleKey;
   name: string;
@@ -36,6 +44,8 @@ export function moduleLabel(key: string) {
 
 export function defaultRoleModules(roleKey: string): ModuleKey[] {
   return roleKey === "OWNER" || roleKey === "ADMIN"
-    ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
-    : [MODULES.HR];
+    ? [MODULES.HR, MODULES.PRODUCTION_PLANNING, MODULES.ACCOUNTING]
+    : roleKey === "PAYROLL"
+      ? [MODULES.HR, MODULES.ACCOUNTING]
+      : [MODULES.HR];
 }

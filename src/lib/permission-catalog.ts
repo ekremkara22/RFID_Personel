@@ -36,6 +36,10 @@ export const PERMISSIONS = {
   PRODUCTION_CALENDAR_MANAGE: "production.calendar.manage",
   PRODUCTION_REPORT_VIEW: "production.report.view",
   PRODUCTION_REPORT_EXPORT: "production.report.export",
+  ACCOUNTING_SALARY_VIEW: "accounting.salary.view",
+  ACCOUNTING_SALARY_CALCULATE: "accounting.salary.calculate",
+  ACCOUNTING_PARAMETERS_MANAGE: "accounting.parameters.manage",
+  ACCOUNTING_SALARY_EXPORT: "accounting.salary.export",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -60,6 +64,10 @@ export const MODULE_PERMISSION_SECTIONS: Record<ModuleKey, Array<{ label: string
     { label: "Üretim Takvimi", items: [[PERMISSIONS.PRODUCTION_CALENDAR_VIEW, "Görüntüleme"], [PERMISSIONS.PRODUCTION_CALENDAR_MANAGE, "Yeni / düzelt / sil"]] },
     { label: "Üretim Raporları", items: [[PERMISSIONS.PRODUCTION_REPORT_VIEW, "Görüntüleme"], [PERMISSIONS.PRODUCTION_REPORT_EXPORT, "Dışa aktarma"]] },
   ],
+  [MODULES.ACCOUNTING]: [
+    { label: "Maaş Hesaplama", items: [[PERMISSIONS.ACCOUNTING_SALARY_VIEW, "Görüntüleme"], [PERMISSIONS.ACCOUNTING_SALARY_CALCULATE, "Hesaplama"], [PERMISSIONS.ACCOUNTING_SALARY_EXPORT, "Dışa aktarma"]] },
+    { label: "Sabit Tanımlar", items: [[PERMISSIONS.ACCOUNTING_PARAMETERS_MANAGE, "Parametreleri yönetme"]] },
+  ],
 };
 
 export function permissionModule(permission: string): ModuleKey | null {
@@ -78,7 +86,7 @@ export const READY_COMPANY_ROLES = [
   { key: "ADMIN", name: "Firma yöneticisi", description: "Firma içi operasyonu ve kullanıcıları yönetir.", scope: "COMPANY", permissions: ALL_PERMISSIONS.filter((item) => item !== PERMISSIONS.OWNERSHIP_TRANSFER) },
   { key: "HR", name: "İK yetkilisi", description: "Personel, hareket, izin ve takvim süreçlerini yönetir.", scope: "COMPANY", permissions: [...commonRead, PERMISSIONS.PERSONNEL_CREATE, PERMISSIONS.PERSONNEL_UPDATE, PERMISSIONS.PERSONNEL_DELETE, PERMISSIONS.MOVEMENT_CREATE, PERMISSIONS.MOVEMENT_UPDATE, PERMISSIONS.MOVEMENT_DELETE, PERMISSIONS.LEAVE_CREATE, PERMISSIONS.LEAVE_APPROVE, PERMISSIONS.LEAVE_DELETE, PERMISSIONS.CALENDAR_MANAGE, PERMISSIONS.REPORT_EXPORT, PERMISSIONS.AUDIT_VIEW] },
   { key: "SCOPE_MANAGER", name: "Şube/departman yöneticisi", description: "Yalnızca atanmış veri kapsamındaki ekibi yönetir.", scope: "RESTRICTED", permissions: [...commonRead, PERMISSIONS.PERSONNEL_UPDATE, PERMISSIONS.MOVEMENT_CREATE, PERMISSIONS.MOVEMENT_UPDATE, PERMISSIONS.LEAVE_CREATE, PERMISSIONS.LEAVE_APPROVE] },
-  { key: "PAYROLL", name: "Muhasebe/bordro kullanıcısı", description: "Rapor ve puantaj süreçlerini yürütür; hareket değiştiremez.", scope: "COMPANY", permissions: [PERMISSIONS.PERSONNEL_VIEW, PERMISSIONS.MOVEMENT_VIEW, PERMISSIONS.LEAVE_VIEW, PERMISSIONS.REPORT_VIEW, PERMISSIONS.REPORT_EXPORT, PERMISSIONS.PAYROLL_APPROVE] },
+  { key: "PAYROLL", name: "Muhasebe/bordro kullanıcısı", description: "Rapor, puantaj ve maaş hesaplama süreçlerini yürütür; hareket değiştiremez.", scope: "COMPANY", permissions: [PERMISSIONS.PERSONNEL_VIEW, PERMISSIONS.MOVEMENT_VIEW, PERMISSIONS.LEAVE_VIEW, PERMISSIONS.REPORT_VIEW, PERMISSIONS.REPORT_EXPORT, PERMISSIONS.PAYROLL_APPROVE, PERMISSIONS.ACCOUNTING_SALARY_VIEW, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE, PERMISSIONS.ACCOUNTING_SALARY_EXPORT] },
   { key: "DEVICE_TECH", name: "Teknik cihaz sorumlusu", description: "Yalnızca atanmış cihazların durumunu ve ayarlarını yönetir.", scope: "RESTRICTED", permissions: [PERMISSIONS.DEVICE_VIEW, PERMISSIONS.DEVICE_MANAGE] },
   { key: "EMPLOYEE", name: "Çalışan", description: "Yalnızca kendi personel ve izin kayıtlarını görür.", scope: "OWN", permissions: [PERMISSIONS.PERSONNEL_VIEW, PERMISSIONS.MOVEMENT_VIEW, PERMISSIONS.LEAVE_VIEW, PERMISSIONS.LEAVE_CREATE, PERMISSIONS.CALENDAR_VIEW] },
   { key: "OBSERVER", name: "Salt okunur gözlemci", description: "Kapsamındaki kayıtları görüntüler; değiştiremez ve dışa aktaramaz.", scope: "RESTRICTED", permissions: commonRead },

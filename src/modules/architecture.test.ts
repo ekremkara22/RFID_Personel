@@ -23,13 +23,14 @@ test("module registry keys and navigation routes are unique", () => {
 
 test("platform admin sees every registered product module without a license selection", () => {
   const context = { isPlatformAdmin: true, companyId: null, permissions: [], modules: [] };
-  const visibleRoutes = (["hr-main", "hr-calendar", "hr-reports", "production", "production-definitions"] as const)
+  const visibleRoutes = (["hr-main", "hr-calendar", "hr-reports", "production", "production-definitions", "accounting"] as const)
     .flatMap((group) => navigationItems(group, context))
     .map((item) => item.href);
 
   assert.ok(context.isPlatformAdmin);
   assert.ok(visibleRoutes.includes("/dashboard/employees"));
   assert.ok(visibleRoutes.includes("/dashboard/production/definitions/work-centers"));
+  assert.ok(visibleRoutes.includes("/dashboard/accounting/salary-calculation"));
 });
 
 test("app pages access data through the module repository boundary", () => {

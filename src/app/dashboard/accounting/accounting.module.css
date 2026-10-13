@@ -1,0 +1,103 @@
+.moduleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.moduleCard {
+  min-height: 150px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  background: #fff;
+  padding: 20px;
+  color: #101828;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.moduleCard:hover { border-color: #84caff; background: #f9fcff; }
+.moduleCard h2 { margin: 6px 0 5px; font-size: 17px; }
+.moduleCard p { margin: 0; color: #667085; font-size: 13px; line-height: 1.5; }
+.cardEyebrow { color: #1570ef !important; font-size: 12px !important; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.cardIcon { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 8px; background: #eff8ff; color: #1570ef; }
+
+.emptyState { text-align: center; }
+.emptyState h2 { margin: 0; font-size: 17px; }
+.emptyState p { margin: 6px 0 0; color: #667085; font-size: 13px; }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #fff;
+  padding: 5px;
+}
+
+.tab {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  padding: 0 15px;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.tab:hover { background: #f8fafc; color: #101828; }
+.tabActive { background: #eff8ff; color: #175cd3; }
+.tab:focus-visible { outline: 3px solid rgba(21, 112, 239, 0.18); outline-offset: 1px; }
+
+.inputTableViewport { width: 100%; overflow-x: auto; border: 1px solid #e4e7ec; border-radius: 9px; }
+.inputTable { width: 100%; min-width: 720px; border-collapse: collapse; }
+.inputTable th, .inputTable td { border-bottom: 1px solid #eaecf0; padding: 8px 10px; text-align: left; }
+.inputTable th { background: #f9fafb; color: #475467; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.inputTable tbody tr:last-child td { border-bottom: 0; }
+.inputTable th:nth-child(1) { width: 29%; }
+.inputTable th:nth-child(2) { width: 31%; }
+.inputTable th:nth-child(3) { width: 30%; }
+.inputTable th:nth-child(4) { width: 10%; }
+.inputTable input, .inputTable select, .settingsTable input { width: 100%; min-height: 40px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; color: #101828; padding: 8px 10px; font: inherit; font-size: 13px; }
+.inputTable input:focus, .inputTable select:focus, .settingsTable input:focus { border-color: #1570ef; outline: 3px solid rgba(21, 112, 239, 0.14); }
+
+.calculatorActions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.calculatorActions button:disabled, .settingsTable input:disabled { cursor: not-allowed; opacity: 0.58; }
+.feedback { margin: 12px 0 0; border: 1px solid #abefc6; border-radius: 8px; background: #ecfdf3; padding: 10px 12px; color: #067647; font-size: 13px; }
+.permissionNote { margin: 12px 0 0; color: #b54708; font-size: 12px; }
+
+.resultTable { min-width: 2240px; }
+.resultTable th, .resultTable td { min-width: 122px !important; white-space: nowrap; }
+.resultTable th:first-child, .resultTable td:first-child { min-width: 160px !important; }
+
+.compatibilityNote { display: flex; align-items: flex-start; gap: 12px; border: 1px solid #fedf89; border-radius: 10px; background: #fffaeb; padding: 13px 15px; color: #7a2e0e; font-size: 13px; line-height: 1.45; }
+.compatibilityNote strong { flex: 0 0 auto; color: #93370d; }
+
+.settingsTable { min-width: 700px; }
+.settingsTable td { padding: 8px 10px; }
+.settingsTable th:first-child, .settingsTable td:first-child { width: 110px; }
+
+.exemptionGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.monthCard { min-width: 0; display: grid; gap: 10px; border: 1px solid #e4e7ec; border-radius: 9px; padding: 12px; }
+.monthCard legend { padding: 0 5px; color: #344054; font-size: 13px; font-weight: 700; }
+
+@media (max-width: 1100px) {
+  .exemptionGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .moduleGrid, .exemptionGrid { grid-template-columns: minmax(0, 1fr); }
+  .moduleCard { min-height: 132px; padding: 16px; }
+  .tabs { width: 100%; }
+  .tab { flex: 1 0 auto; }
+  .calculatorActions { align-items: stretch; flex-direction: column-reverse; }
+  .calculatorActions button { width: 100%; }
+  .compatibilityNote { flex-direction: column; gap: 4px; }
+}
+

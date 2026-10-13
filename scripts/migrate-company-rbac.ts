@@ -8,6 +8,7 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is not configured.");
 const parsedUrl = new URL(databaseUrl);
 const database = parsedUrl.pathname.replace(/^\//, "");
+const isStagingDatabase = database.toLowerCase().includes("staging");
 const explicitlyAllowedDatabase = process.env.RBAC_MIGRATION_TARGET_DATABASE?.trim();
 if (!database.toLowerCase().includes("staging") && explicitlyAllowedDatabase !== database) {
   throw new Error(`Canlı RBAC geçişi için RBAC_MIGRATION_TARGET_DATABASE hedef veritabanı adıyla birebir eşleşmelidir. Hedef: ${database}`);
@@ -42,6 +43,28 @@ async function main() {
     const roles = await ensureRoles(company.id);
     report.companies += 1;
     report.roles += READY_COMPANY_ROLES.length;
+    if (isStagingDatabase) {
+      const accountingRoleIds = ["OWNER", "ADMIN", "PAYROLL"].map((key) => roles.get(key)!).filter(Boolean);
+      const accountingMemberships = await prisma.companyMembership.findMany({
+        where: { companyId: company.id, roleId: { in: accountingRoleIds }, status: CompanyMembershipStatus.ACTIVE },
+        select: { id: true, userId: true },
+      });
+      await prisma.companyRoleModule.createMany({
+        data: accountingRoleIds.map((roleId) => ({ roleId, moduleKey: MODULES.ACCOUNTING })),
+        skipDuplicates: true,
+      });
+      if (accountingMemberships.length) {
+        await prisma.membershipModule.createMany({
+          data: accountingMemberships.map((membership) => ({ membershipId: membership.id, moduleKey: MODULES.ACCOUNTING })),
+          skipDuplicates: true,
+        });
+        await prisma.userModuleEntitlement.createMany({
+          data: accountingMemberships.map((membership) => ({ userId: membership.userId, moduleKey: MODULES.ACCOUNTING })),
+          skipDuplicates: true,
+        });
+        report.moduleGrants += accountingMemberships.length;
+      }
+    }
     const legacyUsers = await prisma.user.findMany({
       where: { role: "COMPANY_ADMIN", OR: [{ companyId: company.id }, { companyAccess: { some: { companyId: company.id } } }] },
       select: { id: true, email: true, deviceAccess: { where: { device: { companyId: company.id } }, select: { deviceId: true } } },
@@ -58,9 +81,7 @@ async function main() {
       }
       if (await prisma.membershipModule.count({ where: { membershipId: membership.id } }) === 0) {
         const role = await prisma.companyRole.findUniqueOrThrow({ where: { id: membership.roleId }, select: { key: true } });
-        const moduleKeys = role.key === "OWNER" || role.key === "ADMIN"
-          ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
-          : [MODULES.HR];
+        const moduleKeys = defaultRoleModules(role.key);
         await prisma.membershipModule.createMany({ data: moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey })), skipDuplicates: true });
         report.moduleGrants += moduleKeys.length;
       }
@@ -77,9 +98,7 @@ async function main() {
 
   const memberships = await prisma.companyMembership.findMany({ where: { modules: { none: {} } }, select: { id: true, role: { select: { key: true } } } });
   for (const membership of memberships) {
-    const moduleKeys = membership.role.key === "OWNER" || membership.role.key === "ADMIN"
-      ? [MODULES.HR, MODULES.PRODUCTION_PLANNING]
-      : [MODULES.HR];
+    const moduleKeys = defaultRoleModules(membership.role.key);
     await prisma.membershipModule.createMany({
       data: moduleKeys.map((moduleKey) => ({ membershipId: membership.id, moduleKey })),
       skipDuplicates: true,
