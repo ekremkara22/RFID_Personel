@@ -21,9 +21,9 @@ const f2 = (value: number) => amount.format(value);
 const pct = (value: number) => `${(value * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })} %`;
 const short = (value: number) => value >= 1e6 ? `${(value / 1e6).toLocaleString("tr-TR", { maximumFractionDigits: 2 })} Mn` : `${Math.round(value / 1e3).toLocaleString("tr-TR")} bin`;
 
-function GroupTable({ title, groups }: { title: string; groups: BudgetGroup[] }) {
+function GroupTable({ title, groups, wide = false }: { title: string; groups: BudgetGroup[]; wide?: boolean }) {
   return (
-    <section className={styles.card}>
+    <section className={`${styles.card} ${wide ? styles.wideCard : ""}`}>
       <h3>{title}</h3>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -201,8 +201,8 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
             </section>
           </div>
 
-          <div className={styles.grid}>
-            <GroupTable title="Departman bazında" groups={report.byDepartment} />
+          <div className={`${styles.grid} ${styles.tablesGrid}`}>
+            <GroupTable title="Departman bazında" groups={report.byDepartment} wide />
             <GroupTable title="Pozisyon bazında" groups={report.byPosition} />
             <GroupTable title="Yaka bazında" groups={report.byCollar} />
             <GroupTable title="Çalışan tipi bazında" groups={report.byInsurance} />
@@ -217,7 +217,7 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
                 </table>
               </div>
             </section>
-            <section className={styles.card}>
+            <section className={`${styles.card} ${styles.wideCard}`}>
               <h3>Aylık özet</h3>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>

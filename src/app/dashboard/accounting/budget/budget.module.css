@@ -267,3 +267,45 @@
     font-size: 10px;
   }
 }
+
+/* Bottom tables: wide cards span the row and text cells wrap, so the page never scrolls sideways. */
+.tablesGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+}
+
+.wideCard {
+  grid-column: 1 / -1;
+}
+
+.tablesGrid .tableWrap {
+  overflow-x: auto;
+}
+
+.tablesGrid .table {
+  table-layout: auto;
+}
+
+.tablesGrid .table .textCell {
+  min-width: 120px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.tablesGrid .table td:not(.textCell),
+.tablesGrid .table th:not(:first-child) {
+  width: 1%;
+}
+
+@media print {
+  .tablesGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wideCard {
+    grid-column: 1 / -1;
+  }
+
+  .tablesGrid .tableWrap {
+    overflow: visible;
+  }
+}
