@@ -34,6 +34,7 @@ Proje üç katmanlı bir agent yapısıyla yönetilir. Agent tanımları `.claud
 | `erisim` | [src/modules/access/MODULE.md](../src/modules/access/MODULE.md) | Platform (tümü) |
 | `platform` | [src/modules/companies/MODULE.md](../src/modules/companies/MODULE.md) | Platform (tümü) |
 | `pazarlama` | [src/components/marketing/MODULE.md](../src/components/marketing/MODULE.md) | Tanıtım sitesi |
+| `satis` | [src/modules/commerce/MODULE.md](../src/modules/commerce/MODULE.md) | Satış & Pazarlama (süper admin) |
 
 ## MODULE.md şablonu
 

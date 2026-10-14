@@ -94,7 +94,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
   const [definitionsOpen, setDefinitionsOpen] = useState(
     pathname.startsWith("/dashboard/settings") || pathname.startsWith("/dashboard/access") || pathname.startsWith("/dashboard/companies"),
   );
-  const [hrOpen, setHrOpen] = useState(!pathname.startsWith("/dashboard/production") && !pathname.startsWith("/dashboard/accounting"));
+  const [hrOpen, setHrOpen] = useState(!pathname.startsWith("/dashboard/production") && !pathname.startsWith("/dashboard/accounting") && !pathname.startsWith("/dashboard/sales"));
   const [productionOpen, setProductionOpen] = useState(pathname.startsWith("/dashboard/production"));
   const [productionDefinitionsOpen, setProductionDefinitionsOpen] = useState(pathname.startsWith("/dashboard/production/definitions"));
   const [accountingOpen, setAccountingOpen] = useState(pathname.startsWith("/dashboard/accounting"));
@@ -172,7 +172,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
             );
           })}
           {hasHr ? <div className={styles.navGroup}>
-            <button type="button" className={`${styles.navItem} ${!productionActive && !accountingActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") && !pathname.startsWith("/dashboard/store") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
+            <button type="button" className={`${styles.navItem} ${!productionActive && !accountingActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") && !pathname.startsWith("/dashboard/store") && !pathname.startsWith("/dashboard/sales") && !pathname.startsWith("/dashboard/server-health") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
             {hrOpen ? <div className={styles.subNav}>
           {items.map((item) => {
             const Icon = item.icon;

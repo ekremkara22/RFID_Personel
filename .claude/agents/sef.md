@@ -21,7 +21,7 @@ Sen RFID Personel projesinin **şef agent'ısın**. Kullanıcıya Türkçe yanı
 8. **Rapor**: Kullanıcıya kısa Türkçe özet: ne yapıldı, nerede, neler doğrulanamadı, açık kararlar.
 
 ## Agent listesi
-- Modül: `personel`, `pdks`, `takvim-izin`, `cihaz-firmware`, `raporlar`, `uretim`, `muhasebe`, `erisim`, `platform`, `pazarlama`
+- Modül: `personel`, `pdks`, `takvim-izin`, `cihaz-firmware`, `raporlar`, `uretim`, `muhasebe`, `erisim`, `platform`, `pazarlama`, `satis`
 - Uzman: `ui-sayfa`, `veritabani`, `modul-backend` (modüller arası ortak altyapı)
 - Kalite/dağıtım: `kod-inceleyici`, `deploy`
 

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attachSessionCookie } from "@/lib/session-cookie";
 import { trialEndDate } from "@/lib/module-license-policy";
+import { claimPendingLicensesForEmail } from "@/modules/commerce/license-activation";
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS_PER_WINDOW = 10;
@@ -69,6 +70,8 @@ export async function POST(request: Request) {
       },
     });
 
+    // Shopier purchases made before sign-up open automatically; failures never block registration.
+    await claimPendingLicensesForEmail(user.email).catch((error) => console.error("Shopier license claim failed", error instanceof Error ? error.name : "unknown"));
     const response = NextResponse.json({ success: true, redirectTo: "/dashboard/store" }, { status: 201 });
     return await attachSessionCookie(request, response, { id: user.id, email: user.email, name: user.name ?? email, role: user.role, companyId: null });
   } catch (error) {

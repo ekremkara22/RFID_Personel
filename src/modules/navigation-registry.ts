@@ -18,6 +18,8 @@ export type NavigationDefinition = {
 
 export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/server-health", label: "Sunucu Durumu", icon: "server", group: "platform", audience: "platform" },
+  // Satış & Pazarlama (commerce): super-admin only, not a licensed product module; sub-pages use in-page tabs.
+  { href: "/dashboard/sales", label: "Satış & Pazarlama", icon: "tags", group: "platform", audience: "platform" },
   { href: "/dashboard", label: "Operasyon Özeti", icon: "dashboard", group: "hr-main", audience: "all", module: MODULES.HR },
   { href: "/dashboard/firmware-updates", label: "Cihaz Yazılım Güncellemeleri", icon: "download", group: "hr-main", audience: "platform", module: MODULES.HR },
   { href: "/dashboard/employees", label: "Personel Kayıtları", icon: "users", group: "hr-main", audience: "all", module: MODULES.HR, permission: PERMISSIONS.PERSONNEL_VIEW },
