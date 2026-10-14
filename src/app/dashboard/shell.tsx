@@ -98,6 +98,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
   const [productionOpen, setProductionOpen] = useState(pathname.startsWith("/dashboard/production"));
   const [productionDefinitionsOpen, setProductionDefinitionsOpen] = useState(pathname.startsWith("/dashboard/production/definitions"));
   const [accountingOpen, setAccountingOpen] = useState(pathname.startsWith("/dashboard/accounting"));
+  const [accountingDefinitionsOpen, setAccountingDefinitionsOpen] = useState(pathname.startsWith("/dashboard/accounting/definitions"));
   const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
   const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
   const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || (!!authorization.companyId && authorization.modules.includes(moduleKey));
@@ -119,6 +120,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
   const productionItems = hasProduction ? withIcons("production") : [];
   const productionDefinitionItems = hasProduction ? withIcons("production-definitions") : [];
   const accountingItems = hasAccounting ? withIcons("accounting") : [];
+  const accountingDefinitionItems = hasAccounting ? withIcons("accounting-definitions") : [];
 
   return (
     <div className={styles.shell}>
@@ -286,7 +288,14 @@ export function DashboardShell({ children, user, authorization, memberships, mod
 
           {accountingItems.length ? <div className={styles.navGroup}>
             <button type="button" className={`${styles.navItem} ${accountingActive ? styles.navItemActive : ""}`} onClick={() => setAccountingOpen((value) => !value)}><Calculator size={18}/><span>{moduleName(MODULES.ACCOUNTING)}</span><ChevronDown size={16} className={`${styles.navChevron} ${accountingOpen ? styles.navChevronOpen : ""}`}/></button>
-            {accountingOpen ? <div className={styles.subNav}>{accountingItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href || (item.href !== "/dashboard/accounting" && pathname.startsWith(item.href)); return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}</div> : null}
+            {accountingOpen ? <div className={styles.subNav}>{accountingItems.map((item) => { const Icon = item.icon; const isActive = pathname === item.href || (item.href !== "/dashboard/accounting" && pathname.startsWith(item.href)); return <Link key={item.href} href={item.href} className={`${styles.subNavItem} ${isActive ? styles.subNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={16}/><span>{item.label}</span></Link>; })}
+              {accountingDefinitionItems.length ? <div className={styles.nestedNavGroup}>
+                <button type="button" className={`${styles.subNavItem} ${pathname.startsWith("/dashboard/accounting/definitions") ? styles.subNavItemActive : ""}`} onClick={() => setAccountingDefinitionsOpen((value) => !value)} aria-expanded={accountingDefinitionsOpen}>
+                  <SlidersHorizontal size={16}/><span>Sabit Tanımlar</span><ChevronDown size={14} className={`${styles.navChevron} ${accountingDefinitionsOpen ? styles.navChevronOpen : ""}`}/>
+                </button>
+                {accountingDefinitionsOpen ? <div className={styles.nestedSubNav}>{accountingDefinitionItems.map((item) => { const Icon = item.icon; const isActive = pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={`${styles.nestedSubNavItem} ${isActive ? styles.nestedSubNavItemActive : ""}`} onClick={() => setIsOpen(false)}><Icon size={14}/><span>{item.label}</span></Link>; })}</div> : null}
+              </div> : null}
+            </div> : null}
           </div> : null}
 
           {definitionItems.length > 0 ? (

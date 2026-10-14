@@ -1,5 +1,5 @@
 import { calculateGrossToNet, calculateNetToGross, SALARY_MONTHS, type SalaryParameters } from "@/lib/salary-calculation";
-import { SALARY_INSURANCE_TYPE_LABELS, salaryEngineType, WORKFORCE_TYPE_LABELS, type SalaryInsuranceTypeCode, type WorkforceTypeCode } from "@/lib/personnel-profile";
+import { SALARY_INSURANCE_TYPE_LABELS, salaryEngineType, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
 
 export type BudgetMode = "gross-to-net" | "net-to-gross";
 
@@ -8,9 +8,8 @@ export type BudgetEntry = {
   key: string;
   name: string;
   department: string | null;
-  category: string | null;
   position: string | null;
-  workforceType: WorkforceTypeCode | null;
+  collarType: string | null;
   insuranceType: SalaryInsuranceTypeCode;
   mode: BudgetMode;
   amount: number;
@@ -43,9 +42,8 @@ export type BudgetReport = {
   months: BudgetMonth[];
   people: BudgetPerson[];
   byDepartment: BudgetGroup[];
-  byCategory: BudgetGroup[];
   byPosition: BudgetGroup[];
-  byWorkforce: BudgetGroup[];
+  byCollar: BudgetGroup[];
   byInsurance: BudgetGroup[];
 };
 
@@ -133,9 +131,8 @@ export function buildBudgetReport(entries: BudgetEntry[], parameters: SalaryPara
       .map((person) => ({ key: person.key, name: person.name, department: person.department, position: person.position, annualGross: person.annualGross, annualNet: person.annualNet, annualEmployerCost: person.annualEmployerCost }))
       .sort((a, b) => b.annualEmployerCost - a.annualEmployerCost),
     byDepartment: group(people, (entry) => entry.department, annualEmployerCost),
-    byCategory: group(people, (entry) => entry.category, annualEmployerCost),
     byPosition: group(people, (entry) => entry.position, annualEmployerCost),
-    byWorkforce: group(people, (entry) => entry.workforceType ? WORKFORCE_TYPE_LABELS[entry.workforceType] : null, annualEmployerCost),
+    byCollar: group(people, (entry) => entry.collarType, annualEmployerCost),
     byInsurance: group(people, (entry) => SALARY_INSURANCE_TYPE_LABELS[entry.insuranceType], annualEmployerCost),
   };
 }

@@ -9,9 +9,7 @@ test("şablon başlıkları ve örnek satırları hatasız okunur", () => {
   const result = parsePersonnelSheet(sheet);
   assert.deepEqual(result.issues, []);
   assert.equal(result.rows.length, 2);
-  assert.equal(result.rows[0].workforceType, "BLUE_COLLAR");
-  assert.equal(result.rows[1].grossSalary, 68500);
-  assert.equal(result.rows[1].insuranceType, "NO_INCENTIVE");
+  assert.equal(result.rows[1].email, "ayse.demir@firma.com");
   assert.equal(result.rows[0].hireDate?.toISOString(), "2026-01-05T00:00:00.000Z");
 });
 
@@ -23,28 +21,22 @@ test("eksik zorunlu başlık dosyayı reddeder", () => {
 
 test("satır hataları satır numarasıyla raporlanır, boş satırlar atlanır", () => {
   const result = parsePersonnelSheet([
-    ["ad", "SOYAD", "Departman", "Pozisyon", "Sicil No", "Personel Tipi", "Brüt Maaş"],
-    ["Ali", "Kaya", "Depo", "Forklift", "7", "Mavi yaka", "40000"],
-    ["", "", "", "", "", "", ""],
-    ["Veli", "", "Depo", "Forklift", "7", "Gri", "abc"],
+    ["ad", "SOYAD", "Departman", "Sicil No", "Yaş"],
+    ["Ali", "Kaya", "Depo", "7", "30"],
+    ["", "", "", "", ""],
+    ["Veli", "", "Depo", "7", "12"],
   ]);
   assert.equal(result.rows.length, 1);
   assert.equal(result.issues.length, 1);
   assert.equal(result.issues[0].line, 4);
   assert.match(result.issues[0].message, /soyad boş/);
   assert.match(result.issues[0].message, /2\. satırla aynı/);
+  assert.match(result.issues[0].message, /yaş/);
 });
 
 test("Excel tarih hücresi ve Windows-1254 CSV desteklenir", () => {
-  const result = parsePersonnelSheet([["Ad", "Soyad", "Departman", "Pozisyon", "Personel Tipi", "İşe Giriş Tarihi"], ["Ali", "Kaya", "Depo", "Forklift", "Mavi Yaka", new Date(2026, 0, 5)]]);
+  const result = parsePersonnelSheet([["Ad", "Soyad", "Departman", "İşe Giriş Tarihi"], ["Ali", "Kaya", "Depo", new Date(2026, 0, 5)]]);
   assert.equal(result.rows[0].hireDate?.toISOString(), "2026-01-05T00:00:00.000Z");
   assert.equal(decodeCsv(new Uint8Array([0xde, 0x75, 0x62, 0x65])), "Şube");
   assert.equal(decodeCsv(new TextEncoder().encode("﻿Şube")), "Şube");
-});
-
-test("pozisyon ve personel tipi zorunludur", () => {
-  const result = parsePersonnelSheet([["Ad", "Soyad", "Departman", "Pozisyon", "Personel Tipi"], ["Ali", "Kaya", "Depo", "", ""]]);
-  assert.equal(result.rows.length, 0);
-  assert.match(result.issues[0].message, /personel tipi boş/);
-  assert.match(result.issues[0].message, /pozisyon boş/);
 });

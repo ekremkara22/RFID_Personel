@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Banknote, Building2, CheckCircle2, CircleAlert, Download, FileDown, FileUp, GripVertical, LoaderCircle, Plus, Trash2, UserPlus, Users, Wallet, X } from "lucide-react";
-import { SALARY_INSURANCE_TYPE_LABELS, SALARY_INSURANCE_TYPES, salaryEngineType, WORKFORCE_TYPE_LABELS, WORKFORCE_TYPES, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
+import { SALARY_INSURANCE_TYPE_LABELS, SALARY_INSURANCE_TYPES, salaryEngineType, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
 import { decodeCsv } from "@/lib/personnel-import";
 import { parseSalarySheetCsv, salarySheetCsvTemplate } from "@/lib/salary-sheet-csv";
 import { calculateGrossToNet, calculateNetToGross, SALARY_MONTHS, type SalaryCalculationResult, type SalaryParameters } from "@/lib/salary-calculation";
 import { saveSalaryWorksheetAction } from "@/modules/accounting/actions";
-import type { SalaryEmployeeOption, WorksheetModeKey, WorksheetRowData } from "@/modules/accounting/repository";
+import type { WorksheetModeKey, WorksheetRowData } from "@/modules/accounting/repository";
 import ui from "../../management.module.css";
 import styles from "../accounting.module.css";
 
 type SheetRow = WorksheetRowData & { uid: number };
-type ColumnKey = "name" | "department" | "position" | "workforceType" | "insuranceType" | "employerCost" | "amount" | `month-${number}` | "annualTotal";
+type ColumnKey = "name" | "department" | "position" | "collarType" | "insuranceType" | "employerCost" | "amount" | `month-${number}` | "annualTotal";
 type Column = { key: ColumnKey; label: string; numeric?: boolean };
 type SaveState = { status: "idle" | "dirty" | "saving" | "saved" | "error"; text?: string };
 
@@ -25,7 +25,7 @@ function columnsFor(mode: WorksheetModeKey): Column[] {
     { key: "name", label: "Ad Soyad" },
     { key: "department", label: "Departman" },
     { key: "position", label: "Pozisyon" },
-    { key: "workforceType", label: "Yaka" },
+    { key: "collarType", label: "Yaka" },
     { key: "insuranceType", label: "Çalışan Tipi" },
     { key: "employerCost", label: "İşveren Maliyeti (Yıllık)", numeric: true },
     { key: "amount", label: mode === "gross-to-net" ? "Brüt Maaş" : "Net Maaş", numeric: true },
@@ -71,8 +71,8 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
   canExport: boolean;
   initialRows: WorksheetRowData[];
   parameters: SalaryParameters;
-  definitions: { departments: string[]; positions: string[] };
-  employees?: SalaryEmployeeOption[];
+  definitions: { departments: string[]; positions: string[]; collarTypes: string[] };
+  employees?: WorksheetRowData[];
 }) {
   const defaultColumns = useMemo(() => columnsFor(mode), [mode]);
   const nextUid = useRef(initialRows.length + 1);
@@ -84,7 +84,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
   const [detail, setDetail] = useState<string>("all");
   const fileInput = useRef<HTMLInputElement>(null);
   const firstRender = useRef(true);
-  const storageKey = `rfid-personel.salary-sheet-columns.v3.${mode}`;
+  const storageKey = `rfid-personel.salary-sheet-columns.v4.${mode}`;
   const amountLabel = mode === "gross-to-net" ? "Brüt Maaş" : "Net Maaş";
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
     if (!canCalculate) return;
     const timer = window.setTimeout(async () => {
       setSaveState({ status: "saving" });
-      const payload = rows.map((row) => ({ name: row.name, department: row.department, position: row.position, workforceType: row.workforceType, insuranceType: row.insuranceType, amount: row.amount, employeeId: row.employeeId }));
+      const payload = rows.map((row) => ({ name: row.name, department: row.department, position: row.position, collarType: row.collarType, insuranceType: row.insuranceType, amount: row.amount, personnelId: row.personnelId }));
       try {
         const result = await saveSalaryWorksheetAction(mode, payload);
         setSaveState(result.ok
@@ -142,7 +142,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
     setRows((current) => [...current, ...items.map((item) => ({ ...item, uid: nextUid.current++ }))]);
     setSaveState({ status: "dirty" });
   };
-  const addRow = () => append([{ name: `Personel ${rows.length + 1}`, department: "", position: "", workforceType: "", insuranceType: "INCENTIVE", amount: 0, employeeId: null }]);
+  const addRow = () => append([{ name: `Personel ${rows.length + 1}`, department: "", position: "", collarType: "", insuranceType: "INCENTIVE", amount: 0, personnelId: null }]);
   const removeRow = (uid: number) => {
     setRows((current) => current.filter((row) => row.uid !== uid));
     setSaveState({ status: "dirty" });
@@ -153,13 +153,13 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
     setSaveState({ status: "dirty" });
   };
   const loadEmployees = () => {
-    const existing = new Set(rows.map((row) => row.employeeId).filter(Boolean));
-    const fresh = employees.filter((employee) => !existing.has(employee.employeeId));
+    const existing = new Set(rows.map((row) => row.personnelId).filter(Boolean));
+    const fresh = employees.filter((employee) => !existing.has(employee.personnelId));
     if (!fresh.length) {
       setNotice({ tone: "success", text: "Maaşı tanımlı tüm personeller zaten listede." });
       return;
     }
-    append(fresh.map((employee) => ({ name: employee.name, department: employee.department, position: employee.position, workforceType: employee.workforceType, insuranceType: employee.insuranceType, amount: employee.amount, employeeId: employee.employeeId })));
+    append(fresh);
     setNotice({ tone: "success", text: `${fresh.length} personel kartından aktarıldı.` });
   };
   const importCsv = async (file: File | undefined) => {
@@ -170,7 +170,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
         setNotice({ tone: "error", text: "Dosyada tutarı olan personel satırı bulunamadı. Şablonu indirip kullanabilirsiniz." });
         return;
       }
-      append(parsed.map((row) => ({ ...row, employeeId: null })));
+      append(parsed.map((row) => ({ ...row, personnelId: null })));
       setNotice({ tone: skipped.length ? "error" : "success", text: `${parsed.length} personel eklendi.${skipped.length ? ` Tutarı okunamayan satırlar atlandı: ${skipped.join(", ")}.` : ""}` });
     } catch {
       setNotice({ tone: "error", text: "Dosya okunamadı. CSV biçiminde kaydedildiğinden emin olun." });
@@ -194,7 +194,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
     if (key === "name") return row.name;
     if (key === "department") return row.department;
     if (key === "position") return row.position;
-    if (key === "workforceType") return row.workforceType ? WORKFORCE_TYPE_LABELS[row.workforceType] : "";
+    if (key === "collarType") return row.collarType;
     if (key === "insuranceType") return SALARY_INSURANCE_TYPE_LABELS[row.insuranceType];
     if (key === "amount") return row.amount;
     if (!result) return "";
@@ -215,7 +215,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
       case "name": return <input className={styles.nameInput} aria-label="Ad soyad" value={row.name} disabled={!editable} onChange={(event) => change(row.uid, { name: event.target.value })} placeholder="Ad Soyad" />;
       case "department": return <DefinitionSelect label={`${row.name} departman`} value={row.department} options={definitions.departments} disabled={!editable} onChange={(value) => change(row.uid, { department: value })} />;
       case "position": return <DefinitionSelect label={`${row.name} pozisyon`} value={row.position} options={definitions.positions} disabled={!editable} onChange={(value) => change(row.uid, { position: value })} />;
-      case "workforceType": return <select aria-label={`${row.name} yaka`} value={row.workforceType} disabled={!editable} onChange={(event) => change(row.uid, { workforceType: event.target.value as WorksheetRowData["workforceType"] })}><option value="">—</option>{WORKFORCE_TYPES.map((type) => <option key={type} value={type}>{WORKFORCE_TYPE_LABELS[type]}</option>)}</select>;
+      case "collarType": return <DefinitionSelect label={`${row.name} yaka`} value={row.collarType} options={definitions.collarTypes} disabled={!editable} onChange={(value) => change(row.uid, { collarType: value })} />;
       case "insuranceType": return <select aria-label={`${row.name} çalışan tipi`} value={row.insuranceType} disabled={!editable} onChange={(event) => change(row.uid, { insuranceType: event.target.value as SalaryInsuranceTypeCode })}>{SALARY_INSURANCE_TYPES.map((type) => <option key={type} value={type}>{SALARY_INSURANCE_TYPE_LABELS[type]}</option>)}</select>;
       case "amount": return <input className={styles.amountInput} aria-label={`${row.name} ${amountLabel}`} type="number" min="0" step="0.01" inputMode="decimal" value={row.amount || ""} disabled={!editable} onChange={(event) => change(row.uid, { amount: event.target.valueAsNumber || 0 })} />;
       default: {
@@ -270,7 +270,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
         <div className={styles.sheetBar}>
           <div className={styles.sheetActions}>
             {editable ? <button type="button" className={ui.secondaryAction} onClick={addRow}><Plus size={16} />Personel ekle</button> : null}
-            {editable && mode === "gross-to-net" && employees.length ? <button type="button" className={ui.secondaryAction} onClick={loadEmployees}><UserPlus size={16} />Personel kartlarından aktar</button> : null}
+            {editable && mode === "gross-to-net" && employees.length ? <button type="button" className={ui.secondaryAction} onClick={loadEmployees}><UserPlus size={16} />Personel tanımlarından aktar</button> : null}
             {editable ? <button type="button" className={ui.secondaryAction} onClick={() => fileInput.current?.click()}><FileUp size={16} />CSV&apos;den personel yükle</button> : null}
             <input ref={fileInput} type="file" accept=".csv,.txt,text/csv" hidden onChange={(event) => { void importCsv(event.target.files?.[0]); event.target.value = ""; }} />
             <button type="button" className={ui.secondaryAction} onClick={() => download("Personel-Sablon.csv", salarySheetCsvTemplate(amountLabel))}><FileDown size={16} />CSV şablonu indir</button>
@@ -290,7 +290,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
           CSV sütunları: Ad Soyad; Departman; Pozisyon; Yaka; Çalışan Tipi; {amountLabel}. Bütçe raporu bu listeden beslenir.
         </p>
         {notice ? <p className={notice.tone === "success" ? styles.feedback : styles.feedbackError} role={notice.tone === "success" ? "status" : "alert"}>{notice.text}</p> : null}
-        {!definitions.departments.length || !definitions.positions.length ? <p className={styles.permissionNote}>Departman veya pozisyon tanımı yok. Muhasebe → Sabit Tanımlar ekranından ekleyebilirsiniz.</p> : null}
+        {!definitions.departments.length || !definitions.positions.length ? <p className={styles.permissionNote}>Departman veya pozisyon tanımı yok. Muhasebe → Sabit Tanımlar → Departmanlar / Pozisyonlar ekranlarından ekleyebilirsiniz.</p> : null}
 
         <p className={ui.tableHint}><GripVertical size={14} /> Sütun başlıklarını sürükleyerek sıralayabilirsiniz; CSV dışa aktarma aynı sırayı kullanır.</p>
         <div className={ui.tableViewport}>

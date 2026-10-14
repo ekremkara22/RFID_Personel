@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { buildBudgetReport, UNASSIGNED_LABEL, type BudgetEntry, type BudgetGroup } from "@/lib/budget-report";
-import { WORKFORCE_TYPE_LABELS } from "@/lib/personnel-profile";
 import { SALARY_MONTHS, type SalaryParameters } from "@/lib/salary-calculation";
 import ui from "../../management.module.css";
 import styles from "./budget.module.css";
@@ -55,7 +54,7 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
   const [budgetLimit, setBudgetLimit] = useState(0);
   const [raise, setRaise] = useState(0);
   const [department, setDepartment] = useState("");
-  const [workforce, setWorkforce] = useState("");
+  const [collar, setCollar] = useState("");
   const [reportDate, setReportDate] = useState("");
 
   useEffect(() => {
@@ -82,15 +81,16 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
 
   const sourceEntries = useMemo(() => source === "all" ? [...netEntries, ...grossEntries] : source === "gross-to-net" ? grossEntries : netEntries, [source, grossEntries, netEntries]);
   const departments = useMemo(() => [...new Set(sourceEntries.map((entry) => entry.department ?? UNASSIGNED_LABEL))].sort((a, b) => a.localeCompare(b, "tr")), [sourceEntries]);
+  const collars = useMemo(() => [...new Set(sourceEntries.map((entry) => entry.collarType ?? UNASSIGNED_LABEL))].sort((a, b) => a.localeCompare(b, "tr")), [sourceEntries]);
   const entries = useMemo(() => sourceEntries.filter((entry) =>
     (!department || (entry.department ?? UNASSIGNED_LABEL) === department)
-    && (!workforce || (entry.workforceType ?? "NONE") === workforce)), [sourceEntries, department, workforce]);
+    && (!collar || (entry.collarType ?? UNASSIGNED_LABEL) === collar)), [sourceEntries, department, collar]);
   const raiseRate = Number.isFinite(raise) ? Math.min(Math.max(raise, 0), 300) / 100 : 0;
   const report = useMemo(() => buildBudgetReport(entries, parameters, raiseRate), [entries, parameters, raiseRate]);
   const baseCost = useMemo(() => raiseRate ? buildBudgetReport(entries, parameters).annualEmployerCost : report.annualEmployerCost, [entries, parameters, raiseRate, report]);
 
   const sourceLabel = SOURCES.find((item) => item.value === source)!.label;
-  const filterText = [department && `Departman: ${department}`, workforce && `Yaka: ${workforce === "NONE" ? UNASSIGNED_LABEL : WORKFORCE_TYPE_LABELS[workforce as keyof typeof WORKFORCE_TYPE_LABELS]}`, raiseRate ? `%${raise} zam senaryosu` : ""].filter(Boolean).join(" · ");
+  const filterText = [department && `Departman: ${department}`, collar && `Yaka: ${collar}`, raiseRate ? `%${raise} zam senaryosu` : ""].filter(Boolean).join(" · ");
   const months = report.months;
   const monthCosts = months.map((month) => month.employerCost);
   const maxMonth = Math.max(1, ...monthCosts);
@@ -125,7 +125,7 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
       <section className={`${ui.surface} ${styles.screenOnly}`} aria-label="Rapor ayarları">
         <div className={styles.bar}>
           <label className={ui.field}><span className={ui.fieldLabel}>Veri kaynağı</span>
-            <select className={ui.control} value={source} onChange={(event) => { const value = event.target.value as Source; setSource(value); setDepartment(""); remember({ source: value }); }}>
+            <select className={ui.control} value={source} onChange={(event) => { const value = event.target.value as Source; setSource(value); setDepartment(""); setCollar(""); remember({ source: value }); }}>
               {SOURCES.map((item) => <option key={item.value} value={item.value}>{item.label} ({item.value === "all" ? netEntries.length + grossEntries.length : item.value === "net-to-gross" ? netEntries.length : grossEntries.length})</option>)}
             </select>
           </label>
@@ -139,7 +139,7 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
             <select className={ui.control} value={department} onChange={(event) => setDepartment(event.target.value)}><option value="">Tüm departmanlar</option>{departments.map((item) => <option key={item} value={item}>{item}</option>)}</select>
           </label>
           <label className={ui.field}><span className={ui.fieldLabel}>Yaka</span>
-            <select className={ui.control} value={workforce} onChange={(event) => setWorkforce(event.target.value)}><option value="">Tümü</option><option value="BLUE_COLLAR">Mavi yaka</option><option value="WHITE_COLLAR">Beyaz yaka</option><option value="NONE">{UNASSIGNED_LABEL}</option></select>
+            <select className={ui.control} value={collar} onChange={(event) => setCollar(event.target.value)}><option value="">Tümü</option>{collars.map((item) => <option key={item} value={item}>{item}</option>)}</select>
           </label>
         </div>
       </section>
@@ -204,9 +204,8 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
           <div className={styles.grid}>
             <GroupTable title="Departman bazında" groups={report.byDepartment} />
             <GroupTable title="Pozisyon bazında" groups={report.byPosition} />
-            <GroupTable title="Yaka bazında" groups={report.byWorkforce} />
+            <GroupTable title="Yaka bazında" groups={report.byCollar} />
             <GroupTable title="Çalışan tipi bazında" groups={report.byInsurance} />
-            {report.byCategory.some((group) => group.label !== UNASSIGNED_LABEL) ? <GroupTable title="Departman kategorisi bazında" groups={report.byCategory} /> : null}
             <section className={styles.card}>
               <h3>En yüksek maliyetli {top.length} personel</h3>
               <div className={styles.tableWrap}>

@@ -154,11 +154,6 @@ enum CompanyInvitationStatus {
   REVOKED
 }
 
-enum WorkforceType {
-  BLUE_COLLAR
-  WHITE_COLLAR
-}
-
 enum SalaryInsuranceType {
   INCENTIVE
   NO_INCENTIVE
@@ -240,8 +235,10 @@ model Company {
   productionWorkOrders               ProductionWorkOrder[]
   productionCustomFields             ProductionCustomField[]
   productionImportTemplates          ProductionImportTemplate[]
-  departmentCategories               DepartmentCategory[]
-  positions                          Position[]
+  accountingDepartments              AccountingDepartment[]
+  accountingPositions                AccountingPosition[]
+  accountingCollarTypes              AccountingCollarType[]
+  accountingPersonnel                AccountingPersonnel[]
   salaryWorksheetRows                SalaryWorksheetRow[]
   salaryParameterSet                 SalaryParameterSet?
 }
@@ -542,12 +539,6 @@ model Employee {
   branchRef                   Branch?                      @relation(fields: [branchId], references: [id], onDelete: SetNull)
   departmentId                Int?                         @db.UnsignedInt
   departmentRef               Department?                  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  positionId                  Int?                         @db.UnsignedInt
-  position                    Position?                    @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  workforceType               WorkforceType?
-  grossSalary                 Decimal?                     @db.Decimal(12, 2)
-  salaryInsuranceType         SalaryInsuranceType          @default(INCENTIVE)
-  salaryWorksheetRows         SalaryWorksheetRow[]
   linkedMembership            CompanyMembership?
   explicitMembershipScopes    MembershipEmployeeScope[]    @relation("ExplicitEmployeeScope")
   teamMemberships             CompanyTeamEmployee[]
@@ -568,36 +559,8 @@ model Department {
   dailyExceptions     CalendarDailyException[]
   employees           Employee[]
   membershipScopes    MembershipDepartmentScope[]
-  categoryId          Int?                        @db.UnsignedInt
-  category            DepartmentCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
-
-  @@unique([companyId, name])
-}
-
-model DepartmentCategory {
-  id          Int          @id @default(autoincrement()) @db.UnsignedInt
-  name        String
-  isActive    Boolean      @default(true)
-  companyId   Int          @db.UnsignedInt
-  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  departments Department[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  @@unique([companyId, name])
-}
-
-model Position {
-  id        Int        @id @default(autoincrement()) @db.UnsignedInt
-  name      String
-  isActive  Boolean    @default(true)
-  companyId Int        @db.UnsignedInt
-  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employees Employee[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
 
   @@unique([companyId, name])
 }
@@ -1140,15 +1103,81 @@ model SalaryWorksheetRow {
   name          String              @db.VarChar(191)
   department    String?             @db.VarChar(191)
   position      String?             @db.VarChar(191)
-  workforceType WorkforceType?
+  collarType    String?             @db.VarChar(191)
   insuranceType SalaryInsuranceType @default(INCENTIVE)
   amount        Decimal             @db.Decimal(12, 2)
-  employeeId    Int?                @db.UnsignedInt
-  employee      Employee?           @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  personnelId   Int?                @db.UnsignedInt
+  personnel     AccountingPersonnel? @relation(fields: [personnelId], references: [id], onDelete: SetNull)
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
   @@index([companyId, mode, sortOrder])
+}
+
+/// Muhasebe module definitions and personnel. Independent of İK's Department/Employee tables so
+/// each licensed module only works with its own data.
+model AccountingDepartment {
+  id        Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId Int                   @db.UnsignedInt
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String                @db.VarChar(191)
+  isActive  Boolean               @default(true)
+  personnel AccountingPersonnel[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@unique([companyId, name])
+}
+
+model AccountingPosition {
+  id        Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId Int                   @db.UnsignedInt
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String                @db.VarChar(191)
+  isActive  Boolean               @default(true)
+  personnel AccountingPersonnel[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@unique([companyId, name])
+}
+
+model AccountingCollarType {
+  id        Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId Int                   @db.UnsignedInt
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String                @db.VarChar(191)
+  isActive  Boolean               @default(true)
+  personnel AccountingPersonnel[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@unique([companyId, name])
+}
+
+model AccountingPersonnel {
+  id                 Int                   @id @default(autoincrement()) @db.UnsignedInt
+  companyId          Int                   @db.UnsignedInt
+  company            Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  firstName          String                @db.VarChar(100)
+  lastName           String                @db.VarChar(100)
+  registrationNumber String?               @db.VarChar(64)
+  departmentId       Int?                  @db.UnsignedInt
+  department         AccountingDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  positionId         Int?                  @db.UnsignedInt
+  position           AccountingPosition?   @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  collarTypeId       Int?                  @db.UnsignedInt
+  collarType         AccountingCollarType? @relation(fields: [collarTypeId], references: [id], onDelete: SetNull)
+  insuranceType      SalaryInsuranceType   @default(INCENTIVE)
+  grossSalary        Decimal?              @db.Decimal(12, 2)
+  hireDate           DateTime?
+  isActive           Boolean               @default(true)
+  worksheetRows      SalaryWorksheetRow[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@unique([companyId, registrationNumber])
+  @@index([companyId, isActive])
 }
 
 /// Company-wide payroll constants (tax brackets, SGK rates, exemptions) as validated JSON.

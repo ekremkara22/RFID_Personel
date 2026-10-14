@@ -1,13 +1,22 @@
-import { parseMoney, parseSalaryInsuranceType, parseWorkforceType, type SalaryInsuranceTypeCode, type WorkforceTypeCode } from "@/lib/personnel-profile";
+import { parseMoney, parseSalaryInsuranceType, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
 
 export type SalarySheetCsvRow = {
   name: string;
   department: string;
   position: string;
-  workforceType: WorkforceTypeCode | "";
+  collarType: string;
   insuranceType: SalaryInsuranceTypeCode;
   amount: number;
 };
+
+/** "mavi" or "MAVİ YAKA" become the default definition names; other collar names are kept as typed. */
+export function normalizeCollarType(value: string) {
+  const text = value.trim().replace(/\s+/g, " ");
+  const lower = text.toLocaleLowerCase("tr-TR");
+  if (lower === "mavi" || lower === "mavi yaka") return "Mavi Yaka";
+  if (lower === "beyaz" || lower === "beyaz yaka") return "Beyaz Yaka";
+  return text;
+}
 
 export const SALARY_SHEET_CSV_HEADERS = (amountLabel: string) => ["Ad Soyad", "Departman", "Pozisyon", "Yaka", "Çalışan Tipi", amountLabel];
 
@@ -74,7 +83,7 @@ export function parseSalarySheetCsv(text: string): { rows: SalarySheetCsvRow[]; 
       name: name || `Personel ${rows.length + 1}`,
       department: cell(columns.department),
       position: cell(columns.position),
-      workforceType: parseWorkforceType(cell(columns.workforce)) ?? "",
+      collarType: normalizeCollarType(cell(columns.workforce)),
       insuranceType: parseSalaryInsuranceType(cell(columns.insurance)) ?? "INCENTIVE",
       amount,
     });

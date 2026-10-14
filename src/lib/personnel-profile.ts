@@ -1,13 +1,5 @@
 import type { SalaryEmployeeType } from "@/lib/salary-calculation";
 
-export const WORKFORCE_TYPES = ["BLUE_COLLAR", "WHITE_COLLAR"] as const;
-export type WorkforceTypeCode = (typeof WORKFORCE_TYPES)[number];
-
-export const WORKFORCE_TYPE_LABELS: Record<WorkforceTypeCode, string> = {
-  BLUE_COLLAR: "Mavi yaka",
-  WHITE_COLLAR: "Beyaz yaka",
-};
-
 export const SALARY_INSURANCE_TYPES = ["INCENTIVE", "NO_INCENTIVE", "RETIRED"] as const;
 export type SalaryInsuranceTypeCode = (typeof SALARY_INSURANCE_TYPES)[number];
 
@@ -24,14 +16,6 @@ export function salaryEngineType(type: SalaryInsuranceTypeCode): SalaryEmployeeT
 
 function normalizeWord(value: string) {
   return value.trim().toLocaleLowerCase("tr-TR").replace(/\s+/g, " ");
-}
-
-export function parseWorkforceType(value: string): WorkforceTypeCode | null | undefined {
-  const normalized = normalizeWord(value);
-  if (!normalized) return null;
-  if (["mavi yaka", "mavi", "blue", "blue collar", "blue_collar"].includes(normalized)) return "BLUE_COLLAR";
-  if (["beyaz yaka", "beyaz", "white", "white collar", "white_collar"].includes(normalized)) return "WHITE_COLLAR";
-  return undefined;
 }
 
 export function parseSalaryInsuranceType(value: string): SalaryInsuranceTypeCode | undefined {

@@ -3,12 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Trash2, UserRound } from "lucide-react";
 import { deleteEmployeeAction, removeEmployeePhotoAction, updateEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { can, employeeScopeWhere } from "@/lib/authorization";
-import { PERMISSIONS } from "@/lib/permission-catalog";
+import { employeeScopeWhere } from "@/lib/authorization";
 import { parseRouteId } from "@/lib/ids";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
-import { EmployeeRoleFields } from "../employee-role-fields";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
 
@@ -17,18 +15,14 @@ export default async function EmployeeDetailPage(props: { params: Promise<{ id: 
   if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
 
   const id = parseRouteId((await props.params).id);
-  const [employee, companies, departments, branches, managers, positions] = await Promise.all([
+  const [employee, companies, departments, branches, managers] = await Promise.all([
     queryRepository.employee.findFirst({ where: { id, ...employeeScopeWhere(authorization) } }),
     queryRepository.company.findMany({ where: { id: authorization.companyId!, isActive: true }, orderBy: { name: "asc" } }),
     queryRepository.department.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
     queryRepository.branch.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
     queryRepository.manager.findMany({ where: { companyId: authorization.companyId!, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
-    queryRepository.position.findMany({ where: { companyId: authorization.companyId! }, orderBy: { name: "asc" } }),
   ]);
   if (!employee) notFound();
-  const salary = can(authorization, PERMISSIONS.ACCOUNTING_SALARY_VIEW)
-    ? { canEdit: can(authorization, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE), grossSalary: employee.grossSalary === null ? null : Number(employee.grossSalary), insuranceType: employee.salaryInsuranceType }
-    : null;
 
   const currentCompanyName = companies.find((company) => company.id === employee.companyId)?.name ?? "Mevcut firma";
   const departmentOptions = departments.map((department) => ({ id: department.id, name: department.name, companyName: department.company.name }));
@@ -80,8 +74,6 @@ export default async function EmployeeDetailPage(props: { params: Promise<{ id: 
             <label className={ui.checkField}><input name="isActive" type="checkbox" defaultChecked={employee.isActive} /><span>Personel aktif</span></label>
           </div>
         </section>
-
-        <EmployeeRoleFields positions={positions} positionId={employee.positionId} workforceType={employee.workforceType} salary={salary} />
 
         <section className={ui.formSection}>
           <div className={ui.formSectionHeader}><h2>İstihdam tarihleri</h2><p>İşe giriş ve varsa ayrılış tarihi</p></div>

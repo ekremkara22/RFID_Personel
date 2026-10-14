@@ -5,7 +5,6 @@ import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
-import { WORKFORCE_TYPE_LABELS } from "@/lib/personnel-profile";
 import { EmployeesTable } from "./employees-table";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
@@ -47,7 +46,7 @@ export default async function EmployeesPage(props: {
           }
         : {}),
     },
-    include: { company: true, position: true, departmentRef: { include: { category: true } } },
+    include: { company: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -82,8 +81,6 @@ export default async function EmployeesPage(props: {
             age: employee.age,
             companyName: employee.company.name,
             department: employee.department,
-            position: employee.position?.name ?? "Pozisyon yok",
-            roleDetail: [employee.workforceType ? WORKFORCE_TYPE_LABELS[employee.workforceType] : null, employee.departmentRef?.category?.name ?? null].filter(Boolean).join(" · ") || "-",
             branch: employee.branch ?? "-",
             hireDate: employee.hireDate ? employee.hireDate.toLocaleDateString("tr-TR") : "-",
             terminationDate: employee.terminationDate ? employee.terminationDate.toLocaleDateString("tr-TR") : "-",

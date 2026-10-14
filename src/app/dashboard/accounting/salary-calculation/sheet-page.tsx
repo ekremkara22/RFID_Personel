@@ -1,18 +1,18 @@
 import { can } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
-import { getAccountingDefinitions, getSalaryEmployees, getSalaryParameters, getSalaryWorksheet, type WorksheetModeKey } from "@/modules/accounting/repository";
+import { getAccountingDefinitions, getSalaryParameters, getSalaryWorksheet, getSheetPersonnelOptions, type WorksheetModeKey } from "@/modules/accounting/repository";
 import { SalaryCalculator } from "./salary-calculator";
 
-/** Server wrapper shared by both sheets: loads the saved list, company parameters and definitions. */
+/** Server wrapper shared by both sheets: loads the saved list, company parameters and Muhasebe definitions. */
 export async function SalarySheetPage({ mode }: { mode: WorksheetModeKey }) {
   const { authorization } = await requireSessionUser();
   const companyId = authorization.companyId;
-  const [rows, parameters, definitions, employees] = await Promise.all([
+  const [rows, parameters, definitions, personnel] = await Promise.all([
     getSalaryWorksheet(companyId, mode),
     getSalaryParameters(companyId),
     getAccountingDefinitions(companyId),
-    mode === "gross-to-net" ? getSalaryEmployees(authorization) : Promise.resolve([]),
+    mode === "gross-to-net" ? getSheetPersonnelOptions(companyId) : Promise.resolve([]),
   ]);
   return (
     <SalaryCalculator
@@ -22,8 +22,8 @@ export async function SalarySheetPage({ mode }: { mode: WorksheetModeKey }) {
       canExport={can(authorization, PERMISSIONS.ACCOUNTING_SALARY_EXPORT)}
       initialRows={rows}
       parameters={parameters}
-      definitions={{ departments: definitions.departments.map((item) => item.name), positions: definitions.positions }}
-      employees={employees}
+      definitions={definitions}
+      employees={personnel}
     />
   );
 }

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Payroll constants moved to Muhasebe → Sabit Tanımlar. */
+/** Moved to Muhasebe → Sabit Tanımlar → Hesaplama Parametreleri. */
 export default function LegacySalarySettingsPage() {
-  redirect("/dashboard/accounting/settings");
+  redirect("/dashboard/accounting/definitions/parameters");
 }

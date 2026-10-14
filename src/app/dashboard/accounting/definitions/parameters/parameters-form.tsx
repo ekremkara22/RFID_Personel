@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { RotateCcw, Save } from "lucide-react";
 import { resetSalaryParametersAction, saveSalaryParametersAction } from "@/modules/accounting/actions";
 import { SALARY_EMPLOYEE_TYPE_LABELS, SALARY_MONTHS, type SalaryEmployeeType, type SalaryParameters } from "@/lib/salary-calculation";
-import ui from "../../management.module.css";
-import styles from "../accounting.module.css";
+import ui from "../../../management.module.css";
+import styles from "../../accounting.module.css";
 
 const employeeTypes = Object.keys(SALARY_EMPLOYEE_TYPE_LABELS) as SalaryEmployeeType[];
 const amount = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

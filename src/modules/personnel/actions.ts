@@ -4,8 +4,7 @@ import { ActionError } from "@/lib/action-error";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { assertPermission, can, employeeScopeWhere, type AuthorizationContext } from "@/lib/authorization";
-import { parseMoney, SALARY_INSURANCE_TYPES, WORKFORCE_TYPES, type SalaryInsuranceTypeCode, type WorkforceTypeCode } from "@/lib/personnel-profile";
+import { assertPermission, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
@@ -25,29 +24,6 @@ async function assertCompanyDepartment(companyId: number, department: string) {
     throw new ActionError("Secilen departman firma tanimlarinda aktif degil.");
   }
   return existingDepartment;
-}
-
-/** Position, collar type and salary; salary is written only by users allowed to calculate salaries. */
-async function readEmployeeProfile(formData: FormData, companyId: number, authorization: AuthorizationContext) {
-  const positionValue = getString(formData, "positionId");
-  if (!positionValue) throw new ActionError("Pozisyon seçin.");
-  let positionId: number | null = null;
-  if (positionValue) {
-    const position = await prisma.position.findFirst({ where: { id: getId(formData, "positionId"), companyId }, select: { id: true } });
-    if (!position) throw new ActionError("Seçilen pozisyon bu firmaya ait değil.");
-    positionId = position.id;
-  }
-  const workforceValue = getString(formData, "workforceType");
-  if (!WORKFORCE_TYPES.includes(workforceValue as WorkforceTypeCode)) throw new ActionError("Yaka tipini (mavi / beyaz yaka) seçin.");
-  const workforceType = (workforceValue || null) as WorkforceTypeCode | null;
-
-  const canEditSalary = formData.get("salaryFieldsIncluded") === "1" && can(authorization, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE);
-  if (!canEditSalary) return { positionId, workforceType };
-  const grossSalary = parseMoney(getString(formData, "grossSalary"));
-  if (grossSalary === undefined) throw new ActionError("Brüt maaş sıfırdan büyük geçerli bir tutar olmalıdır.");
-  const insuranceValue = getString(formData, "salaryInsuranceType") || "INCENTIVE";
-  if (!SALARY_INSURANCE_TYPES.includes(insuranceValue as SalaryInsuranceTypeCode)) throw new ActionError("SGK tipi geçersiz.");
-  return { positionId, workforceType, grossSalary, salaryInsuranceType: insuranceValue as SalaryInsuranceTypeCode };
 }
 
 export async function createEmployeeAction(formData: FormData) {
@@ -79,11 +55,9 @@ export async function createEmployeeAction(formData: FormData) {
   if (authorization.scopeMode === "OWN" || authorization.scopeMode === "NONE" || (authorization.scopeMode === "RESTRICTED" && (authorization.employeeIds.length > 0 || authorization.teamEmployeeIds.length > 0))) throw new Error("Bu veri kapsaminda yeni personel olusturamazsiniz.");
   if (authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length && (!branchRef || !authorization.branchIds.includes(branchRef.id))) throw new Error("Secilen sube yetki kapsaminizda degil.");
   if (authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length && !authorization.departmentIds.includes(departmentRef.id)) throw new Error("Secilen departman yetki kapsaminizda degil.");
-  const profile = await readEmployeeProfile(formData, companyId, authorization);
 
   await prisma.employee.create({
     data: {
-      ...profile,
       firstName,
       lastName,
       photoUrl,
@@ -142,7 +116,6 @@ export async function updateEmployeeAction(formData: FormData) {
   if (!currentEmployee) throw new Error("Personel bulunamadi veya yetki kapsaminizin disinda.");
   if (authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length && (!branchRef || !authorization.branchIds.includes(branchRef.id))) throw new Error("Secilen sube yetki kapsaminizda degil.");
   if (authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length && !authorization.departmentIds.includes(departmentRef.id)) throw new Error("Secilen departman yetki kapsaminizda degil.");
-  const profile = await readEmployeeProfile(formData, companyId, authorization);
   const photoUrl = await saveEmployeePhoto(formData, currentEmployee?.photoUrl);
 
   await prisma.employee.updateMany({
@@ -151,7 +124,6 @@ export async function updateEmployeeAction(formData: FormData) {
       ...employeeScopeWhere(authorization),
     },
     data: {
-      ...profile,
       firstName,
       lastName,
       photoUrl,

@@ -7,7 +7,7 @@ import { importEmployeesAction, type PersonnelImportResult } from "@/modules/per
 import ui from "../../management.module.css";
 import styles from "./import.module.css";
 
-export function EmployeeImportForm({ canWriteSalary }: { canWriteSalary: boolean }) {
+export function EmployeeImportForm() {
   const [result, setResult] = useState<PersonnelImportResult | null>(null);
   const [fileName, setFileName] = useState("");
   const [pending, startTransition] = useTransition();
@@ -41,8 +41,7 @@ export function EmployeeImportForm({ canWriteSalary }: { canWriteSalary: boolean
           <span>.xlsx, .xls veya .csv · en fazla 2 MB ve 1.000 personel</span>
           <input name="file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")} />
         </label>
-        <label className={ui.checkField}><input name="createMissing" type="checkbox" defaultChecked />Dosyada olup sistemde olmayan departman ve pozisyonları otomatik oluştur</label>
-        {!canWriteSalary ? <p className={ui.helpText}>Maaş hesaplama yetkiniz olmadığı için Brüt Maaş ve SGK Tipi sütunları aktarılmaz.</p> : null}
+        <label className={ui.checkField}><input name="createMissing" type="checkbox" defaultChecked />Dosyada olup sistemde olmayan departmanları otomatik oluştur</label>
         <div className={ui.formActions}>
           <button type="submit" className={ui.primaryAction} disabled={pending}><FileUp size={16} />{pending ? "Kontrol ediliyor ve aktarılıyor..." : "Kontrol et ve içe aktar"}</button>
         </div>

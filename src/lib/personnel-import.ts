@@ -1,14 +1,12 @@
-import { parseImportDate, parseMoney, parseSalaryInsuranceType, parseWorkforceType, type SalaryInsuranceTypeCode, type WorkforceTypeCode } from "@/lib/personnel-profile";
+import { parseImportDate } from "@/lib/personnel-profile";
 
 export const PERSONNEL_IMPORT_MAX_ROWS = 1000;
 
-/** Column order of the downloadable template; aliases below also accept common variations. */
+/** Column order of the İK personnel template; aliases below also accept common variations. */
 export const PERSONNEL_IMPORT_COLUMNS = [
   { key: "firstName", label: "Ad", required: true, example: ["Ahmet", "Ayşe"] },
   { key: "lastName", label: "Soyad", required: true, example: ["Yılmaz", "Demir"] },
   { key: "department", label: "Departman", required: true, example: ["Üretim", "Muhasebe"] },
-  { key: "position", label: "Pozisyon", required: true, example: ["Operatör", "Muhasebe Uzmanı"] },
-  { key: "workforceType", label: "Personel Tipi", required: true, example: ["Mavi Yaka", "Beyaz Yaka"] },
   { key: "registrationNumber", label: "Sicil No", required: false, example: ["1001", "1002"] },
   { key: "email", label: "E-posta", required: false, example: ["", "ayse.demir@firma.com"] },
   { key: "branch", label: "Şube", required: false, example: ["", ""] },
@@ -16,8 +14,6 @@ export const PERSONNEL_IMPORT_COLUMNS = [
   { key: "hireDate", label: "İşe Giriş Tarihi", required: false, example: ["05.01.2026", "15.03.2025"] },
   { key: "age", label: "Yaş", required: false, example: ["32", "28"] },
   { key: "rfidCardId", label: "RFID Kart No", required: false, example: ["", ""] },
-  { key: "grossSalary", label: "Brüt Maaş", required: false, example: ["45.000,00", "68.500,00"] },
-  { key: "insuranceType", label: "SGK Tipi", required: false, example: ["5510 Teşvikli", "Teşviksiz"] },
 ] as const;
 
 export type PersonnelImportKey = (typeof PERSONNEL_IMPORT_COLUMNS)[number]["key"];
@@ -26,8 +22,6 @@ const HEADER_ALIASES: Record<string, PersonnelImportKey> = {
   ad: "firstName", adi: "firstName", isim: "firstName",
   soyad: "lastName", soyadi: "lastName",
   departman: "department", bolum: "department",
-  pozisyon: "position", gorev: "position", unvan: "position",
-  personeltipi: "workforceType", yakatipi: "workforceType", yaka: "workforceType",
   sicilno: "registrationNumber", sicilnumarasi: "registrationNumber", sicil: "registrationNumber",
   eposta: "email", email: "email", mail: "email",
   sube: "branch",
@@ -35,8 +29,6 @@ const HEADER_ALIASES: Record<string, PersonnelImportKey> = {
   isegiristarihi: "hireDate", giristarihi: "hireDate",
   yas: "age",
   rfidkartno: "rfidCardId", rfid: "rfidCardId", kartno: "rfidCardId", rfidkartnumarasi: "rfidCardId",
-  brutmaas: "grossSalary", maas: "grossSalary", brutucret: "grossSalary",
-  sgktipi: "insuranceType", sgk: "insuranceType",
 };
 
 export function normalizeHeader(value: unknown) {
@@ -51,8 +43,6 @@ export type PersonnelImportRow = {
   firstName: string;
   lastName: string;
   department: string;
-  position: string | null;
-  workforceType: WorkforceTypeCode | null;
   registrationNumber: string | null;
   email: string | null;
   branch: string | null;
@@ -60,8 +50,6 @@ export type PersonnelImportRow = {
   hireDate: Date | null;
   age: number;
   rfidCardId: string | null;
-  grossSalary: number | null;
-  insuranceType: SalaryInsuranceTypeCode;
 };
 
 export type PersonnelImportIssue = { line: number; message: string };
@@ -82,7 +70,7 @@ function dateFromCell(value: unknown) {
 }
 
 /**
- * Turns a sheet (first row = headers) into validated personnel rows.
+ * Turns a sheet (first row = headers) into validated İK personnel rows.
  * Only checks what the file itself can prove; company lookups and duplicates in the database happen in the action.
  */
 export function parsePersonnelSheet(sheet: unknown[][]): { rows: PersonnelImportRow[]; issues: PersonnelImportIssue[] } {
@@ -119,15 +107,6 @@ export function parsePersonnelSheet(sheet: unknown[][]): { rows: PersonnelImport
     if (!lastName) problems.push("soyad boş");
     if (!department) problems.push("departman boş");
 
-    const workforceType = parseWorkforceType(text("workforceType"));
-    if (workforceType === undefined) problems.push(`personel tipi "${text("workforceType")}" tanınmadı (Mavi Yaka / Beyaz Yaka)`);
-    else if (workforceType === null) problems.push("personel tipi boş (Mavi Yaka / Beyaz Yaka)");
-    if (!text("position")) problems.push("pozisyon boş");
-    const insuranceType = parseSalaryInsuranceType(text("insuranceType"));
-    if (insuranceType === undefined) problems.push(`SGK tipi "${text("insuranceType")}" tanınmadı (5510 Teşvikli / Teşviksiz / Emekli)`);
-    const salaryRaw = raw("grossSalary");
-    const grossSalary = typeof salaryRaw === "number" ? parseMoney(salaryRaw) : parseMoney(text("grossSalary"));
-    if (grossSalary === undefined) problems.push("brüt maaş geçerli bir tutar değil");
     const hireDate = dateFromCell(raw("hireDate"));
     if (hireDate === undefined) problems.push("işe giriş tarihi GG.AA.YYYY biçiminde olmalı");
     const ageText = text("age");
@@ -154,8 +133,6 @@ export function parsePersonnelSheet(sheet: unknown[][]): { rows: PersonnelImport
       firstName,
       lastName,
       department,
-      position: text("position").replace(/\s+/g, " ") || null,
-      workforceType: workforceType ?? null,
       registrationNumber,
       email,
       branch: text("branch") || null,
@@ -163,8 +140,6 @@ export function parsePersonnelSheet(sheet: unknown[][]): { rows: PersonnelImport
       hireDate: hireDate ?? null,
       age,
       rfidCardId,
-      grossSalary: grossSalary ?? null,
-      insuranceType: insuranceType!,
     });
   });
 

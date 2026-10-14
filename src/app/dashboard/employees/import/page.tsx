@@ -12,16 +12,12 @@ import importStyles from "./import.module.css";
 
 const COLUMN_HINTS: Record<string, string> = {
   department: "Departman tanımıyla aynı olmalı",
-  position: "Pozisyon tanımıyla aynı olmalı",
-  workforceType: "Mavi Yaka veya Beyaz Yaka",
   registrationNumber: "Firmada benzersiz olmalı",
   email: "Sistemde benzersiz olmalı",
   branch: "Tanımlı ve aktif bir şube adı",
   hireDate: "GG.AA.YYYY (ör. 05.01.2026)",
   age: "Boşsa 18 kabul edilir",
   rfidCardId: "Sistemde benzersiz olmalı",
-  grossSalary: "Aylık brüt, ör. 45.000,00",
-  insuranceType: "5510 Teşvikli, Teşviksiz veya Emekli; boşsa Teşvikli",
 };
 
 export default async function EmployeeImportPage() {
@@ -67,7 +63,7 @@ export default async function EmployeeImportPage() {
 
       <section className={ui.surface}>
         <div className={ui.sectionHeading}><div><h2>2. Dosyayı yükleyin</h2><p>Sicil no, e-posta ve RFID kart numarası hem dosya içinde hem sistemde tekrar kontrol edilir.</p></div></div>
-        {companyWide ? <EmployeeImportForm canWriteSalary={can(authorization, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE)} /> : (
+        {companyWide ? <EmployeeImportForm /> : (
           <p className={ui.emptyState}>Toplu içe aktarma için firma genelinde personel yetkisi gerekir. Kısıtlı kapsamda personelleri tek tek ekleyebilirsiniz.</p>
         )}
       </section>

@@ -6,7 +6,7 @@ test("hesaplama şablonu kendi okuyucusuyla hatasız yüklenir", () => {
   const result = parseSalarySheetCsv(salarySheetCsvTemplate("Brüt Maaş"));
   assert.deepEqual(result.skipped, []);
   assert.equal(result.rows.length, 2);
-  assert.deepEqual(result.rows[0], { name: "Ahmet Yılmaz", department: "Üretim", position: "Operatör", workforceType: "BLUE_COLLAR", insuranceType: "INCENTIVE", amount: 35000 });
+  assert.deepEqual(result.rows[0], { name: "Ahmet Yılmaz", department: "Üretim", position: "Operatör", collarType: "Mavi Yaka", insuranceType: "INCENTIVE", amount: 35000 });
   assert.equal(result.rows[1].amount, 62500.5);
   assert.equal(result.rows[1].insuranceType, "NO_INCENTIVE");
 });
@@ -20,4 +20,12 @@ test("başlıksız ve virgül ayraçlı dosyalar da okunur, tutarsız satır rap
 
 test("tırnak içindeki ayraç ve çift tırnak korunur", () => {
   assert.deepEqual(splitCsv('"Yılmaz; Ahmet";"35.000,00";"5""li"'), [["Yılmaz; Ahmet", "35.000,00", '5"li']]);
+});
+
+test("yaka tipi varsayılan tanım adlarına çevrilir, diğerleri korunur", async () => {
+  const { normalizeCollarType } = await import("./salary-sheet-csv");
+  assert.equal(normalizeCollarType(" mavi   yaka "), "Mavi Yaka");
+  assert.equal(normalizeCollarType("BEYAZ"), "Beyaz Yaka");
+  assert.equal(normalizeCollarType("Gri  Yaka"), "Gri Yaka");
+  assert.equal(normalizeCollarType(""), "");
 });

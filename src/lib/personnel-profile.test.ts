@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseImportDate, parseMoney, parseSalaryInsuranceType, parseWorkforceType, salaryEngineType } from "./personnel-profile";
+import { parseImportDate, parseMoney, parseSalaryInsuranceType, salaryEngineType } from "./personnel-profile";
 
 test("tablo tutarları Türkçe ve düz biçimde okunur", () => {
   assert.equal(parseMoney("45.000,50"), 45000.5);
@@ -13,11 +13,7 @@ test("tablo tutarları Türkçe ve düz biçimde okunur", () => {
   assert.equal(parseMoney("on bin"), undefined);
 });
 
-test("personel tipi ve SGK tipi Türkçe etiketlerden çözülür", () => {
-  assert.equal(parseWorkforceType("Mavi Yaka"), "BLUE_COLLAR");
-  assert.equal(parseWorkforceType(" beyaz  yaka "), "WHITE_COLLAR");
-  assert.equal(parseWorkforceType(""), null);
-  assert.equal(parseWorkforceType("Gri yaka"), undefined);
+test("SGK tipi Türkçe etiketlerden çözülür", () => {
   assert.equal(parseSalaryInsuranceType(""), "INCENTIVE");
   assert.equal(parseSalaryInsuranceType("Emekli"), "RETIRED");
   assert.equal(parseSalaryInsuranceType("TEŞVİKSİZ"), "NO_INCENTIVE");

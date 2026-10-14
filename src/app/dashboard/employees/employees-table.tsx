@@ -10,8 +10,6 @@ type EmployeeRow = {
   age: number;
   companyName: string;
   department: string;
-  position: string;
-  roleDetail: string;
   branch: string;
   hireDate: string;
   terminationDate: string;
@@ -25,7 +23,6 @@ const columns: DataTableColumn[] = [
   { id: "employee", label: "Personel", valueKey: "fullName", secondaryKey: "employeeDetail", imageKey: "photoUrl", kind: "person" },
   { id: "identity", label: "Sicil / RFID", valueKey: "registrationNumber", secondaryKey: "rfidCardId", kind: "stack" },
   { id: "organization", label: "Organizasyon", valueKey: "department", secondaryKey: "branch", kind: "stack" },
-  { id: "role", label: "Görev", valueKey: "position", secondaryKey: "roleDetail", kind: "stack" },
   { id: "employment", label: "İstihdam", valueKey: "hireDate", secondaryKey: "terminationText", kind: "stack" },
   { id: "manager", label: "Yönetici", valueKey: "managerName" },
   { id: "status", label: "Durum", valueKey: "status", toneKey: "statusTone", kind: "status" },
@@ -45,10 +42,10 @@ export function EmployeesTable({ employees, canExport }: { employees: EmployeeRo
   return <ReorderableDataTable
     rows={rows}
     columns={columns}
-    storageKey="rfid-personel-columns-employees-v3"
+    storageKey="rfid-personel-columns-employees-v2"
     filename="personeller"
     emptyMessage="Filtrelere uygun personel bulunamadı."
     canExport={canExport}
-    minWidth={1020}
+    minWidth={900}
   />;
 }

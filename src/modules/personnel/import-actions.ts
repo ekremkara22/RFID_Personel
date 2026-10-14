@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { randomUUID } from "node:crypto";
 import { actionErrorMessage, ActionError } from "@/lib/action-error";
-import { assertPermission, can } from "@/lib/authorization";
+import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { decodeCsv, parsePersonnelSheet, PERSONNEL_IMPORT_MAX_ROWS, type PersonnelImportIssue } from "@/lib/personnel-import";
 import { prisma } from "@/lib/prisma";
@@ -50,7 +50,6 @@ async function importEmployees(formData: FormData): Promise<Omit<PersonnelImport
   if (file.size > MAX_FILE_BYTES) throw new ActionError("Dosya boyutu 2 MB sınırını aşıyor.");
   if (!/\.(csv|txt|xlsx|xls)$/i.test(file.name)) throw new ActionError("Yalnız .csv, .xlsx veya .xls dosyaları kabul edilir.");
   const createMissing = formData.get("createMissing") === "on";
-  const canWriteSalary = can(authorization, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE);
 
   const sheet = await readSheet(file);
   if (sheet.length - 1 > PERSONNEL_IMPORT_MAX_ROWS) throw new ActionError(`Bir dosyada en fazla ${PERSONNEL_IMPORT_MAX_ROWS} personel aktarılabilir.`);
@@ -59,9 +58,8 @@ async function importEmployees(formData: FormData): Promise<Omit<PersonnelImport
   const notes: string[] = [];
   if (!parsed.rows.length && !issues.length) throw new ActionError("Dosyada aktarılacak personel satırı bulunamadı.");
 
-  const [departments, positions, branches, existing] = await Promise.all([
+  const [departments, branches, existing] = await Promise.all([
     prisma.department.findMany({ where: { companyId }, select: { id: true, name: true, isActive: true } }),
-    prisma.position.findMany({ where: { companyId }, select: { id: true, name: true, isActive: true } }),
     prisma.branch.findMany({ where: { companyId }, select: { id: true, name: true, isActive: true } }),
     prisma.employee.findMany({
       where: {
@@ -75,13 +73,11 @@ async function importEmployees(formData: FormData): Promise<Omit<PersonnelImport
     }),
   ]);
   const departmentByName = new Map(departments.map((item) => [key(item.name), item]));
-  const positionByName = new Map(positions.map((item) => [key(item.name), item]));
   const branchByName = new Map(branches.map((item) => [key(item.name), item]));
   const takenRegistration = new Set(existing.filter((item) => item.companyId === companyId && item.registrationNumber).map((item) => item.registrationNumber!));
   const takenEmail = new Set(existing.flatMap((item) => item.email ? [item.email] : []));
   const takenRfid = new Set(existing.flatMap((item) => item.rfidCardId ? [item.rfidCardId] : []));
   const newDepartments = new Map<string, string>();
-  const newPositions = new Map<string, string>();
 
   for (const row of parsed.rows) {
     const problems: string[] = [];
@@ -90,13 +86,6 @@ async function importEmployees(formData: FormData): Promise<Omit<PersonnelImport
       if (createMissing) newDepartments.set(key(row.department), row.department);
       else problems.push(`"${row.department}" departmanı tanımlı değil`);
     } else if (!department.isActive) problems.push(`"${row.department}" departmanı pasif`);
-    if (row.position) {
-      const position = positionByName.get(key(row.position));
-      if (!position) {
-        if (createMissing) newPositions.set(key(row.position), row.position);
-        else problems.push(`"${row.position}" pozisyonu tanımlı değil`);
-      } else if (!position.isActive) problems.push(`"${row.position}" pozisyonu pasif`);
-    }
     if (row.branch && !branchByName.get(key(row.branch))?.isActive) problems.push(`"${row.branch}" şubesi tanımlı veya aktif değil`);
     if (row.registrationNumber && takenRegistration.has(row.registrationNumber)) problems.push(`sicil no ${row.registrationNumber} zaten kayıtlı`);
     if (row.email && takenEmail.has(row.email)) problems.push(`e-posta ${row.email} başka bir personelde kayıtlı`);
@@ -107,16 +96,11 @@ async function importEmployees(formData: FormData): Promise<Omit<PersonnelImport
   if (issues.length) {
     return { issues: issues.sort((a, b) => a.line - b.line), created: 0, notes, message: `${issues.length} satırda düzeltilmesi gereken sorun var. Dosyadaki hiçbir kayıt eklenmedi; düzeltip tekrar yükleyin.` };
   }
-  if (!canWriteSalary && parsed.rows.some((row) => row.grossSalary !== null)) notes.push("Maaş sütunu, maaş hesaplama yetkiniz olmadığı için aktarılmadı.");
 
   await prisma.$transaction(async (tx) => {
     for (const name of newDepartments.values()) {
       const created = await tx.department.create({ data: { companyId, name }, select: { id: true, name: true, isActive: true } });
       departmentByName.set(key(name), created);
-    }
-    for (const name of newPositions.values()) {
-      const created = await tx.position.create({ data: { companyId, name }, select: { id: true, name: true, isActive: true } });
-      positionByName.set(key(name), created);
     }
     await tx.employee.createMany({
       data: parsed.rows.map((row) => {
@@ -130,27 +114,21 @@ async function importEmployees(formData: FormData): Promise<Omit<PersonnelImport
           departmentId: department.id,
           branch: branch?.name ?? null,
           branchId: branch?.id ?? null,
-          positionId: row.position ? positionByName.get(key(row.position))!.id : null,
-          workforceType: row.workforceType,
           registrationNumber: row.registrationNumber,
           email: row.email,
           managerName: row.managerName,
           hireDate: row.hireDate,
           age: row.age,
           rfidCardId: row.rfidCardId,
-          ...(canWriteSalary ? { grossSalary: row.grossSalary, salaryInsuranceType: row.insuranceType } : {}),
         };
       }),
     });
   }, { timeout: 30_000 });
 
   if (newDepartments.size) notes.push(`Yeni departman oluşturuldu: ${[...newDepartments.values()].join(", ")}`);
-  if (newPositions.size) notes.push(`Yeni pozisyon oluşturuldu: ${[...newPositions.values()].join(", ")}`);
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/settings/departments");
-  revalidatePath("/dashboard/settings/positions");
-  revalidatePath("/dashboard/accounting/budget");
   return { issues: [], created: parsed.rows.length, notes };
 }
 

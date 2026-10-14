@@ -41,3 +41,13 @@ test("app pages access data through the module repository boundary", () => {
 
   assert.deepEqual(violations, []);
 });
+
+test("Muhasebe modülü İK personel ve departman tablolarına erişmez", () => {
+  const roots = [join(process.cwd(), "src", "modules", "accounting"), join(process.cwd(), "src", "app", "dashboard", "accounting")];
+  const forbidden = /\b(prisma|tx|queryRepository)\.(employee|department)\b/;
+  const violations = roots.flatMap(filesUnder)
+    .filter((file) => /\.(ts|tsx)$/.test(file))
+    .filter((file) => forbidden.test(readFileSync(file, "utf8")));
+
+  assert.deepEqual(violations, []);
+});

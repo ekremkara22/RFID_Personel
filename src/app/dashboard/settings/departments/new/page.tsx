@@ -1,28 +1,35 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { BackLink } from "@/app/dashboard/back-link";
 import { createDepartmentAction } from "@/app/dashboard/actions";
-import { queryRepository } from "@/modules/shared/query-repository";
+import { SubmitButton } from "@/app/dashboard/submit-button";
 import { requireSessionUser } from "@/lib/session";
-import { DepartmentFormFields } from "../department-form";
 import styles from "../../../page.module.css";
-import ui from "../../../management.module.css";
 
 export default async function NewDepartmentPage() {
-  const { user, authorization } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN" || !authorization.companyId) redirect("/dashboard");
-  const categories = await queryRepository.departmentCategory.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } });
+  const { user } = await requireSessionUser();
+  if (user.role !== "COMPANY_ADMIN" || !user.companyId) redirect("/dashboard");
 
   return (
-    <div className={`${styles.page} ${ui.managementPage}`}>
-      <header className={ui.pageHeader}>
-        <div className={ui.headerCopy}><p className={ui.kicker}>Sabit tanımlar</p><h1 className={ui.pageTitle}>Departman Ekle</h1><p className={ui.pageDescription}>Yeni departmanı ve bağlı olduğu kategoriyi tanımlayın.</p></div>
-        <div className={ui.headerActions}><Link href="/dashboard/settings/departments" className={ui.secondaryAction}><ArrowLeft size={16} />Departmanlar</Link></div>
-      </header>
-      <form action={createDepartmentAction} className={ui.formShell}>
-        <input type="hidden" name="returnTo" value="/dashboard/settings/departments" />
-        <DepartmentFormFields categories={categories} submitLabel="Departmanı Kaydet" />
-      </form>
+    <div className={styles.page}>
+      <section className={`glass-panel ${styles.heroCard} ${styles.heroWithBack}`}>
+        <div>
+          <p className={styles.eyebrow}>Departman</p>
+          <h1 className={styles.title}>Departman Ekle</h1>
+        </div>
+        <BackLink href="/dashboard/settings/departments" />
+      </section>
+      <section className={`glass-panel ${styles.sectionCard}`}>
+        <form action={createDepartmentAction} className={styles.formGrid}>
+          <input type="hidden" name="returnTo" value="/dashboard/settings/departments" />
+          <label className={styles.field}>
+            <span>Departman Adi</span>
+            <input name="name" required placeholder="Uretim, Depo, Muhasebe..." />
+          </label>
+          <div className={styles.fullWidthActionRow}>
+            <SubmitButton idleLabel="Departman Kaydet" pendingLabel="Kaydediliyor..." className={styles.primaryButton} />
+          </div>
+        </form>
+      </section>
     </div>
   );
 }
