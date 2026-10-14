@@ -51,7 +51,7 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
   parameters: SalaryParameters;
   canExport: boolean;
 }) {
-  const [source, setSource] = useState<Source>(netEntries.length || !grossEntries.length ? "net-to-gross" : "gross-to-net");
+  const [source, setSource] = useState<Source>(netEntries.length && grossEntries.length ? "all" : grossEntries.length ? "gross-to-net" : "net-to-gross");
   const [budgetLimit, setBudgetLimit] = useState(0);
   const [raise, setRaise] = useState(0);
   const [department, setDepartment] = useState("");

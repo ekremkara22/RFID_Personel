@@ -19,8 +19,12 @@ export function SalaryParametersForm({ initial, canManage }: { initial: SalaryPa
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const set = (patch: Partial<SalaryParameters>) => { setParameters((current) => ({ ...current, ...patch })); setMessage(null); };
-  const numberInput = (value: number, onChange: (value: number) => void, label: string, step = "0.01") => (
-    <input aria-label={label} type="number" min="0" step={step} value={Number.isFinite(value) ? value : ""} disabled={!canManage} onChange={(event) => onChange(event.target.valueAsNumber)} />
+  // Input and unit share one flex box so narrow cards shrink the input instead of overlapping cells.
+  const numberInput = (value: number, onChange: (value: number) => void, label: string, step = "0.01", unit?: string) => (
+    <span className={styles.unitField}>
+      <input aria-label={label} type="number" min="0" step={step} value={Number.isFinite(value) ? value : ""} disabled={!canManage} onChange={(event) => onChange(event.target.valueAsNumber)} />
+      {unit ? <em>{unit}</em> : null}
+    </span>
   );
 
   const save = () => startTransition(async () => {
@@ -64,9 +68,9 @@ export function SalaryParametersForm({ initial, canManage }: { initial: SalaryPa
         <section className={styles.paramCard}>
           <h3>Katsayılar</h3>
           <table className={styles.paramTable}><tbody>
-            <tr><td>SGK primi işçi payı</td><td>{numberInput(percent(parameters.employeeSocialSecurityRate), (value) => set({ employeeSocialSecurityRate: value / 100 }), "SGK işçi payı yüzde", "0.001")} %</td></tr>
-            <tr><td>İşsizlik sigortası işçi payı</td><td>{numberInput(percent(parameters.employeeUnemploymentRate), (value) => set({ employeeUnemploymentRate: value / 100 }), "İşsizlik işçi payı yüzde", "0.001")} %</td></tr>
-            <tr><td>Damga vergisi</td><td>{numberInput(percent(parameters.stampTaxRate), (value) => set({ stampTaxRate: value / 100 }), "Damga vergisi yüzde", "0.001")} %</td></tr>
+            <tr><td>SGK primi işçi payı</td><td>{numberInput(percent(parameters.employeeSocialSecurityRate), (value) => set({ employeeSocialSecurityRate: value / 100 }), "SGK işçi payı yüzde", "0.001", "%")}</td></tr>
+            <tr><td>İşsizlik sigortası işçi payı</td><td>{numberInput(percent(parameters.employeeUnemploymentRate), (value) => set({ employeeUnemploymentRate: value / 100 }), "İşsizlik işçi payı yüzde", "0.001", "%")}</td></tr>
+            <tr><td>Damga vergisi</td><td>{numberInput(percent(parameters.stampTaxRate), (value) => set({ stampTaxRate: value / 100 }), "Damga vergisi yüzde", "0.001", "%")}</td></tr>
           </tbody></table>
         </section>
 
@@ -77,8 +81,8 @@ export function SalaryParametersForm({ initial, canManage }: { initial: SalaryPa
             <tbody>{employeeTypes.map((type) => (
               <tr key={type}>
                 <td>{SALARY_EMPLOYEE_TYPE_LABELS[type]}</td>
-                <td>{numberInput(percent(parameters.employerSocialSecurityRates[type]), (value) => set({ employerSocialSecurityRates: { ...parameters.employerSocialSecurityRates, [type]: value / 100 } }), `${SALARY_EMPLOYEE_TYPE_LABELS[type]} işveren SGK`, "0.001")} %</td>
-                <td>{numberInput(percent(parameters.employerUnemploymentRates[type]), (value) => set({ employerUnemploymentRates: { ...parameters.employerUnemploymentRates, [type]: value / 100 } }), `${SALARY_EMPLOYEE_TYPE_LABELS[type]} işveren işsizlik`, "0.001")} %</td>
+                <td>{numberInput(percent(parameters.employerSocialSecurityRates[type]), (value) => set({ employerSocialSecurityRates: { ...parameters.employerSocialSecurityRates, [type]: value / 100 } }), `${SALARY_EMPLOYEE_TYPE_LABELS[type]} işveren SGK`, "0.001", "%")}</td>
+                <td>{numberInput(percent(parameters.employerUnemploymentRates[type]), (value) => set({ employerUnemploymentRates: { ...parameters.employerUnemploymentRates, [type]: value / 100 } }), `${SALARY_EMPLOYEE_TYPE_LABELS[type]} işveren işsizlik`, "0.001", "%")}</td>
               </tr>
             ))}</tbody>
           </table>
@@ -103,7 +107,7 @@ export function SalaryParametersForm({ initial, canManage }: { initial: SalaryPa
               <tr key={index}>
                 <td className={styles.amountCell}>{amount.format(bracket.lower)}</td>
                 <td>{numberInput(bracket.upper, (value) => updateBracket(index, { upper: value }), `${index + 1}. dilim üst sınır`)}</td>
-                <td>{numberInput(percent(bracket.rate), (value) => updateBracket(index, { rate: value / 100 }), `${index + 1}. dilim oran`)} %</td>
+                <td>{numberInput(percent(bracket.rate), (value) => updateBracket(index, { rate: value / 100 }), `${index + 1}. dilim oran`, "0.01", "%")}</td>
                 <td className={styles.amountCell}>{amount.format(bracket.before)}</td>
               </tr>
             ))}</tbody>

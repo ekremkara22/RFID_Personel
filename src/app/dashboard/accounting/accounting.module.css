@@ -161,14 +161,15 @@
 /* Muhasebe → Sabit Tanımlar cards. */
 .paramBar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; padding: 14px 16px; }
 .paramBar .sheetHint { margin: 0; }
-.paramGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.paramGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 16px; }
 .paramCard { min-width: 0; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; padding: 16px; }
 .paramCardWide { grid-column: 1 / -1; }
 .paramCard h3 { margin: 0 0 12px; color: #1f6f4a; font-size: 15px; font-weight: 700; }
-.paramTable { width: 100%; border-collapse: collapse; }
-.paramTable th, .paramTable td { border-bottom: 1px solid #eaecf0; padding: 6px 8px; color: #344054; font-size: 13px; text-align: left; white-space: nowrap; }
+.paramTable { width: 100%; border-collapse: collapse; table-layout: auto; }
+.paramTable th, .paramTable td { border-bottom: 1px solid #eaecf0; padding: 6px 8px; color: #344054; font-size: 13px; text-align: left; vertical-align: middle; }
+.paramTable td:first-child { white-space: normal; }
 .paramTable th { background: #e8f3ed; color: #1d2733; font-size: 12px; font-weight: 700; }
-.paramTable input { width: 130px; min-height: 36px; border: 1px solid #d0d5dd; border-radius: 7px; background: #fff; color: #101828; padding: 0 8px; font: inherit; font-size: 13px; text-align: right; }
+.paramTable input { width: 100%; min-width: 0; min-height: 36px; border: 1px solid #d0d5dd; border-radius: 7px; background: #fff; color: #101828; padding: 0 8px; font: inherit; font-size: 13px; text-align: right; }
 .paramTable input[type="date"] { text-align: left; }
 .paramTable input:focus-visible { border-color: #1570ef; outline: 3px solid rgba(21, 112, 239, 0.14); }
 .paramTable input:disabled { background: #f9fafb; color: #475467; }
@@ -190,6 +191,12 @@
 .chipLink { display: inline-block; margin-top: 10px; color: #175cd3; font-size: 12px; font-weight: 600; }
 @media (max-width: 560px) {
   .paramGrid { grid-template-columns: minmax(0, 1fr); }
-  .paramTable input { width: 110px; }
+
   .paramCard { overflow-x: auto; }
 }
+
+/* Number + unit pair: the input shrinks with the card so neighbouring cells never overlap. */
+.unitField { display: flex; align-items: center; gap: 6px; min-width: 76px; max-width: 150px; }
+.unitField input { flex: 1 1 auto; }
+.unitField em { flex: 0 0 auto; color: #667085; font-size: 12px; font-style: normal; font-weight: 600; }
+.paramTable input[type="date"] { max-width: 170px; }
