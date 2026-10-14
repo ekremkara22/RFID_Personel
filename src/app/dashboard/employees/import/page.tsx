@@ -43,8 +43,11 @@ export default async function EmployeeImportPage() {
       <section className={ui.surface}>
         <div className={ui.sectionHeading}><div><h2>1. Şablonu indirin</h2><p>Başlık satırını değiştirmeden doldurun. Örnek satırları silmeyi unutmayın.</p></div></div>
         <div className={importStyles.templateActions}>
-          <a href="/dashboard/employees/import/template?format=xlsx" className={ui.secondaryAction}><FileSpreadsheet size={16} />Excel şablonu (.xlsx)</a>
-          <a href="/dashboard/employees/import/template?format=csv" className={ui.secondaryAction}><FileText size={16} />CSV şablonu (.csv)</a>
+          {/* File downloads from a route handler: client-side <Link> navigation would not save the file. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/dashboard/employees/import/template?format=xlsx" download className={ui.secondaryAction}><FileSpreadsheet size={16} />Excel şablonu (.xlsx)</a>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/dashboard/employees/import/template?format=csv" download className={ui.secondaryAction}><FileText size={16} />CSV şablonu (.csv)</a>
         </div>
         <div className={ui.tableViewport}>
           <table className={`${ui.dataTable} ${importStyles.columnTable}`}>
