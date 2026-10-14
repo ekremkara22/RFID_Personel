@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, UserRound } from "lucide-react";
+import { ArrowLeft, Upload, UserRound } from "lucide-react";
 import { createEmployeeAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { assertPermission } from "@/lib/authorization";
+import { assertPermission, can } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
+import { EmployeeRoleFields } from "../employee-role-fields";
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
 
@@ -16,18 +17,22 @@ export default async function NewEmployeePage() {
   assertPermission(authorization, PERMISSIONS.PERSONNEL_CREATE);
   if (!authorization.companyId) redirect("/dashboard");
 
-  const [companies, departments, branches, managers] = await Promise.all([
+  const [companies, departments, branches, managers, positions] = await Promise.all([
     queryRepository.company.findMany({ where: { id: authorization.companyId, isActive: true }, orderBy: { name: "asc" } }),
     queryRepository.department.findMany({ where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.departmentIds.length ? { id: { in: authorization.departmentIds } } : {}), isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
     queryRepository.branch.findMany({ where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}), isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
     queryRepository.manager.findMany({ where: { companyId: authorization.companyId, isActive: true }, include: { company: true }, orderBy: { name: "asc" } }),
+    queryRepository.position.findMany({ where: { companyId: authorization.companyId }, orderBy: { name: "asc" } }),
   ]);
+  const salary = can(authorization, PERMISSIONS.ACCOUNTING_SALARY_VIEW)
+    ? { canEdit: can(authorization, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE), grossSalary: null, insuranceType: "INCENTIVE" }
+    : null;
 
   return (
     <div className={`${styles.page} ${ui.managementPage}`}>
       <header className={ui.pageHeader}>
         <div className={ui.headerCopy}><p className={ui.kicker}>Personel yönetimi</p><h1 className={ui.pageTitle}>Yeni Personel</h1><p className={ui.pageDescription}>Kimlik, organizasyon ve RFID bilgilerini düzenli bölümler halinde tamamlayın.</p></div>
-        <div className={ui.headerActions}><Link href="/dashboard/employees" className={ui.secondaryAction}><ArrowLeft size={16} />Personel listesi</Link></div>
+        <div className={ui.headerActions}><Link href="/dashboard/employees/import" className={ui.secondaryAction}><Upload size={16} />CSV / Excel ile toplu ekle</Link><Link href="/dashboard/employees" className={ui.secondaryAction}><ArrowLeft size={16} />Personel listesi</Link></div>
       </header>
 
       {departments.length === 0 ? <section className={ui.surface}><div className={ui.sectionHeading}><div><h2>Önce departman tanımlayın</h2><p>Personel kaydı için en az bir aktif departman gerekiyor.</p></div></div><Link href="/dashboard/settings/departments" className={ui.primaryAction}>Departman Ekle</Link></section> : (
@@ -59,6 +64,8 @@ export default async function NewEmployeePage() {
               <label className={ui.formField}><span>RFID kart numarası</span><input name="rfidCardId" placeholder="Kart okutulduğunda gelen UID" /></label>
             </div>
           </section>
+
+          <EmployeeRoleFields positions={positions} salary={salary} />
 
           <section className={ui.formSection}>
             <div className={ui.formSectionHeader}><h2>İstihdam tarihleri</h2><p>İşe giriş ve varsa ayrılış tarihi</p></div>

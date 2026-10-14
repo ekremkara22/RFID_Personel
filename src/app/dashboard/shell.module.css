@@ -383,3 +383,26 @@
 .licenseBannerLink:focus-visible {
   background: rgba(255, 255, 255, 0.7);
 }
+
+/* Printing (e.g. "PDF olarak kaydet") keeps only the page content, without navigation. */
+@media print {
+  .shell {
+    display: block;
+    background: #ffffff;
+  }
+
+  .sidebar,
+  .overlay,
+  .mobileHeader,
+  .licenseBanner {
+    display: none !important;
+  }
+
+  .contentArea {
+    grid-column: auto;
+  }
+
+  .content {
+    padding: 0;
+  }
+}

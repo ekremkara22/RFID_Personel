@@ -56,6 +56,7 @@ export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
 
   { href: "/dashboard/accounting", label: "Muhasebe Özeti", icon: "dashboard", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
   { href: "/dashboard/accounting/salary-calculation", label: "Maaş Hesaplama", icon: "calculator", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
+  { href: "/dashboard/accounting/budget", label: "Bütçe Raporu", icon: "file-chart", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
 
   { href: "/dashboard/users", label: "Kullanıcı Tanımları", icon: "users", group: "definitions", audience: "platform" },
   { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: "tags", group: "definitions", audience: "platform" },
@@ -65,6 +66,8 @@ export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/access/teams", label: "Ekip Tanımları", icon: "users", group: "definitions", audience: "company", permission: PERMISSIONS.ACCESS_MANAGE },
   { href: "/dashboard/companies", label: "Firma Tanım", icon: "building", group: "definitions", audience: "company", permission: PERMISSIONS.COMPANY_VIEW },
   { href: "/dashboard/settings/departments", label: "Departmanlar", icon: "tags", group: "definitions", audience: "company", permission: PERMISSIONS.SETTINGS_MANAGE },
+  { href: "/dashboard/settings/department-categories", label: "Departman Kategorileri", icon: "tags", group: "definitions", audience: "company", permission: PERMISSIONS.SETTINGS_MANAGE },
+  { href: "/dashboard/settings/positions", label: "Pozisyonlar", icon: "users", group: "definitions", audience: "company", permission: PERMISSIONS.SETTINGS_MANAGE },
   { href: "/dashboard/settings/branches", label: "Şubeler", icon: "building", group: "definitions", audience: "company", permission: PERMISSIONS.SETTINGS_MANAGE },
   { href: "/dashboard/settings/managers", label: "Yöneticiler", icon: "users", group: "definitions", audience: "company", permission: PERMISSIONS.SETTINGS_MANAGE },
 ] as const;

@@ -67,12 +67,14 @@
 .inputTable input, .inputTable select, .settingsTable input { width: 100%; min-height: 40px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; color: #101828; padding: 8px 10px; font: inherit; font-size: 13px; }
 .inputTable input:focus, .inputTable select:focus, .settingsTable input:focus { border-color: #1570ef; outline: 3px solid rgba(21, 112, 239, 0.14); }
 
-.calculatorActions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.calculatorActions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
 .calculatorActions button:disabled, .settingsTable input:disabled { cursor: not-allowed; opacity: 0.58; }
-.feedback { margin: 12px 0 0; border: 1px solid #abefc6; border-radius: 8px; background: #ecfdf3; padding: 10px 12px; color: #067647; font-size: 13px; }
+.feedback { margin: 0; border: 1px solid #abefc6; border-radius: 8px; background: #ecfdf3; padding: 10px 12px; color: #067647; font-size: 13px; }
 .permissionNote { margin: 12px 0 0; color: #b54708; font-size: 12px; }
 
 .resultTable { min-width: 2240px; }
+.resultTable td:first-child, .resultTable th:first-child { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 #eaecf0; }
+.resultTable thead th:first-child { background: #f9fafb; }
 .resultTable th, .resultTable td { min-width: 122px !important; white-space: nowrap; }
 .resultTable th:first-child, .resultTable td:first-child { min-width: 160px !important; }
 
@@ -101,3 +103,32 @@
   .compatibilityNote { flex-direction: column; gap: 4px; }
 }
 
+
+.feedbackError { margin: 0; border: 1px solid #fecdca; border-radius: 8px; background: #fef3f2; padding: 10px 12px; color: #b42318; font-size: 13px; }
+
+.summaryGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.summaryCard { min-width: 0; display: flex; align-items: flex-start; gap: 12px; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; padding: 16px; }
+.summaryCard p { margin: 0; color: #667085; font-size: 12px; font-weight: 600; }
+.summaryCard strong { display: block; margin-top: 4px; color: #101828; font-size: 20px; font-weight: 720; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.summaryCard small { display: block; margin-top: 2px; color: #667085; font-size: 12px; }
+.summaryIcon { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border-radius: 9px; background: #eff8ff; color: #1570ef; }
+
+.amountCell { text-align: right !important; font-variant-numeric: tabular-nums; }
+.totalRow td { border-top: 2px solid #d0d5dd; background: #f9fafb !important; color: #101828; font-weight: 700; }
+.netCell { color: #067647; font-weight: 700; }
+.breakdownTable { min-width: 1040px; }
+.breakdownTable th, .breakdownTable td { white-space: nowrap; }
+
+.detailPicker { display: grid; gap: 4px; min-width: 220px; }
+.detailPicker span { color: #475467; font-size: 12px; font-weight: 650; }
+.detailPicker select { min-height: 40px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; padding: 0 10px; font: inherit; font-size: 13px; }
+.detailPicker select:focus-visible { border-color: #1570ef; outline: 3px solid rgba(21, 112, 239, 0.14); }
+
+@media (max-width: 1100px) {
+  .summaryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .summaryGrid { grid-template-columns: minmax(0, 1fr); }
+  .detailPicker { min-width: 0; width: 100%; }
+}

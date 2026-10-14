@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChartColumn } from "lucide-react";
 import { can } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
@@ -15,8 +17,9 @@ export default async function SalaryCalculationLayout({ children }: { children: 
         <div className={ui.headerCopy}>
           <p className={ui.kicker}>Muhasebe · Maaş Hesaplama</p>
           <h1 className={ui.pageTitle}>Maaş Hesaplama</h1>
-          <p className={ui.pageDescription}>Excel taslağındaki 2026 vergi, SGK, istisna ve yıllık kümülatif matrah mantığıyla hesaplama yapın.</p>
+          <p className={ui.pageDescription}>2026 vergi dilimleri, SGK oranları, asgari ücret istisnası ve yıllık kümülatif matrah mantığıyla brütten nete ve netten brüte hesaplama yapın.</p>
         </div>
+        <div className={ui.headerActions}><Link href="/dashboard/accounting/budget" className={ui.secondaryAction}><ChartColumn size={16} />Bütçe raporu</Link></div>
       </header>
       <SalaryNavigation />
       {children}

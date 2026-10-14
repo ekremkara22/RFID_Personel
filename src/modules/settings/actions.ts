@@ -131,6 +131,15 @@ export async function deleteCompanyCategoryAction(formData: FormData) {
 
 
 
+async function readDepartmentCategoryId(formData: FormData, companyId: number) {
+  const value = getString(formData, "categoryId");
+  if (!value) return null;
+  const categoryId = getId(formData, "categoryId");
+  const category = await prisma.departmentCategory.findFirst({ where: { id: categoryId, companyId }, select: { id: true } });
+  if (!category) throw new Error("Secilen departman kategorisi bu firmaya ait degil.");
+  return category.id;
+}
+
 export async function createDepartmentAction(formData: FormData) {
   const { authorization } = await requireSessionUser();
   assertPermission(authorization, PERMISSIONS.SETTINGS_MANAGE);
@@ -142,10 +151,13 @@ export async function createDepartmentAction(formData: FormData) {
     throw new Error("Departman adi zorunludur.");
   }
 
+  const categoryId = await readDepartmentCategoryId(formData, authorization.companyId);
+
   await prisma.department.create({
     data: {
       name,
       companyId: authorization.companyId,
+      categoryId,
     },
   });
 
@@ -168,12 +180,14 @@ export async function updateDepartmentAction(formData: FormData) {
     throw new Error("Departman bilgileri eksik.");
   }
 
+  const categoryId = await readDepartmentCategoryId(formData, authorization.companyId);
+
   await prisma.department.updateMany({
     where: {
       id: departmentId,
       companyId: authorization.companyId,
     },
-    data: { name, isActive },
+    data: { name, isActive, categoryId },
   });
 
   revalidatePath("/dashboard");

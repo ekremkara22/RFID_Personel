@@ -114,3 +114,18 @@ button {
   background: #f1f5f9;
   border-color: #94a3b8;
 }
+
+/* Report pages print as A4 landscape so "PDF olarak kaydet" matches the on-screen dashboard. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

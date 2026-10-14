@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calculator, Settings2 } from "lucide-react";
+import { Calculator, ChartColumn, Settings2 } from "lucide-react";
 import { can } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
@@ -32,6 +32,14 @@ export default async function AccountingPage() {
               <p>Brütten nete, netten brüte ve yıllık işveren maliyeti hesaplarını Excel çalışma mantığıyla yürütün.</p>
             </div>
             <span className={styles.cardIcon}><Calculator size={20} /></span>
+          </Link>
+          <Link href="/dashboard/accounting/budget" className={styles.moduleCard}>
+            <div>
+              <p className={styles.cardEyebrow}>Yönetim raporu</p>
+              <h2>Bütçe Raporu</h2>
+              <p>Personel maaşlarından yıllık işveren maliyetini, departman/kategori dağılımını ve zam senaryolarını görün; PDF olarak paylaşın.</p>
+            </div>
+            <span className={styles.cardIcon}><ChartColumn size={20} /></span>
           </Link>
           <Link href="/dashboard/accounting/salary-calculation/settings" className={styles.moduleCard}>
             <div>

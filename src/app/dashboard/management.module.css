@@ -759,3 +759,31 @@
 @media (max-width: 720px) {
   .licenseRow { grid-template-columns: 1fr; gap: 8px; }
 }
+
+/* One-field definition lists (Pozisyonlar, Departman Kategorileri). */
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.emptyState { margin: 0; border: 1px dashed var(--ui-border, #e4e7ec); border-radius: 10px; padding: 28px 16px; color: var(--ui-muted, #667085); font-size: 13px; text-align: center; }
+.definitionCreate { display: grid; grid-template-columns: minmax(0, 420px) auto; align-items: end; gap: 12px; }
+.definitionList { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.definitionRow { display: flex; align-items: flex-start; gap: 8px; border: 1px solid var(--ui-border, #e4e7ec); border-radius: 10px; padding: 10px 12px; background: #fff; }
+.definitionEdit { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 12px; }
+.definitionDelete { flex: 0 0 auto; }
+.definitionDelete > div,
+.definitionEdit > div[role] { grid-column: 1 / -1; }
+.definitionMeta { color: var(--ui-muted, #667085); font-size: 12px; white-space: nowrap; }
+.dangerAction:disabled,
+.rowAction:disabled,
+.primaryAction:disabled,
+.secondaryAction:disabled { opacity: 0.55; cursor: not-allowed; }
+@media (max-width: 720px) {
+  .definitionCreate { grid-template-columns: 1fr; }
+  .definitionRow { flex-direction: column; align-items: stretch; }
+  .definitionEdit { grid-template-columns: 1fr auto; }
+  .definitionEdit .formField { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .sectionHeading { flex-wrap: wrap; align-items: flex-start; }
+  .sectionHeading > .toolbarActions { width: 100%; justify-content: stretch; }
+  .sectionHeading > .toolbarActions > * { flex: 1 1 auto; }
+}

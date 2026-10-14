@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, CirclePlus, Filter, Search } from "lucide-react";
+import { Building2, CirclePlus, Filter, Search, Upload } from "lucide-react";
 import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
+import { WORKFORCE_TYPE_LABELS } from "@/lib/personnel-profile";
 import { EmployeesTable } from "./employees-table";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
@@ -46,7 +47,7 @@ export default async function EmployeesPage(props: {
           }
         : {}),
     },
-    include: { company: true },
+    include: { company: true, position: true, departmentRef: { include: { category: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -58,7 +59,7 @@ export default async function EmployeesPage(props: {
           <h1 className={ui.pageTitle}>Personel Kayıtları</h1>
           <p className={ui.pageDescription}>Çalışanların kimlik, organizasyon ve RFID bilgilerini sade bir listede yönetin.</p>
         </div>
-        {can(authorization, PERMISSIONS.PERSONNEL_CREATE) ? <div className={ui.headerActions}><Link href="/dashboard/employees/new" className={ui.primaryAction}><CirclePlus size={16} />Yeni Personel</Link></div> : null}
+        {can(authorization, PERMISSIONS.PERSONNEL_CREATE) ? <div className={ui.headerActions}><Link href="/dashboard/employees/import" className={ui.secondaryAction}><Upload size={16} />Toplu ekle</Link><Link href="/dashboard/employees/new" className={ui.primaryAction}><CirclePlus size={16} />Yeni Personel</Link></div> : null}
       </header>
 
       <section className={ui.surface} aria-label="Personel filtreleri">
@@ -81,6 +82,8 @@ export default async function EmployeesPage(props: {
             age: employee.age,
             companyName: employee.company.name,
             department: employee.department,
+            position: employee.position?.name ?? "Pozisyon yok",
+            roleDetail: [employee.workforceType ? WORKFORCE_TYPE_LABELS[employee.workforceType] : null, employee.departmentRef?.category?.name ?? null].filter(Boolean).join(" · ") || "-",
             branch: employee.branch ?? "-",
             hireDate: employee.hireDate ? employee.hireDate.toLocaleDateString("tr-TR") : "-",
             terminationDate: employee.terminationDate ? employee.terminationDate.toLocaleDateString("tr-TR") : "-",
