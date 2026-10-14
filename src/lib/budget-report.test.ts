@@ -24,7 +24,9 @@ test("bütçe toplamları maaş hesaplama motoruyla aynı sonucu verir", () => {
 
 test("bütçe departman, kategori ve yaka tipine göre gruplanır", () => {
   const report = buildBudgetReport(employees, DEFAULT_2026_SALARY_PARAMETERS);
-  assert.deepEqual(report.byDepartment.map((item) => [item.label, item.headcount]), [["Üretim", 2], ["Muhasebe", 1]]);
+  // Sorted by employer cost: one 90k no-incentive salary costs more than two 40k incentive salaries.
+  assert.deepEqual(report.byDepartment.map((item) => [item.label, item.headcount]), [["Muhasebe", 1], ["Üretim", 2]]);
+  assert.ok(report.byDepartment[0].annualEmployerCost > report.byDepartment[1].annualEmployerCost);
   assert.deepEqual(report.byWorkforce.map((item) => item.label).sort(), ["Beyaz yaka", "Mavi yaka"]);
   assert.ok(Math.abs(report.byCategory.reduce((total, item) => total + item.share, 0) - 1) < 1e-9);
 });
