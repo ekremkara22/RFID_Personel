@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { ActionError, type ActionResult } from "@/lib/action-error";
 import { assertPermission } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { parseImportDate, parseMoney, SALARY_INSURANCE_TYPES, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
+import { parseImportDate, parseMoney, SALARY_BASES, SALARY_INSURANCE_TYPES, type SalaryBasisCode, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
 import { prisma } from "@/lib/prisma";
 import { runFormAction } from "@/lib/run-form-action";
 import { validateSalaryParameters } from "@/lib/salary-calculation";
@@ -174,8 +174,10 @@ async function readPersonnel(formData: FormData, companyId: number) {
   if (!firstName || !lastName) throw new ActionError("Ad ve soyad zorunludur.");
   const insuranceType = getString(formData, "insuranceType") as SalaryInsuranceTypeCode;
   if (!SALARY_INSURANCE_TYPES.includes(insuranceType)) throw new ActionError("Çalışan tipini seçin.");
-  const grossSalary = parseMoney(getString(formData, "grossSalary"));
-  if (grossSalary === undefined) throw new ActionError("Brüt maaş sıfırdan büyük geçerli bir tutar olmalıdır.");
+  const salaryBasis = getString(formData, "salaryBasis") as SalaryBasisCode;
+  if (!SALARY_BASES.includes(salaryBasis)) throw new ActionError("Maaş tipini (brüt / net) seçin.");
+  const salaryAmount = parseMoney(getString(formData, "salaryAmount"));
+  if (salaryAmount === undefined) throw new ActionError("Maaş sıfırdan büyük geçerli bir tutar olmalıdır.");
   const hireDate = parseImportDate(getString(formData, "hireDate"));
   if (hireDate === undefined) throw new ActionError("İşe giriş tarihi geçersiz.");
   return {
@@ -186,7 +188,8 @@ async function readPersonnel(formData: FormData, companyId: number) {
     positionId: await ownedDefinitionId("position", companyId, formData, "positionId"),
     collarTypeId: await ownedDefinitionId("collarType", companyId, formData, "collarTypeId"),
     insuranceType,
-    grossSalary,
+    salaryBasis,
+    salaryAmount,
     hireDate,
   };
 }
@@ -234,10 +237,11 @@ function splitName(fullName: string) {
 }
 
 /**
- * Adds personnel from the CSV template (Ad Soyad; Departman; Pozisyon; Yaka; Çalışan Tipi; Brüt Maaş).
+ * Adds personnel from the CSV template (Ad Soyad; Departman; Pozisyon; Yaka; Çalışan Tipi; Maaş Tipi; Maaş).
+ * Rows without a salary type use `defaultBasis` (gross unless the amount column said net).
  * Missing department, position and collar names are created in Muhasebe's own definitions.
  */
-export async function importAccountingPersonnelAction(rows: SalarySheetCsvRow[]): Promise<ActionResult> {
+export async function importAccountingPersonnelAction(rows: SalarySheetCsvRow[], defaultBasis: SalaryBasisCode = "GROSS"): Promise<ActionResult> {
   return runFormAction(async () => {
     const companyId = await companyFor(PERMISSIONS.ACCOUNTING_SALARY_CALCULATE);
     if (!Array.isArray(rows) || !rows.length) throw new ActionError("Dosyada personel satırı bulunamadı.");
@@ -249,6 +253,7 @@ export async function importAccountingPersonnelAction(rows: SalarySheetCsvRow[])
       collarType: text(row?.collarType, 100),
       insuranceType: SALARY_INSURANCE_TYPES.includes(row?.insuranceType) ? row.insuranceType : "INCENTIVE" as SalaryInsuranceTypeCode,
       amount: Number(row?.amount),
+      basis: (SALARY_BASES.includes(row?.basis as SalaryBasisCode) ? row.basis! : SALARY_BASES.includes(defaultBasis) ? defaultBasis : "GROSS") as SalaryBasisCode,
     })).filter((row) => row.name && Number.isFinite(row.amount) && row.amount > 0);
     if (!clean.length) throw new ActionError("Dosyada adı ve maaşı olan personel satırı bulunamadı.");
 
@@ -272,7 +277,8 @@ export async function importAccountingPersonnelAction(rows: SalarySheetCsvRow[])
           positionId: idOf(positions, row.position),
           collarTypeId: idOf(collars, row.collarType),
           insuranceType: row.insuranceType,
-          grossSalary: Math.round(row.amount * 100) / 100,
+          salaryBasis: row.basis,
+          salaryAmount: Math.round(row.amount * 100) / 100,
         })),
       });
     }, { timeout: 30_000 });

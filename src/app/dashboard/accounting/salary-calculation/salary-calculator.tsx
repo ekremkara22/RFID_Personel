@@ -270,7 +270,7 @@ export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, p
         <div className={styles.sheetBar}>
           <div className={styles.sheetActions}>
             {editable ? <button type="button" className={ui.secondaryAction} onClick={addRow}><Plus size={16} />Personel ekle</button> : null}
-            {editable && mode === "gross-to-net" && employees.length ? <button type="button" className={ui.secondaryAction} onClick={loadEmployees}><UserPlus size={16} />Personel tanımlarından aktar</button> : null}
+            {editable ? <button type="button" className={ui.secondaryAction} onClick={loadEmployees} disabled={!employees.length} title={employees.length ? `${employees.length} personel · ${mode === "gross-to-net" ? "brüt" : "net"} maaş tanımlı` : `Personel Tanımları ekranında maaş tipi ${mode === "gross-to-net" ? "Brüt" : "Net"} olan personel yok`}><UserPlus size={16} />Personel tanımlarından aktar{employees.length ? ` (${employees.length})` : ""}</button> : null}
             {editable ? <button type="button" className={ui.secondaryAction} onClick={() => fileInput.current?.click()}><FileUp size={16} />CSV&apos;den personel yükle</button> : null}
             <input ref={fileInput} type="file" accept=".csv,.txt,text/csv" hidden onChange={(event) => { void importCsv(event.target.files?.[0]); event.target.value = ""; }} />
             <button type="button" className={ui.secondaryAction} onClick={() => download("Personel-Sablon.csv", salarySheetCsvTemplate(amountLabel))}><FileDown size={16} />CSV şablonu indir</button>

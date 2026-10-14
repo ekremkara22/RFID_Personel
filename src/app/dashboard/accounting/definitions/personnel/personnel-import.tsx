@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FileDown, FileUp } from "lucide-react";
 import { decodeCsv } from "@/lib/personnel-import";
-import { parseSalarySheetCsv, salarySheetCsvTemplate } from "@/lib/salary-sheet-csv";
+import { parseSalarySheetCsv, personnelCsvTemplate } from "@/lib/salary-sheet-csv";
 import { importAccountingPersonnelAction } from "@/modules/accounting/actions";
 import ui from "../../../management.module.css";
 import styles from "../../accounting.module.css";
@@ -17,7 +17,7 @@ export function AccountingPersonnelImport() {
   const [pending, startTransition] = useTransition();
 
   const downloadTemplate = () => {
-    const url = URL.createObjectURL(new Blob(["﻿", salarySheetCsvTemplate("Brüt Maaş")], { type: "text/csv;charset=utf-8" }));
+    const url = URL.createObjectURL(new Blob(["﻿", personnelCsvTemplate()], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
     link.download = "Muhasebe-Personel-Sablon.csv";
@@ -29,11 +29,11 @@ export function AccountingPersonnelImport() {
     if (!file) return;
     const { rows, skipped } = parseSalarySheetCsv(decodeCsv(new Uint8Array(await file.arrayBuffer())));
     if (!rows.length) {
-      setMessage({ ok: false, text: "Dosyada adı ve brüt maaşı olan personel satırı bulunamadı. Şablonu indirip kullanabilirsiniz." });
+      setMessage({ ok: false, text: "Dosyada adı ve maaşı olan personel satırı bulunamadı. Şablonu indirip kullanabilirsiniz." });
       return;
     }
     startTransition(async () => {
-      const result = await importAccountingPersonnelAction(rows);
+      const result = await importAccountingPersonnelAction(rows, "GROSS");
       setMessage({ ok: result.ok, text: result.ok ? `${rows.length} personel eklendi.${skipped.length ? ` Maaşı okunamayan satırlar atlandı: ${skipped.join(", ")}.` : ""} Eksik departman, pozisyon ve yaka tipleri Sabit Tanımlar'a eklendi.` : result.message });
       if (result.ok) router.refresh();
     });

@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
+import type { SalaryBasisCode, SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
 import { prisma } from "@/lib/prisma";
 import { cloneSalaryParameters, validateSalaryParameters, type SalaryParameters } from "@/lib/salary-calculation";
 
@@ -107,7 +107,8 @@ export type AccountingPersonnelRecord = {
   collarTypeId: number | null;
   collarType: string | null;
   insuranceType: SalaryInsuranceTypeCode;
-  grossSalary: number | null;
+  salaryBasis: SalaryBasisCode;
+  salaryAmount: number | null;
   hireDate: string | null;
   isActive: boolean;
 };
@@ -126,7 +127,8 @@ function toRecord(row: Awaited<ReturnType<typeof findPersonnel>>[number]): Accou
     collarType: row.collarType?.name ?? null,
     insuranceType: row.insuranceType,
     // Decimal is not serialisable to client components; amounts stay well inside double precision.
-    grossSalary: row.grossSalary === null ? null : Number(row.grossSalary),
+    salaryBasis: row.salaryBasis,
+    salaryAmount: row.salaryAmount === null ? null : Number(row.salaryAmount),
     hireDate: row.hireDate ? row.hireDate.toISOString().slice(0, 10) : null,
     isActive: row.isActive,
   };
@@ -169,17 +171,18 @@ export async function getPersonnelFormOptions(companyId: number) {
   return { departments, positions, collarTypes };
 }
 
-/** Salaried, active Muhasebe personnel ready to drop into the Brütten Nete sheet. */
-export async function getSheetPersonnelOptions(companyId: number | null): Promise<WorksheetRowData[]> {
+/** Active Muhasebe personnel whose salary basis matches the sheet: gross for Brütten Nete, net for Netten Brüte. */
+export async function getSheetPersonnelOptions(companyId: number | null, mode: WorksheetModeKey): Promise<WorksheetRowData[]> {
   if (!companyId) return [];
+  const basis: SalaryBasisCode = mode === "gross-to-net" ? "GROSS" : "NET";
   const rows = await findPersonnel(companyId, { isActive: true });
-  return rows.filter((row) => row.grossSalary !== null).map((row) => ({
+  return rows.filter((row) => row.salaryAmount !== null && row.salaryBasis === basis).map((row) => ({
     personnelId: row.id,
     name: `${row.firstName} ${row.lastName}`.trim(),
     department: row.department?.name ?? "",
     position: row.position?.name ?? "",
     collarType: row.collarType?.name ?? "",
     insuranceType: row.insuranceType,
-    amount: Number(row.grossSalary),
+    amount: Number(row.salaryAmount),
   }));
 }

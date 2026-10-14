@@ -1,4 +1,4 @@
-import { parseMoney, parseSalaryInsuranceType, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
+import { parseMoney, parseSalaryBasis, parseSalaryInsuranceType, type SalaryBasisCode, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
 
 export type SalarySheetCsvRow = {
   name: string;
@@ -7,6 +7,8 @@ export type SalarySheetCsvRow = {
   collarType: string;
   insuranceType: SalaryInsuranceTypeCode;
   amount: number;
+  /** From a "Maaş Tipi" column, else from the amount header ("Net Maaş"); undefined when unknown. */
+  basis?: SalaryBasisCode;
 };
 
 /** "mavi" or "MAVİ YAKA" become the default definition names; other collar names are kept as typed. */
@@ -19,6 +21,15 @@ export function normalizeCollarType(value: string) {
 }
 
 export const SALARY_SHEET_CSV_HEADERS = (amountLabel: string) => ["Ad Soyad", "Departman", "Pozisyon", "Yaka", "Çalışan Tipi", amountLabel];
+
+/** Template of Muhasebe → Personel Tanımları: each row says whether its salary is gross or net. */
+export function personnelCsvTemplate() {
+  return [
+    "Ad Soyad;Departman;Pozisyon;Yaka;Çalışan Tipi;Maaş Tipi;Maaş",
+    "Ahmet Yılmaz;Üretim;Operatör;Mavi Yaka;5510 Teşvikli;Brüt;35000",
+    "Ayşe Demir;Muhasebe;Uzman;Beyaz Yaka;Teşviksiz;Net;48.500,00",
+  ].join("\r\n");
+}
 
 export function salarySheetCsvTemplate(amountLabel: string) {
   return [
@@ -65,8 +76,10 @@ export function parseSalarySheetCsv(text: string): { rows: SalarySheetCsvRow[]; 
   const hasHeader = header.some((cell) => /ad soyad|^ad$|depart|maaş|maas|tutar/.test(cell));
   const find = (pattern: RegExp) => header.findIndex((cell) => pattern.test(cell));
   const columns = hasHeader
-    ? { name: find(/^ad/), department: find(/depart/), position: find(/pozis|görev|gorev/), workforce: find(/yaka|personel tip/), insurance: find(/çalışan|calisan|sgk/), amount: find(/net|brüt|brut|maaş|maas|tutar/) }
-    : { name: 0, department: 1, position: 2, workforce: 3, insurance: 4, amount: 5 };
+    ? { name: find(/^ad/), department: find(/depart/), position: find(/pozis|görev|gorev/), workforce: find(/yaka|personel tip/), insurance: find(/çalışan|calisan|sgk/), basis: header.findIndex((cell) => /(maaş|maas|ücret|ucret) tip/.test(cell)), amount: header.findIndex((cell) => /net|brüt|brut|maaş|maas|tutar/.test(cell) && !/tip/.test(cell)) }
+    : { name: 0, department: 1, position: 2, workforce: 3, insurance: 4, basis: -1, amount: 5 };
+  const amountHeader = hasHeader && columns.amount >= 0 ? header[columns.amount] : "";
+  const headerBasis: SalaryBasisCode | undefined = /net/.test(amountHeader) ? "NET" : /brüt|brut/.test(amountHeader) ? "GROSS" : undefined;
   const rows: SalarySheetCsvRow[] = [];
   const skipped: number[] = [];
 
@@ -86,6 +99,7 @@ export function parseSalarySheetCsv(text: string): { rows: SalarySheetCsvRow[]; 
       collarType: normalizeCollarType(cell(columns.workforce)),
       insuranceType: parseSalaryInsuranceType(cell(columns.insurance)) ?? "INCENTIVE",
       amount,
+      basis: parseSalaryBasis(cell(columns.basis)) ?? headerBasis,
     });
   });
   return { rows, skipped };

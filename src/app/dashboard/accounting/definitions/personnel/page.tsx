@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CirclePlus, Filter, Search } from "lucide-react";
 import { can } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { SALARY_INSURANCE_TYPE_LABELS } from "@/lib/personnel-profile";
+import { SALARY_BASIS_LABELS, SALARY_INSURANCE_TYPE_LABELS } from "@/lib/personnel-profile";
 import { requireSessionUser } from "@/lib/session";
 import { listAccountingPersonnel } from "@/modules/accounting/repository";
 import { AccountingPersonnelImport } from "./personnel-import";
@@ -46,10 +46,10 @@ export default async function AccountingPersonnelPage(props: { searchParams: Pro
       </section>
 
       <section className={ui.surface}>
-        <div className={ui.sectionHeading}><div><h2>Personel listesi</h2><p>CSV sütunları: Ad Soyad; Departman; Pozisyon; Yaka; Çalışan Tipi; Brüt Maaş.</p></div><span className={ui.countBadge}>{personnel.length} kayıt</span></div>
+        <div className={ui.sectionHeading}><div><h2>Personel listesi</h2><p>CSV sütunları: Ad Soyad; Departman; Pozisyon; Yaka; Çalışan Tipi; Maaş Tipi (Brüt / Net); Maaş.</p></div><span className={ui.countBadge}>{personnel.length} kayıt</span></div>
         <div className={ui.tableViewport}>
           <table className={ui.dataTable}>
-            <thead><tr><th>Personel</th><th>Departman / Pozisyon</th><th>Yaka / Çalışan tipi</th><th className={styles.amountCell}>Aylık brüt</th><th>Durum</th><th>İşlem</th></tr></thead>
+            <thead><tr><th>Personel</th><th>Departman / Pozisyon</th><th>Yaka / Çalışan tipi</th><th className={styles.amountCell}>Aylık maaş</th><th>Durum</th><th>İşlem</th></tr></thead>
             <tbody>
               {personnel.length === 0 ? (
                 <tr><td colSpan={6} className={ui.emptyCell}>Kayıt yok. &quot;Yeni Personel&quot; veya &quot;CSV&apos;den yükle&quot; ile ekleyebilirsiniz.</td></tr>
@@ -58,7 +58,7 @@ export default async function AccountingPersonnelPage(props: { searchParams: Pro
                   <td><span className={ui.primaryText}>{item.firstName} {item.lastName}</span><span className={ui.secondaryText}>{item.registrationNumber ?? "Sicil yok"}</span></td>
                   <td><span className={ui.primaryText}>{item.department ?? "—"}</span><span className={ui.secondaryText}>{item.position ?? "—"}</span></td>
                   <td><span className={ui.primaryText}>{item.collarType ?? "—"}</span><span className={ui.secondaryText}>{SALARY_INSURANCE_TYPE_LABELS[item.insuranceType]}</span></td>
-                  <td className={styles.amountCell}>{item.grossSalary === null ? "—" : `${amount.format(item.grossSalary)} ₺`}</td>
+                  <td className={styles.amountCell}>{item.salaryAmount === null ? "—" : <><span className={ui.primaryText}>{amount.format(item.salaryAmount)} ₺</span><span className={ui.secondaryText}>{SALARY_BASIS_LABELS[item.salaryBasis]}</span></>}</td>
                   <td><span className={item.isActive ? ui.statusBadge : ui.statusNeutral}>{item.isActive ? "Aktif" : "Pasif"}</span></td>
                   <td><Link href={`/dashboard/accounting/definitions/personnel/${item.id}`} className={`${ui.rowAction} ${ui.compactAction}`}>{canEdit ? "Düzenle" : "İncele"}</Link></td>
                 </tr>

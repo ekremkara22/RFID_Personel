@@ -160,6 +160,11 @@ enum SalaryInsuranceType {
   RETIRED
 }
 
+enum SalaryBasis {
+  GROSS
+  NET
+}
+
 enum SalaryWorksheetMode {
   GROSS_TO_NET
   NET_TO_GROSS
@@ -1169,7 +1174,8 @@ model AccountingPersonnel {
   collarTypeId       Int?                  @db.UnsignedInt
   collarType         AccountingCollarType? @relation(fields: [collarTypeId], references: [id], onDelete: SetNull)
   insuranceType      SalaryInsuranceType   @default(INCENTIVE)
-  grossSalary        Decimal?              @db.Decimal(12, 2)
+  salaryBasis        SalaryBasis           @default(GROSS)
+  salaryAmount       Decimal?              @db.Decimal(12, 2)
   hireDate           DateTime?
   isActive           Boolean               @default(true)
   worksheetRows      SalaryWorksheetRow[]

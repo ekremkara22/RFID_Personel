@@ -12,7 +12,7 @@ export async function SalarySheetPage({ mode }: { mode: WorksheetModeKey }) {
     getSalaryWorksheet(companyId, mode),
     getSalaryParameters(companyId),
     getAccountingDefinitions(companyId),
-    mode === "gross-to-net" ? getSheetPersonnelOptions(companyId) : Promise.resolve([]),
+    getSheetPersonnelOptions(companyId, mode),
   ]);
   return (
     <SalaryCalculator

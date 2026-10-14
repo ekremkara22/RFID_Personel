@@ -57,3 +57,20 @@ export function parseImportDate(value: string): Date | null | undefined {
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : undefined;
 }
+
+/** Whether a Muhasebe personnel salary is entered as monthly gross or monthly net. */
+export const SALARY_BASES = ["GROSS", "NET"] as const;
+export type SalaryBasisCode = (typeof SALARY_BASES)[number];
+
+export const SALARY_BASIS_LABELS: Record<SalaryBasisCode, string> = {
+  GROSS: "Brüt",
+  NET: "Net",
+};
+
+export function parseSalaryBasis(value: string): SalaryBasisCode | undefined {
+  const normalized = normalizeWord(value);
+  if (!normalized) return undefined;
+  if (["brüt", "brut", "brüt maaş", "brut maas", "gross"].includes(normalized)) return "GROSS";
+  if (["net", "net maaş", "net maas"].includes(normalized)) return "NET";
+  return undefined;
+}

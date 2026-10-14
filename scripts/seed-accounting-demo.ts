@@ -96,7 +96,7 @@ async function main() {
   const removedDemo = await prisma.accountingPersonnel.deleteMany({ where: { companyId, registrationNumber: { startsWith: DEMO_PREFIX } } });
 
   let sequence = 1000;
-  const createPersonnel = async (people: Person[], grossOf: (person: Person) => number) => {
+  const createPersonnel = async (people: Person[], salaryBasis: "GROSS" | "NET") => {
     const ids: number[] = [];
     for (const [index, person] of people.entries()) {
       const [fullName, department, position, collar, insurance] = person;
@@ -112,7 +112,8 @@ async function main() {
           positionId: positionIds.get(position)!,
           collarTypeId: collarIds.get(collar)!,
           insuranceType: insurance,
-          grossSalary: grossOf(person),
+          salaryBasis,
+          salaryAmount: person[5],
           hireDate: new Date(Date.UTC(2015 + (index % 11), (index * 5) % 12, 1 + (index % 27))),
         },
         select: { id: true },
@@ -122,9 +123,8 @@ async function main() {
     return ids;
   };
 
-  const grossIds = await createPersonnel(GROSS_STAFF, (person) => person[5]);
-  // Net-agreed staff get an approximate gross on their card; the sheet keeps the agreed net.
-  const netIds = await createPersonnel(NET_STAFF, (person) => Math.round(person[5] * 1.42));
+  const grossIds = await createPersonnel(GROSS_STAFF, "GROSS");
+  const netIds = await createPersonnel(NET_STAFF, "NET");
 
   const rows = (people: Person[], ids: number[], mode: "GROSS_TO_NET" | "NET_TO_GROSS") => people.map(([name, department, position, collarType, insuranceType, amount], index) => ({
     companyId, mode, sortOrder: index, name, department, position, collarType, insuranceType, amount, personnelId: ids[index],

@@ -26,3 +26,11 @@ test("içe aktarma tarihleri geçersiz günleri reddeder", () => {
   assert.equal(parseImportDate("31.02.2026"), undefined);
   assert.equal(parseImportDate(""), null);
 });
+
+test("maaş tipi brüt ve net etiketlerinden çözülür", async () => {
+  const { parseSalaryBasis } = await import("./personnel-profile");
+  assert.equal(parseSalaryBasis("Brüt"), "GROSS");
+  assert.equal(parseSalaryBasis(" NET "), "NET");
+  assert.equal(parseSalaryBasis(""), undefined);
+  assert.equal(parseSalaryBasis("yarım"), undefined);
+});
