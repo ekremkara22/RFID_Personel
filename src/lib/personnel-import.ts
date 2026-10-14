@@ -7,8 +7,8 @@ export const PERSONNEL_IMPORT_COLUMNS = [
   { key: "firstName", label: "Ad", required: true, example: ["Ahmet", "Ayşe"] },
   { key: "lastName", label: "Soyad", required: true, example: ["Yılmaz", "Demir"] },
   { key: "department", label: "Departman", required: true, example: ["Üretim", "Muhasebe"] },
-  { key: "position", label: "Pozisyon", required: false, example: ["Operatör", "Muhasebe Uzmanı"] },
-  { key: "workforceType", label: "Personel Tipi", required: false, example: ["Mavi Yaka", "Beyaz Yaka"] },
+  { key: "position", label: "Pozisyon", required: true, example: ["Operatör", "Muhasebe Uzmanı"] },
+  { key: "workforceType", label: "Personel Tipi", required: true, example: ["Mavi Yaka", "Beyaz Yaka"] },
   { key: "registrationNumber", label: "Sicil No", required: false, example: ["1001", "1002"] },
   { key: "email", label: "E-posta", required: false, example: ["", "ayse.demir@firma.com"] },
   { key: "branch", label: "Şube", required: false, example: ["", ""] },
@@ -121,6 +121,8 @@ export function parsePersonnelSheet(sheet: unknown[][]): { rows: PersonnelImport
 
     const workforceType = parseWorkforceType(text("workforceType"));
     if (workforceType === undefined) problems.push(`personel tipi "${text("workforceType")}" tanınmadı (Mavi Yaka / Beyaz Yaka)`);
+    else if (workforceType === null) problems.push("personel tipi boş (Mavi Yaka / Beyaz Yaka)");
+    if (!text("position")) problems.push("pozisyon boş");
     const insuranceType = parseSalaryInsuranceType(text("insuranceType"));
     if (insuranceType === undefined) problems.push(`SGK tipi "${text("insuranceType")}" tanınmadı (5510 Teşvikli / Teşviksiz / Emekli)`);
     const salaryRaw = raw("grossSalary");

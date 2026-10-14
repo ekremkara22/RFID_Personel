@@ -274,3 +274,48 @@ export function parseSalaryParameters(value: string | null) {
   }
 }
 
+
+const EMPLOYEE_TYPES: SalaryEmployeeType[] = ["incentive", "no-incentive", "retired"];
+
+function finiteNumber(value: unknown, min = 0, max = Number.MAX_SAFE_INTEGER) {
+  return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+}
+
+/**
+ * Checks parameters coming from the settings screen before they are stored for the whole company.
+ * Returns the cleaned copy or a Turkish message describing the first problem.
+ */
+export function validateSalaryParameters(value: unknown): { ok: true; parameters: SalaryParameters } | { ok: false; message: string } {
+  const input = value as Partial<SalaryParameters> | null;
+  if (!input || typeof input !== "object") return { ok: false, message: "Parametreler okunamadı." };
+  if (!finiteNumber(input.year, 2000, 2100) || !Number.isInteger(input.year)) return { ok: false, message: "Yıl 2000–2100 arasında olmalıdır." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(input.validFrom)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(input.validTo)) || String(input.validFrom) > String(input.validTo)) return { ok: false, message: "Geçerlilik tarihlerini kontrol edin." };
+  const rate = (item: unknown) => finiteNumber(item, 0, 1);
+  if (!rate(input.employeeSocialSecurityRate) || !rate(input.employeeUnemploymentRate) || !rate(input.stampTaxRate)) return { ok: false, message: "İşçi ve damga vergisi oranları %0–100 arasında olmalıdır." };
+  if (!EMPLOYEE_TYPES.every((type) => rate(input.employerSocialSecurityRates?.[type]) && rate(input.employerUnemploymentRates?.[type]))) return { ok: false, message: "İşveren prim oranları %0–100 arasında olmalıdır." };
+  if (!finiteNumber(input.socialSecurityFloor) || !finiteNumber(input.socialSecurityCeiling) || input.socialSecurityCeiling! < input.socialSecurityFloor!) return { ok: false, message: "SGK tavanı tabandan küçük olamaz." };
+  const brackets = Array.isArray(input.taxBrackets) ? [...input.taxBrackets].sort((a, b) => a.lower - b.lower) : [];
+  const bracketsValid = brackets.length > 0 && brackets.length <= 10 && brackets[0].lower === 0 && brackets.every((bracket, index) =>
+    finiteNumber(bracket.lower) && finiteNumber(bracket.upper) && bracket.upper > bracket.lower && rate(bracket.rate)
+    && (index === 0 || bracket.lower === brackets[index - 1].upper));
+  if (!bracketsValid) return { ok: false, message: "Gelir vergisi dilimleri 0'dan başlamalı ve sınırlar kesintisiz devam etmelidir." };
+  const exemptions = Array.isArray(input.monthlyExemptions) ? input.monthlyExemptions : [];
+  if (exemptions.length !== 12 || !exemptions.every((item, index) => item.month === index + 1 && finiteNumber(item.incomeTax) && finiteNumber(item.stampTax))) return { ok: false, message: "12 ayın tamamı için istisna tutarı girilmelidir." };
+  return {
+    ok: true,
+    parameters: {
+      year: input.year!,
+      validFrom: String(input.validFrom),
+      validTo: String(input.validTo),
+      taxBrackets: brackets.map((bracket) => ({ lower: bracket.lower, upper: bracket.upper, rate: bracket.rate })),
+      employeeSocialSecurityRate: input.employeeSocialSecurityRate!,
+      employeeUnemploymentRate: input.employeeUnemploymentRate!,
+      stampTaxRate: input.stampTaxRate!,
+      employerSocialSecurityRates: Object.fromEntries(EMPLOYEE_TYPES.map((type) => [type, input.employerSocialSecurityRates![type]])) as Record<SalaryEmployeeType, number>,
+      employerUnemploymentRates: Object.fromEntries(EMPLOYEE_TYPES.map((type) => [type, input.employerUnemploymentRates![type]])) as Record<SalaryEmployeeType, number>,
+      socialSecurityFloor: input.socialSecurityFloor!,
+      socialSecurityCeiling: input.socialSecurityCeiling!,
+      monthlyExemptions: exemptions.map((item) => ({ month: item.month, incomeTax: item.incomeTax, stampTax: item.stampTax })),
+    },
+  };
+}

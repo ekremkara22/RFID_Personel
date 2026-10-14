@@ -1,71 +1,74 @@
-import { calculateGrossToNet, SALARY_MONTHS, type SalaryParameters } from "@/lib/salary-calculation";
-import { salaryEngineType, WORKFORCE_TYPE_LABELS, type SalaryInsuranceTypeCode, type WorkforceTypeCode } from "@/lib/personnel-profile";
+import { calculateGrossToNet, calculateNetToGross, SALARY_MONTHS, type SalaryParameters } from "@/lib/salary-calculation";
+import { SALARY_INSURANCE_TYPE_LABELS, salaryEngineType, WORKFORCE_TYPE_LABELS, type SalaryInsuranceTypeCode, type WorkforceTypeCode } from "@/lib/personnel-profile";
 
-export type BudgetEmployee = {
-  id: number;
+export type BudgetMode = "gross-to-net" | "net-to-gross";
+
+/** One row of a salary sheet: a monthly gross (gross-to-net) or target net (net-to-gross) amount. */
+export type BudgetEntry = {
+  key: string;
   name: string;
-  department: string;
+  department: string | null;
   category: string | null;
   position: string | null;
   workforceType: WorkforceTypeCode | null;
   insuranceType: SalaryInsuranceTypeCode;
-  grossSalary: number | null;
+  mode: BudgetMode;
+  amount: number;
 };
 
 export type BudgetGroup = {
   key: string;
   label: string;
   headcount: number;
-  monthlyGross: number;
   annualGross: number;
   annualNet: number;
   annualEmployerCost: number;
   share: number;
 };
 
-export type BudgetMonth = { month: number; label: string; gross: number; net: number; employerCost: number };
+export type BudgetMonth = { month: number; label: string; gross: number; net: number; employerCost: number; cumulativeEmployerCost: number };
+
+export type BudgetPerson = { key: string; name: string; department: string | null; position: string | null; annualGross: number; annualNet: number; annualEmployerCost: number };
 
 export type BudgetReport = {
   headcount: number;
-  salariedHeadcount: number;
-  missingSalaryCount: number;
-  monthlyGross: number;
   annualGross: number;
   annualNet: number;
   annualEmployerCost: number;
-  averageMonthlyEmployerCost: number;
+  /** Employer premiums on top of gross pay, e.g. 0.19 for %19. */
   employerBurdenRate: number;
+  /** Share of employer cost that reaches employees as net pay. */
+  netShare: number;
+  averageMonthlyEmployerCost: number;
   months: BudgetMonth[];
+  people: BudgetPerson[];
   byDepartment: BudgetGroup[];
   byCategory: BudgetGroup[];
-  byWorkforce: BudgetGroup[];
   byPosition: BudgetGroup[];
+  byWorkforce: BudgetGroup[];
+  byInsurance: BudgetGroup[];
 };
 
-const UNASSIGNED = "Tanımsız";
+export const UNASSIGNED_LABEL = "Tanımsız";
 
 function round(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-type Calculated = { employee: BudgetEmployee; monthlyGross: number; annualGross: number; annualNet: number; annualEmployerCost: number };
-
-function group(rows: Calculated[], labelOf: (employee: BudgetEmployee) => string, totalCost: number): BudgetGroup[] {
+function group(people: (BudgetPerson & { entry: BudgetEntry })[], labelOf: (entry: BudgetEntry) => string | null, totalCost: number): BudgetGroup[] {
   const map = new Map<string, BudgetGroup>();
-  for (const row of rows) {
-    const label = labelOf(row.employee);
-    const current = map.get(label) ?? { key: label, label, headcount: 0, monthlyGross: 0, annualGross: 0, annualNet: 0, annualEmployerCost: 0, share: 0 };
+  for (const person of people) {
+    const label = labelOf(person.entry) || UNASSIGNED_LABEL;
+    const current = map.get(label) ?? { key: label, label, headcount: 0, annualGross: 0, annualNet: 0, annualEmployerCost: 0, share: 0 };
     current.headcount += 1;
-    current.monthlyGross += row.monthlyGross;
-    current.annualGross += row.annualGross;
-    current.annualNet += row.annualNet;
-    current.annualEmployerCost += row.annualEmployerCost;
+    current.annualGross += person.annualGross;
+    current.annualNet += person.annualNet;
+    current.annualEmployerCost += person.annualEmployerCost;
     map.set(label, current);
   }
   return [...map.values()]
     .map((item) => ({
       ...item,
-      monthlyGross: round(item.monthlyGross),
       annualGross: round(item.annualGross),
       annualNet: round(item.annualNet),
       annualEmployerCost: round(item.annualEmployerCost),
@@ -75,46 +78,64 @@ function group(rows: Calculated[], labelOf: (employee: BudgetEmployee) => string
 }
 
 /**
- * Builds the yearly personnel budget from each employee's monthly gross salary.
- * `raiseRate` (e.g. 0.25 for %25) lets managers compare a raise scenario with the same rules.
+ * Builds the yearly personnel budget from salary sheet rows with the same engine as Maaş Hesaplama.
+ * `raiseRate` (0.25 = %25) scales every entered amount to compare a raise scenario.
  */
-export function buildBudgetReport(employees: BudgetEmployee[], parameters: SalaryParameters, raiseRate = 0): BudgetReport {
-  const months: BudgetMonth[] = SALARY_MONTHS.map((label, index) => ({ month: index + 1, label, gross: 0, net: 0, employerCost: 0 }));
-  const calculated: Calculated[] = [];
+export function buildBudgetReport(entries: BudgetEntry[], parameters: SalaryParameters, raiseRate = 0): BudgetReport {
+  const months = SALARY_MONTHS.map((label, index) => ({ month: index + 1, label, gross: 0, net: 0, employerCost: 0, cumulativeEmployerCost: 0 }));
+  const people: (BudgetPerson & { entry: BudgetEntry })[] = [];
 
-  for (const employee of employees) {
-    if (!employee.grossSalary || employee.grossSalary <= 0) continue;
-    const monthlyGross = employee.grossSalary * (1 + raiseRate);
-    const engineType = salaryEngineType(employee.insuranceType);
-    const result = calculateGrossToNet(monthlyGross, engineType, parameters);
-    const employerSocial = parameters.employerSocialSecurityRates[engineType] + parameters.employerUnemploymentRates[engineType];
+  for (const entry of entries) {
+    if (!Number.isFinite(entry.amount) || entry.amount <= 0) continue;
+    const amount = entry.amount * (1 + raiseRate);
+    const engineType = salaryEngineType(entry.insuranceType);
+    const result = entry.mode === "gross-to-net"
+      ? calculateGrossToNet(amount, engineType, parameters)
+      : calculateNetToGross(amount, engineType, parameters);
     result.months.forEach((month, index) => {
       const base = Math.min(Math.max(month.rawGross, parameters.socialSecurityFloor), parameters.socialSecurityCeiling);
       months[index].gross += month.gross;
       months[index].net += month.net;
-      months[index].employerCost += month.rawGross + base * employerSocial;
+      months[index].employerCost += month.rawGross
+        + round(base * parameters.employerSocialSecurityRates[engineType])
+        + round(base * parameters.employerUnemploymentRates[engineType]);
     });
-    calculated.push({ employee, monthlyGross, annualGross: result.annualGross, annualNet: result.annualNet, annualEmployerCost: result.annualEmployerCost });
+    people.push({
+      entry,
+      key: entry.key,
+      name: entry.name,
+      department: entry.department,
+      position: entry.position,
+      annualGross: result.annualGross,
+      annualNet: result.annualNet,
+      annualEmployerCost: result.annualEmployerCost,
+    });
   }
 
-  const annualEmployerCost = round(calculated.reduce((total, row) => total + row.annualEmployerCost, 0));
-  const annualGross = round(calculated.reduce((total, row) => total + row.annualGross, 0));
-  const salariedHeadcount = calculated.length;
+  const annualEmployerCost = round(people.reduce((total, person) => total + person.annualEmployerCost, 0));
+  const annualGross = round(people.reduce((total, person) => total + person.annualGross, 0));
+  const annualNet = round(people.reduce((total, person) => total + person.annualNet, 0));
+  let cumulative = 0;
 
   return {
-    headcount: employees.length,
-    salariedHeadcount,
-    missingSalaryCount: employees.length - salariedHeadcount,
-    monthlyGross: round(calculated.reduce((total, row) => total + row.monthlyGross, 0)),
+    headcount: people.length,
     annualGross,
-    annualNet: round(calculated.reduce((total, row) => total + row.annualNet, 0)),
+    annualNet,
     annualEmployerCost,
-    averageMonthlyEmployerCost: salariedHeadcount ? round(annualEmployerCost / 12 / salariedHeadcount) : 0,
     employerBurdenRate: annualGross > 0 ? annualEmployerCost / annualGross - 1 : 0,
-    months: months.map((month) => ({ ...month, gross: round(month.gross), net: round(month.net), employerCost: round(month.employerCost) })),
-    byDepartment: group(calculated, (employee) => employee.department || UNASSIGNED, annualEmployerCost),
-    byCategory: group(calculated, (employee) => employee.category || UNASSIGNED, annualEmployerCost),
-    byWorkforce: group(calculated, (employee) => employee.workforceType ? WORKFORCE_TYPE_LABELS[employee.workforceType] : UNASSIGNED, annualEmployerCost),
-    byPosition: group(calculated, (employee) => employee.position || UNASSIGNED, annualEmployerCost),
+    netShare: annualEmployerCost > 0 ? annualNet / annualEmployerCost : 0,
+    averageMonthlyEmployerCost: people.length ? round(annualEmployerCost / 12 / people.length) : 0,
+    months: months.map((month) => {
+      cumulative += month.employerCost;
+      return { ...month, gross: round(month.gross), net: round(month.net), employerCost: round(month.employerCost), cumulativeEmployerCost: round(cumulative) };
+    }),
+    people: people
+      .map((person) => ({ key: person.key, name: person.name, department: person.department, position: person.position, annualGross: person.annualGross, annualNet: person.annualNet, annualEmployerCost: person.annualEmployerCost }))
+      .sort((a, b) => b.annualEmployerCost - a.annualEmployerCost),
+    byDepartment: group(people, (entry) => entry.department, annualEmployerCost),
+    byCategory: group(people, (entry) => entry.category, annualEmployerCost),
+    byPosition: group(people, (entry) => entry.position, annualEmployerCost),
+    byWorkforce: group(people, (entry) => entry.workforceType ? WORKFORCE_TYPE_LABELS[entry.workforceType] : null, annualEmployerCost),
+    byInsurance: group(people, (entry) => SALARY_INSURANCE_TYPE_LABELS[entry.insuranceType], annualEmployerCost),
   };
 }

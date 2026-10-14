@@ -1,394 +1,230 @@
+/* Budget report, modelled on the approved Net-Brüt / Brüt-Net HTML report (green accent, card grid). */
 .report {
-  --budget-ink: #101828;
-  --budget-muted: #667085;
-  --budget-border: #e4e7ec;
+  --bd-ink: #1d2733;
+  --bd-muted: #667085;
+  --bd-border: #d9dee7;
+  --bd-accent: #1f6f4a;
+  --bd-accent-soft: #e8f3ed;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.2fr) repeat(4, minmax(150px, 1fr));
+  align-items: end;
+  gap: 12px;
 }
 
 .printHeader {
   display: none;
-}
-
-.filters {
-  display: grid;
-  grid-template-columns: minmax(140px, 0.7fr) repeat(3, minmax(160px, 1fr)) auto;
-  align-items: end;
-  gap: 12px;
-}
-
-.contextTag {
-  min-height: 40px;
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border-radius: 8px;
-  background: #f2f4f7;
-  padding: 0 12px;
-  color: #475467;
+  justify-content: space-between;
+  gap: 16px;
+  border-radius: 6px;
+  background: var(--bd-accent);
+  padding: 10px 14px;
+  color: #fff;
+}
+
+.printHeader b {
+  display: block;
+  font-size: 16px;
+}
+
+.printHeader span {
   font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
-.warning {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid #fedf89;
-  border-radius: 10px;
-  background: #fffaeb;
-  padding: 12px 14px;
-  color: #93370d;
+.empty h2 {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 17px;
+}
+
+.empty p {
+  margin: 6px 0 14px;
+  color: var(--bd-muted);
   font-size: 13px;
-  line-height: 1.45;
 }
 
-.warning > span {
-  flex: 1;
+.empty > div {
+  justify-content: flex-start;
 }
 
-.kpiGrid {
+.kpis {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
 }
 
-.kpiCard {
+.kpi {
   min-width: 0;
   display: grid;
-  gap: 4px;
-  border: 1px solid var(--budget-border);
-  border-radius: 12px;
+  gap: 2px;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
   background: #fff;
-  padding: 16px;
+  padding: 12px;
   break-inside: avoid;
 }
 
-.kpiHighlight {
-  border-color: #b2ddff;
-  background: #f5faff;
-}
-
-.kpiIcon {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  margin-bottom: 6px;
-  border-radius: 9px;
-  background: #eff8ff;
-  color: #1570ef;
-}
-
-.kpiCard p {
-  margin: 0;
-  color: var(--budget-muted);
+.kpi span {
+  color: var(--bd-muted);
   font-size: 12px;
-  font-weight: 600;
 }
 
-.kpiCard strong {
-  color: var(--budget-ink);
-  font-size: 20px;
-  font-weight: 720;
+.kpi b {
+  color: var(--bd-ink);
+  font-size: 19px;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-.kpiCard small {
-  color: var(--budget-muted);
-  font-size: 12px;
+.kpi b.good {
+  color: var(--bd-accent);
 }
 
-.scenario {
+.kpi b.bad {
+  color: #c0392b;
+}
+
+.grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  break-inside: avoid;
-}
-
-.scenario > div {
-  display: grid;
-  gap: 2px;
-}
-
-.scenario span,
-.scenario small {
-  color: var(--budget-muted);
-  font-size: 12px;
-}
-
-.scenario strong {
-  color: var(--budget-ink);
-  font-size: 18px;
-  font-variant-numeric: tabular-nums;
-}
-
-.scenario .delta {
-  color: #b54708;
-}
-
-.chartRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
   gap: 16px;
 }
 
-.chartCard {
+.card {
+  min-width: 0;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
   break-inside: avoid;
 }
 
-.monthChart {
-  height: 240px;
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  align-items: end;
-  gap: 8px;
+.card h3 {
+  margin: 0 0 10px;
+  color: var(--bd-accent);
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.monthColumn {
-  height: 100%;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  justify-items: center;
+.chart {
+  height: 190px;
+  display: flex;
+  align-items: flex-end;
   gap: 6px;
 }
 
-.monthTrack {
-  width: 100%;
-  max-width: 44px;
+.chart > div {
   height: 100%;
+  flex: 1;
   display: flex;
-  align-items: flex-end;
-  border-radius: 6px;
-  background: #f2f4f7;
-}
-
-.monthTrack span {
-  width: 100%;
-  min-height: 2px;
-  border-radius: 6px;
-  background: #1570ef;
-}
-
-.monthValue {
-  color: #475467;
+  flex-direction: column;
+  justify-content: flex-end;
+  color: var(--bd-muted);
   font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.monthLabel {
-  color: var(--budget-muted);
-  font-size: 12px;
-}
-
-.stackedBar {
-  height: 18px;
-  display: flex;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #f2f4f7;
-}
-
-.stackedBar span {
-  height: 100%;
-}
-
-.legend {
-  display: grid;
-  gap: 8px;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.legend li {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 8px;
-  font-size: 13px;
-}
-
-.legend i {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-}
-
-.legend small {
-  grid-column: 2 / -1;
-  color: var(--budget-muted);
-  font-size: 12px;
-}
-
-.subHeading {
-  margin: 18px 0 10px;
-  border-top: 1px solid var(--budget-border);
-  padding-top: 14px;
-}
-
-.subHeading h3 {
-  margin: 0;
-  color: var(--budget-ink);
-  font-size: 14px;
-}
-
-.barList {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.barList li {
-  display: grid;
-  gap: 4px;
-  break-inside: avoid;
-}
-
-.barLabel {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-}
-
-.barLabel span {
-  min-width: 0;
-  overflow: hidden;
-  color: #344054;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.barLabel strong {
-  color: var(--budget-ink);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.barTrack {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #f2f4f7;
-}
-
-.barTrack span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-}
-
-.barList small {
-  color: var(--budget-muted);
-  font-size: 12px;
-}
-
-.emptyChart {
-  margin: 0;
-  padding: 24px 0;
-  color: var(--budget-muted);
-  font-size: 13px;
   text-align: center;
 }
 
-.budgetTable {
-  min-width: 920px;
-}
-
-.budgetTable tfoot td {
-  border-top: 2px solid #d0d5dd;
-  background: #f9fafb;
-  color: var(--budget-ink);
-  font-weight: 700;
-}
-
-.amount {
-  text-align: right !important;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.strong {
-  color: var(--budget-ink);
-  font-weight: 700;
-}
-
-.shareCell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.shareTrack {
-  width: 80px;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #f2f4f7;
-}
-
-.shareTrack span {
+.chart i {
   display: block;
-  height: 100%;
-  background: #1570ef;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--bd-accent);
 }
 
-.footnote {
+.insights {
   margin: 0;
-  color: var(--budget-muted);
+  padding-left: 18px;
+  color: var(--bd-ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.insights li {
+  margin: 4px 0;
+}
+
+.muted {
+  color: var(--bd-muted);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--bd-border);
+  padding: 5px 8px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  background: var(--bd-accent-soft);
+  color: var(--bd-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.table th:first-child,
+.table .textCell {
+  text-align: left;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.totalRow td {
+  background: var(--bd-accent-soft);
+  font-weight: 700;
+}
+
+.shareBar {
+  display: inline-block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bd-accent);
+  vertical-align: middle;
+}
+
+.note {
+  margin: 0;
+  color: var(--bd-muted);
   font-size: 12px;
   line-height: 1.5;
 }
 
-@media (max-width: 1280px) {
-  .kpiGrid {
+@media (max-width: 1200px) {
+  .bar {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  .filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .contextTag {
-    justify-content: center;
-  }
 }
 
-@media (max-width: 960px) {
-  .chartRow {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .kpiGrid,
-  .filters,
-  .scenario {
+@media (max-width: 720px) {
+  .bar,
+  .grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .kpiCard strong {
-    font-size: 18px;
+  .chart {
+    gap: 3px;
   }
 
-  .monthChart {
-    height: 200px;
-    gap: 4px;
-  }
-
-  .monthValue {
+  .chart > div > span:first-child {
     display: none;
-  }
-
-  .warning {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
 
@@ -399,80 +235,35 @@
 
   .report {
     gap: 10px;
+    font-size: 11px;
   }
 
   .printHeader {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-    border-bottom: 2px solid #1570ef;
-    padding-bottom: 10px;
   }
 
-  .printHeader p {
-    margin: 0;
-    color: #1570ef;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .printHeader h1 {
-    margin: 2px 0;
-    color: var(--budget-ink);
-    font-size: 22px;
-  }
-
-  .printHeader span {
-    color: var(--budget-muted);
-    font-size: 12px;
-  }
-
-  .printHeader dl {
-    display: flex;
-    gap: 20px;
-    margin: 0;
-  }
-
-  .printHeader dt {
-    color: var(--budget-muted);
-    font-size: 10px;
-  }
-
-  .printHeader dd {
-    margin: 0;
-    color: var(--budget-ink);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .kpiGrid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .kpiCard {
-    padding: 10px;
-  }
-
-  .kpiCard strong {
-    font-size: 15px;
-  }
-
-  .chartRow {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  .grid,
+  .kpis {
     gap: 10px;
   }
 
-  .monthChart {
-    height: 190px;
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .breakSection {
-    break-inside: avoid;
+  .kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .budgetTable {
-    min-width: 0;
+  .kpi b {
+    font-size: 15px;
+  }
+
+  .tableWrap {
+    overflow: visible;
+  }
+
+  .table {
+    font-size: 10px;
   }
 }

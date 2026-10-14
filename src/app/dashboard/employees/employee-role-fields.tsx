@@ -16,10 +16,10 @@ export function EmployeeRoleFields({ positions, positionId, workforceType, salar
   const positionOptions = positions.filter((item) => item.isActive || item.id === positionId);
   return (
     <section className={ui.formSection}>
-      <div className={ui.formSectionHeader}><h2>Görev ve ücret</h2><p>Pozisyon ve personel tipi raporlarda gruplama için kullanılır.</p></div>
+      <div className={ui.formSectionHeader}><h2>Görev ve ücret</h2><p>Departman, pozisyon ve yaka tipi bütçe raporunda gruplama için zorunludur.</p></div>
       <div className={ui.formGridThree}>
-        <label className={ui.formField}><span>Pozisyon</span><select name="positionId" defaultValue={positionId ?? ""}><option value="">Pozisyon seçilmedi</option>{positionOptions.map((item) => <option key={item.id} value={item.id}>{item.name}{item.isActive ? "" : " (pasif)"}</option>)}</select></label>
-        <label className={ui.formField}><span>Personel tipi</span><select name="workforceType" defaultValue={workforceType ?? ""}><option value="">Belirtilmedi</option>{WORKFORCE_TYPES.map((type) => <option key={type} value={type}>{WORKFORCE_TYPE_LABELS[type]}</option>)}</select></label>
+        <label className={ui.formField}><span>Pozisyon</span><select name="positionId" defaultValue={positionId ?? ""} required><option value="" disabled>Pozisyon seçin</option>{positionOptions.map((item) => <option key={item.id} value={item.id}>{item.name}{item.isActive ? "" : " (pasif)"}</option>)}</select></label>
+        <label className={ui.formField}><span>Personel tipi</span><select name="workforceType" defaultValue={workforceType ?? ""} required><option value="" disabled>Yaka tipi seçin</option>{WORKFORCE_TYPES.map((type) => <option key={type} value={type}>{WORKFORCE_TYPE_LABELS[type]}</option>)}</select></label>
         {salary ? (
           <>
             <input type="hidden" name="salaryFieldsIncluded" value={salary.canEdit ? "1" : ""} />

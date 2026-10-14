@@ -165,6 +165,11 @@ enum SalaryInsuranceType {
   RETIRED
 }
 
+enum SalaryWorksheetMode {
+  GROSS_TO_NET
+  NET_TO_GROSS
+}
+
 enum ProductionStationType {
   GENERAL
   INJECTION
@@ -230,6 +235,8 @@ model Company {
   productionImportTemplates          ProductionImportTemplate[]
   departmentCategories               DepartmentCategory[]
   positions                          Position[]
+  salaryWorksheetRows                SalaryWorksheetRow[]
+  salaryParameterSet                 SalaryParameterSet?
 }
 
 model CompanyCategory {
@@ -530,6 +537,7 @@ model Employee {
   workforceType               WorkforceType?
   grossSalary                 Decimal?                     @db.Decimal(12, 2)
   salaryInsuranceType         SalaryInsuranceType          @default(INCENTIVE)
+  salaryWorksheetRows         SalaryWorksheetRow[]
   linkedMembership            CompanyMembership?
   explicitMembershipScopes    MembershipEmployeeScope[]    @relation("ExplicitEmployeeScope")
   teamMemberships             CompanyTeamEmployee[]
@@ -1110,4 +1118,34 @@ model PayrollPeriod {
 
   @@unique([companyId, year, month])
   @@index([status, year, month])
+}
+
+/// Rows of the Maaş Hesaplama sheets; the budget report is built from these lists.
+model SalaryWorksheetRow {
+  id            Int                 @id @default(autoincrement()) @db.UnsignedInt
+  companyId     Int                 @db.UnsignedInt
+  company       Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  mode          SalaryWorksheetMode
+  sortOrder     Int                 @default(0)
+  name          String              @db.VarChar(191)
+  department    String?             @db.VarChar(191)
+  position      String?             @db.VarChar(191)
+  workforceType WorkforceType?
+  insuranceType SalaryInsuranceType @default(INCENTIVE)
+  amount        Decimal             @db.Decimal(12, 2)
+  employeeId    Int?                @db.UnsignedInt
+  employee      Employee?           @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([companyId, mode, sortOrder])
+}
+
+/// Company-wide payroll constants (tax brackets, SGK rates, exemptions) as validated JSON.
+model SalaryParameterSet {
+  id             Int      @id @default(autoincrement()) @db.UnsignedInt
+  companyId      Int      @unique @db.UnsignedInt
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parametersJson String   @db.Text
+  updatedAt      DateTime @updatedAt
 }

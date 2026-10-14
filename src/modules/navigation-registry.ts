@@ -54,9 +54,9 @@ export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/production/definitions/stations", label: "İstasyonlar", icon: "settings", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
   { href: "/dashboard/production/definitions/tools", label: "Kalıp ve Ekipman", icon: "tags", group: "production-definitions", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.WORK_CENTER_VIEW },
 
-  { href: "/dashboard/accounting", label: "Muhasebe Özeti", icon: "dashboard", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
   { href: "/dashboard/accounting/salary-calculation", label: "Maaş Hesaplama", icon: "calculator", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
   { href: "/dashboard/accounting/budget", label: "Bütçe Raporu", icon: "file-chart", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
+  { href: "/dashboard/accounting/settings", label: "Sabit Tanımlar", icon: "settings", group: "accounting", audience: "all", module: MODULES.ACCOUNTING, permission: PERMISSIONS.ACCOUNTING_SALARY_VIEW },
 
   { href: "/dashboard/users", label: "Kullanıcı Tanımları", icon: "users", group: "definitions", audience: "platform" },
   { href: "/dashboard/settings/roles", label: "Rol Tanımları", icon: "tags", group: "definitions", audience: "platform" },

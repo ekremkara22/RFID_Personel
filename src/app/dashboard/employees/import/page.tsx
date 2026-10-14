@@ -11,8 +11,8 @@ import ui from "../../management.module.css";
 import importStyles from "./import.module.css";
 
 const COLUMN_HINTS: Record<string, string> = {
-  department: "Sistemdeki departman adıyla aynı olmalı",
-  position: "Boş bırakılabilir",
+  department: "Departman tanımıyla aynı olmalı",
+  position: "Pozisyon tanımıyla aynı olmalı",
   workforceType: "Mavi Yaka veya Beyaz Yaka",
   registrationNumber: "Firmada benzersiz olmalı",
   email: "Sistemde benzersiz olmalı",

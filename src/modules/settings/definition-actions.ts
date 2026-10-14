@@ -38,6 +38,7 @@ function refresh(kind: DefinitionKind) {
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/settings/departments");
   revalidatePath("/dashboard/accounting/budget");
+  revalidatePath("/dashboard/accounting/settings");
 }
 
 async function createDefinition(kind: DefinitionKind, formData: FormData) {
@@ -110,4 +111,40 @@ export async function updateDepartmentCategoryAction(formData: FormData) {
 
 export async function deleteDepartmentCategoryAction(formData: FormData) {
   return runFormAction(() => deleteDefinition("departmentCategory", formData));
+}
+
+/** Quick department add/remove used by Muhasebe → Sabit Tanımlar; same rules as the department screens. */
+export async function createDepartmentQuickAction(formData: FormData) {
+  return runFormAction(async () => {
+    const companyId = await companyContext();
+    const name = getString(formData, "name").replace(/\s+/g, " ");
+    if (name.length < 2 || name.length > 100) throw new ActionError("Departman adı 2–100 karakter olmalıdır.");
+    try {
+      await prisma.department.create({ data: { companyId, name } });
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new ActionError(`"${name}" adında bir departman zaten var.`);
+      throw error;
+    }
+    revalidatePath("/dashboard/accounting/settings");
+    revalidatePath("/dashboard/settings/departments");
+    revalidatePath("/dashboard/employees");
+  });
+}
+
+export async function deleteDepartmentQuickAction(formData: FormData) {
+  return runFormAction(async () => {
+    const companyId = await companyContext();
+    const id = getId(formData, "id");
+    const [employees, assignments, specialDays, exceptions] = await Promise.all([
+      prisma.employee.count({ where: { companyId, departmentId: id } }),
+      prisma.calendarAssignment.count({ where: { departmentId: id } }),
+      prisma.calendarSpecialDay.count({ where: { departmentId: id } }),
+      prisma.calendarDailyException.count({ where: { departmentId: id } }),
+    ]);
+    if (employees + assignments + specialDays + exceptions > 0) throw new ActionError("Bu departman personel veya takvim kayıtlarında kullanılıyor. Departmanlar ekranından pasif yapabilirsiniz.");
+    const result = await prisma.department.deleteMany({ where: { id, companyId } });
+    if (result.count !== 1) throw new ActionError("Departman bulunamadı.");
+    revalidatePath("/dashboard/accounting/settings");
+    revalidatePath("/dashboard/settings/departments");
+  });
 }

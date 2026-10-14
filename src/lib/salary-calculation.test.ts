@@ -24,3 +24,15 @@ test("Excel örneğiyle 123.456 TL netten brüte sonuçları aynı kuruşları �
   assert.equal(result.annualEmployerCost, 2_752_583.6);
 });
 
+
+test("firma bordro parametreleri kaydedilmeden önce doğrulanır", async () => {
+  const { validateSalaryParameters, cloneSalaryParameters } = await import("./salary-calculation");
+  assert.equal(validateSalaryParameters(cloneSalaryParameters()).ok, true);
+  const gap = cloneSalaryParameters();
+  gap.taxBrackets[1].lower = 200_000;
+  assert.equal(validateSalaryParameters(gap).ok, false);
+  const ceiling = cloneSalaryParameters();
+  ceiling.socialSecurityCeiling = 10;
+  assert.equal(validateSalaryParameters(ceiling).ok, false);
+  assert.equal(validateSalaryParameters(null).ok, false);
+});

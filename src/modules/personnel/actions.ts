@@ -30,6 +30,7 @@ async function assertCompanyDepartment(companyId: number, department: string) {
 /** Position, collar type and salary; salary is written only by users allowed to calculate salaries. */
 async function readEmployeeProfile(formData: FormData, companyId: number, authorization: AuthorizationContext) {
   const positionValue = getString(formData, "positionId");
+  if (!positionValue) throw new ActionError("Pozisyon seçin.");
   let positionId: number | null = null;
   if (positionValue) {
     const position = await prisma.position.findFirst({ where: { id: getId(formData, "positionId"), companyId }, select: { id: true } });
@@ -37,7 +38,7 @@ async function readEmployeeProfile(formData: FormData, companyId: number, author
     positionId = position.id;
   }
   const workforceValue = getString(formData, "workforceType");
-  if (workforceValue && !WORKFORCE_TYPES.includes(workforceValue as WorkforceTypeCode)) throw new ActionError("Personel tipi geçersiz.");
+  if (!WORKFORCE_TYPES.includes(workforceValue as WorkforceTypeCode)) throw new ActionError("Yaka tipini (mavi / beyaz yaka) seçin.");
   const workforceType = (workforceValue || null) as WorkforceTypeCode | null;
 
   const canEditSalary = formData.get("salaryFieldsIncluded") === "1" && can(authorization, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE);

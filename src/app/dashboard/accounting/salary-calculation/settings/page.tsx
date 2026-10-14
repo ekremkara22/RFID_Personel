@@ -1,10 +1,6 @@
-import { can } from "@/lib/authorization";
-import { PERMISSIONS } from "@/lib/permission-catalog";
-import { requireSessionUser } from "@/lib/session";
-import { SalarySettingsForm } from "../salary-settings-form";
+import { redirect } from "next/navigation";
 
-export default async function SalarySettingsPage() {
-  const { authorization } = await requireSessionUser();
-  return <SalarySettingsForm canManage={can(authorization, PERMISSIONS.ACCOUNTING_PARAMETERS_MANAGE)} />;
+/** Payroll constants moved to Muhasebe → Sabit Tanımlar. */
+export default function LegacySalarySettingsPage() {
+  redirect("/dashboard/accounting/settings");
 }
-
