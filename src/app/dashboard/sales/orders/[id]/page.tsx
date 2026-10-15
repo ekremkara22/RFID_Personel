@@ -42,7 +42,7 @@ export default async function SalesOrderDetailPage(props: { params: Promise<{ id
 
       <div className={ui.splitLayout}>
         <section className={ui.surface}>
-          <div className={ui.sectionHeading}><div><h2>Sipariş durumu</h2><p>Shopier'den gelen son bilgi.</p></div></div>
+          <div className={ui.sectionHeading}><div><h2>Sipariş durumu</h2><p>Shopier’den gelen son bilgi.</p></div></div>
           <dl className={ui.detailList}>
             <div className={ui.detailRow}><dt>Ödeme</dt><dd><Badge tone={payment.tone}>{payment.label}</Badge></dd></div>
             <div className={ui.detailRow}><dt>Teslimat / iade</dt><dd><Badge tone={fulfillment.tone}>{fulfillment.label}</Badge></dd></div>
@@ -53,7 +53,7 @@ export default async function SalesOrderDetailPage(props: { params: Promise<{ id
         </section>
 
         <section className={ui.surface}>
-          <div className={ui.sectionHeading}><div><h2>Teslimat adresi</h2><p>Kargo etiketi için Shopier'deki adres.</p></div></div>
+          <div className={ui.sectionHeading}><div><h2>Teslimat adresi</h2><p>Kargo etiketi için Shopier’deki adres.</p></div></div>
           {order.shipping ? (
             <dl className={ui.detailList}>
               <div className={ui.detailRow}><dt>Alıcı</dt><dd>{order.shipping.name}</dd></div>
@@ -85,7 +85,7 @@ export default async function SalesOrderDetailPage(props: { params: Promise<{ id
       {order.hasPhysicalItems ? (
         <section className={ui.surface}>
           <div className={ui.sectionHeading}>
-            <div><h2>Kargo bilgisi</h2><p>Gönderildi olarak işaretlenen sipariş Shopier'de kapatılır ve alıcıya takip numarası iletilir.</p></div>
+            <div><h2>Kargo bilgisi</h2><p>Gönderildi olarak işaretlenen sipariş Shopier’de kapatılır ve alıcıya takip numarası iletilir.</p></div>
           </div>
           {order.fulfilledAt ? (
             <dl className={ui.detailList}>
@@ -110,15 +110,15 @@ export default async function SalesOrderDetailPage(props: { params: Promise<{ id
                 </label>
               </div>
               <div className={ui.formActions}>
-                <SubmitButton idleLabel="Gönderildi olarak işaretle" pendingLabel="Shopier'e gönderiliyor..." className={ui.primaryAction} icon={<Truck size={16} />} />
+                <SubmitButton idleLabel="Gönderildi olarak işaretle" pendingLabel="Shopier’e gönderiliyor..." className={ui.primaryAction} icon={<Truck size={16} />} />
               </div>
             </ActionForm>
           ) : (
             <p className={ui.secondaryText}>
               {shipment?.label === "İade edildi"
                 ? "Sipariş tam iade edildiği için kargoya verilemez."
-                : shipment?.label === "Shopier'de kapatıldı"
-                  ? "Sipariş Shopier panelinden kapatıldı; takip bilgisi Shopier'de."
+                : shipment?.label === "Shopier’de kapatıldı"
+                  ? "Sipariş Shopier panelinden kapatıldı; takip bilgisi Shopier’de."
                   : "Ödeme tamamlanınca kargo bilgisi girilebilir."}
             </p>
           )}

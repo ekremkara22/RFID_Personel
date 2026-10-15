@@ -56,7 +56,7 @@ export function orderLicenseSummary(statuses: readonly string[]): Label & { deta
 
 const PRODUCT_STATUS: Record<string, Label> = {
   DRAFT: { label: "Taslak", tone: "neutral" },
-  PUBLISHED: { label: "Shopier'de satışta", tone: "success" },
+  PUBLISHED: { label: "Shopier’de satışta", tone: "success" },
   ARCHIVED: { label: "Arşivde", tone: "warning" },
 };
 
@@ -87,7 +87,7 @@ export function shipmentLabel(order: { hasPhysicalItems: boolean; status: string
   if (!order.hasPhysicalItems) return null;
   if (order.fulfilledAt) return { label: "Kargoya verildi", tone: "success" };
   // Closed directly in the Shopier panel: no tracking info here, but nothing left to ship.
-  if (order.status === "fulfilled") return { label: "Shopier'de kapatıldı", tone: "success" };
+  if (order.status === "fulfilled") return { label: "Shopier’de kapatıldı", tone: "success" };
   if (order.refundStatus === "full") return { label: "İade edildi", tone: "danger" };
   if (order.paymentStatus !== "paid") return { label: "Ödeme bekliyor", tone: "neutral" };
   return { label: "Kargo bekliyor", tone: "warning" };

@@ -43,14 +43,14 @@ export default async function SalesProductsPage({ searchParams }: { searchParams
       return {
         id: item.id,
         title: item.title,
-        shopierNo: item.shopierProductId ? `Shopier no: ${item.shopierProductId}` : "Shopier'de yok",
+        shopierNo: item.shopierProductId ? `Shopier no: ${item.shopierProductId}` : "Shopier’de yok",
         imageUrl: image ? productImagePath(image) : null,
         price: formatMoney(item.price, item.currency),
         stock: item.stockQuantity === null ? "Sınırsız" : String(item.stockQuantity),
         status: badge.label,
         statusTone: badge.tone,
         publishedAt: formatDateTime(item.publishedAt),
-        publishNote: item.publishError ? "Son gönderim başarısız" : item.publishedAt ? "Shopier'e gönderildi" : "Henüz gönderilmedi",
+        publishNote: item.publishError ? "Son gönderim başarısız" : item.publishedAt ? "Shopier’e gönderildi" : "Henüz gönderilmedi",
         actionLabel: "Düzenle",
         actionHref: `/dashboard/sales/products/${item.id}`,
       };
@@ -63,11 +63,11 @@ export default async function SalesProductsPage({ searchParams }: { searchParams
     <div className={ui.managementPage}>
       <SalesPageHeader
         title="Ürünler"
-        description="Fiziksel ürünleri panelde tanımlayın, görsellerini yükleyin ve Shopier'de yayınlayın."
+        description="Fiziksel ürünleri panelde tanımlayın, görsellerini yükleyin ve Shopier’de yayınlayın."
         actions={
           <>
             <ActionForm action={importShopierProductsAction} className={ui.toolbarActions}>
-              <SubmitButton idleLabel="Shopier'den içe aktar" pendingLabel="Aktarılıyor..." className={ui.secondaryAction} icon={<DownloadCloud size={16} />} />
+              <SubmitButton idleLabel="Shopier’den içe aktar" pendingLabel="Aktarılıyor..." className={ui.secondaryAction} icon={<DownloadCloud size={16} />} />
             </ActionForm>
             <Link className={ui.primaryAction} href="/dashboard/sales/products/new"><Plus size={16} />Yeni ürün</Link>
           </>
@@ -98,10 +98,10 @@ export default async function SalesProductsPage({ searchParams }: { searchParams
 
       <section className={ui.surface}>
         <div className={ui.sectionHeading}>
-          <div><h2>Ürün kataloğu</h2><p>Panel asıl kaynaktır: değişiklikler “Shopier'i güncelle” ile Shopier'e gönderilir. İçe aktarma yalnız katalogda olmayan ürünleri ekler.</p></div>
+          <div><h2>Ürün kataloğu</h2><p>Panel asıl kaynaktır: değişiklikler “Shopier’i güncelle” ile Shopier’e gönderilir. İçe aktarma yalnız katalogda olmayan ürünleri ekler.</p></div>
           <span className={ui.countBadge}>{rows.length} kayıt</span>
         </div>
-        <ReorderableDataTable rows={rows} columns={columns} storageKey="sales-products-columns-v1" filename="fiziksel-urunler" emptyMessage={query || status ? "Filtrelere uygun ürün bulunamadı." : "Henüz ürün yok. Yeni ürün ekleyin veya Shopier'deki ürünleri içe aktarın."} canExport minWidth={900} />
+        <ReorderableDataTable rows={rows} columns={columns} storageKey="sales-products-columns-v1" filename="fiziksel-urunler" emptyMessage={query || status ? "Filtrelere uygun ürün bulunamadı." : "Henüz ürün yok. Yeni ürün ekleyin veya Shopier’deki ürünleri içe aktarın."} canExport minWidth={900} />
       </section>
     </div>
   );

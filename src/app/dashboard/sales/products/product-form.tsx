@@ -54,7 +54,7 @@ export function ProductForm({ product }: Props) {
       <section className={ui.formSection}>
         <div className={ui.formSectionHeader}>
           <h2>Fiyat ve stok</h2>
-          <p>Stok boş bırakılırsa Shopier'e stok adedi gönderilmez.</p>
+          <p>Stok boş bırakılırsa Shopier’e stok adedi gönderilmez.</p>
         </div>
         <div className={ui.formGridThree}>
           <label className={ui.formField}>
@@ -119,7 +119,7 @@ export function ProductForm({ product }: Props) {
       </section>
 
       <div className={ui.formActions}>
-        {/* On the edit page "Shopier'de yayınla" is the primary action; saving is secondary there. */}
+        {/* On the edit page "Shopier’de yayınla" is the primary action; saving is secondary there. */}
         <SubmitButton idleLabel={product ? "Değişiklikleri kaydet" : "Ürünü kaydet"} pendingLabel="Kaydediliyor..." className={product ? ui.secondaryAction : ui.primaryAction} />
       </div>
     </ActionForm>
