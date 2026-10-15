@@ -1,10 +1,10 @@
-/* Budget report, modelled on the approved Net-Brüt / Brüt-Net HTML report (green accent, card grid). */
+/* Budget report, modelled on the approved Net-Brüt / Brüt-Net HTML report (card grid, site-wide neutral/blue palette). */
 .report {
-  --bd-ink: #1d2733;
+  --bd-ink: #101828;
   --bd-muted: #667085;
-  --bd-border: #d9dee7;
-  --bd-accent: #1f6f4a;
-  --bd-accent-soft: #e8f3ed;
+  --bd-border: #e4e7ec;
+  --bd-accent: #1570ef;
+  --bd-accent-soft: #f9fafb;
 }
 
 .bar {
@@ -84,7 +84,7 @@
 }
 
 .kpi b.bad {
-  color: #c0392b;
+  color: #b42318;
 }
 
 .grid {
@@ -96,16 +96,16 @@
 .card {
   min-width: 0;
   border: 1px solid var(--bd-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: #fff;
-  padding: 14px;
+  padding: 16px;
   break-inside: avoid;
 }
 
 .card h3 {
   margin: 0 0 10px;
-  color: var(--bd-accent);
-  font-size: 14px;
+  color: var(--bd-ink);
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -173,7 +173,7 @@
 
 .table th {
   background: var(--bd-accent-soft);
-  color: var(--bd-ink);
+  color: #475467;
   font-size: 12px;
   font-weight: 700;
 }

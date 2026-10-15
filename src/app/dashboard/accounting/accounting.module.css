@@ -115,7 +115,7 @@
 
 .amountCell { text-align: right !important; font-variant-numeric: tabular-nums; }
 .totalRow td { border-top: 2px solid #d0d5dd; background: #f9fafb !important; color: #101828; font-weight: 700; }
-.netCell { color: #067647; font-weight: 700; }
+.netCell { color: #175cd3; font-weight: 700; }
 .breakdownTable { min-width: 1040px; }
 .breakdownTable th, .breakdownTable td { white-space: nowrap; }
 
@@ -137,14 +137,14 @@
 .sheetBar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .sheetActions { display: flex; flex-wrap: wrap; gap: 8px; }
 .saveState { min-height: 40px; display: inline-flex; align-items: center; gap: 6px; color: #667085; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.saveState[data-status="saved"] { color: #1f6f4a; }
+.saveState[data-status="saved"] { color: #475467; }
 .saveState[data-status="dirty"], .saveState[data-status="saving"] { color: #b54708; }
 .saveState[data-status="error"] { color: #b42318; white-space: normal; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .sheetHint { margin: 10px 0; color: #667085; font-size: 12px; line-height: 1.5; }
 .sheetTable { min-width: 2600px; }
-.sheetTable thead th { background: #e8f3ed; color: #1d2733; }
+.sheetTable thead th { background: #f9fafb; color: #475467; }
 .sheetTable th, .sheetTable td { white-space: nowrap; }
 .sheetTable td { padding-top: 6px !important; padding-bottom: 6px !important; }
 .sheetTable select, .sheetTable input { min-height: 36px; border: 1px solid #d0d5dd; border-radius: 7px; background: #fff; color: #101828; padding: 0 8px; font: inherit; font-size: 13px; }
@@ -154,9 +154,9 @@
 .nameInput { width: 170px; }
 .amountInput { width: 130px; text-align: right; }
 .stickyCell { position: sticky; left: 0; z-index: 2; background: #fff; box-shadow: 1px 0 0 #eaecf0; }
-.sheetTable thead .stickyCell { background: #e8f3ed; z-index: 3; }
+.sheetTable thead .stickyCell { background: #f9fafb; z-index: 3; }
 .totalRow .stickyCell { background: #f9fafb; }
-.keyCell { background: #f3f9f5; color: #101828; font-weight: 700; }
+.keyCell { background: #f9fafb; color: #101828; font-weight: 700; }
 
 /* Muhasebe → Sabit Tanımlar cards. */
 .paramBar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; padding: 14px 16px; }
@@ -164,11 +164,11 @@
 .paramGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 16px; }
 .paramCard { min-width: 0; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; padding: 16px; }
 .paramCardWide { grid-column: 1 / -1; }
-.paramCard h3 { margin: 0 0 12px; color: #1f6f4a; font-size: 15px; font-weight: 700; }
+.paramCard h3 { margin: 0 0 12px; color: #101828; font-size: 15px; font-weight: 700; }
 .paramTable { width: 100%; border-collapse: collapse; table-layout: auto; }
 .paramTable th, .paramTable td { border-bottom: 1px solid #eaecf0; padding: 6px 8px; color: #344054; font-size: 13px; text-align: left; vertical-align: middle; }
 .paramTable td:first-child { white-space: normal; }
-.paramTable th { background: #e8f3ed; color: #1d2733; font-size: 12px; font-weight: 700; }
+.paramTable th { background: #f9fafb; color: #475467; font-size: 12px; font-weight: 700; }
 .paramTable input { width: 100%; min-width: 0; min-height: 36px; border: 1px solid #d0d5dd; border-radius: 7px; background: #fff; color: #101828; padding: 0 8px; font: inherit; font-size: 13px; text-align: right; }
 .paramTable input[type="date"] { text-align: left; }
 .paramTable input:focus-visible { border-color: #1570ef; outline: 3px solid rgba(21, 112, 239, 0.14); }
@@ -176,7 +176,7 @@
 .paramCardWide .paramTable { max-width: 640px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
-.chips li { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; background: #e8f3ed; padding: 3px 4px 3px 12px; color: #1d2733; font-size: 13px; }
+.chips li { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; background: #eff8ff; padding: 3px 4px 3px 12px; color: #175cd3; font-size: 13px; }
 .chips li.chipEmpty { background: none; padding: 0; color: #667085; }
 .chipForm { display: inline-flex; }
 .chipRemove { width: 28px; height: 28px; display: inline-grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: #b42318; cursor: pointer; }

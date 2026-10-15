@@ -4,6 +4,10 @@
  * records an earlier version of this script created (DEMO- personnel and their unused departments).
  *
  *   SEED_COMPANY_ID=3 npx tsx scripts/seed-accounting-demo.ts
+ *   SEED_USER_EMAIL=user@example.com SEED_SALARY_BASIS=NET npx tsx scripts/seed-accounting-demo.ts
+ *
+ * SEED_USER_EMAIL resolves the company from that user; SEED_SALARY_BASIS=NET seeds every person with a
+ * net salary so the whole staff lands on the Netten Brüte sheet.
  */
 import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
@@ -14,8 +18,10 @@ if (!databaseUrl) throw new Error("DATABASE_URL is not configured.");
 const parsedUrl = new URL(databaseUrl);
 const database = parsedUrl.pathname.replace(/^\//, "");
 if (!database.toLowerCase().includes("staging")) throw new Error(`Demo verisi yalnız staging veritabanına yazılabilir. Hedef: ${database}`);
-const companyId = Number(process.env.SEED_COMPANY_ID);
-if (!Number.isSafeInteger(companyId) || companyId <= 0) throw new Error("SEED_COMPANY_ID gerekli.");
+const seedUserEmail = process.env.SEED_USER_EMAIL?.trim().toLowerCase();
+let companyId = Number(process.env.SEED_COMPANY_ID);
+if (!seedUserEmail && (!Number.isSafeInteger(companyId) || companyId <= 0)) throw new Error("SEED_COMPANY_ID veya SEED_USER_EMAIL gerekli.");
+const allNet = process.env.SEED_SALARY_BASIS === "NET";
 
 const prisma = new PrismaClient({ adapter: new PrismaMariaDb({ host: parsedUrl.hostname, port: parsedUrl.port ? Number(parsedUrl.port) : 3306, user: decodeURIComponent(parsedUrl.username), password: decodeURIComponent(parsedUrl.password), database }) });
 
@@ -85,6 +91,12 @@ async function upsertNames(kind: "department" | "position" | "collar", names: st
 }
 
 async function main() {
+  if (seedUserEmail) {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: seedUserEmail }, select: { companyId: true, memberships: { where: { status: "ACTIVE" }, select: { companyId: true } } } });
+    const resolved = user.companyId ?? user.memberships[0]?.companyId;
+    if (!resolved) throw new Error(`${seedUserEmail} için firma bulunamadı.`);
+    companyId = resolved;
+  }
   const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true } });
   const cleanup = await cleanUpLegacyHrDemo();
 
@@ -123,13 +135,13 @@ async function main() {
     return ids;
   };
 
-  const grossIds = await createPersonnel(GROSS_STAFF, "GROSS");
+  const grossIds = await createPersonnel(GROSS_STAFF, allNet ? "NET" : "GROSS");
   const netIds = await createPersonnel(NET_STAFF, "NET");
 
-  const rows = (people: Person[], ids: number[], mode: "GROSS_TO_NET" | "NET_TO_GROSS") => people.map(([name, department, position, collarType, insuranceType, amount], index) => ({
-    companyId, mode, sortOrder: index, name, department, position, collarType, insuranceType, amount, personnelId: ids[index],
+  const rows = (people: Person[], ids: number[], mode: "GROSS_TO_NET" | "NET_TO_GROSS", offset = 0) => people.map(([name, department, position, collarType, insuranceType, amount], index) => ({
+    companyId, mode, sortOrder: offset + index, name, department, position, collarType, insuranceType, amount, personnelId: ids[index],
   }));
-  await prisma.salaryWorksheetRow.createMany({ data: [...rows(GROSS_STAFF, grossIds, "GROSS_TO_NET"), ...rows(NET_STAFF, netIds, "NET_TO_GROSS")] });
+  await prisma.salaryWorksheetRow.createMany({ data: [...rows(GROSS_STAFF, grossIds, allNet ? "NET_TO_GROSS" : "GROSS_TO_NET"), ...rows(NET_STAFF, netIds, "NET_TO_GROSS", allNet ? GROSS_STAFF.length : 0)] });
 
   console.log(JSON.stringify({
     company: company.name,
@@ -139,8 +151,9 @@ async function main() {
     accountingCollarTypes: COLLARS.length,
     replacedDemoPersonnel: removedDemo.count,
     accountingPersonnel: grossIds.length + netIds.length,
-    grossToNetRows: GROSS_STAFF.length,
-    netToGrossRows: NET_STAFF.length,
+    salaryBasis: allNet ? "NET" : "MIXED",
+    grossToNetRows: allNet ? 0 : GROSS_STAFF.length,
+    netToGrossRows: NET_STAFF.length + (allNet ? GROSS_STAFF.length : 0),
   }, null, 2));
 }
 
