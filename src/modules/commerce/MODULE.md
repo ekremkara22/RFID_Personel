@@ -17,7 +17,8 @@ Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla e�
 - Ekranlar: `src/app/dashboard/sales/**`
 - API: `src/app/api/integrations/shopier/**`
 - İş mantığı: `src/modules/commerce/**`
-- Veri: `IntegrationCredential`, `ShopierLicenseProduct`, `ShopierOrder`, `ShopierOrderLicense` (Faz 2+: fiziksel ürün, içerik, sosyal hesap ve paylaşım modelleri)
+- Veri: `IntegrationCredential`, `ShopierLicenseProduct`, `ShopierOrder` (Faz 2: kargo alanları), `ShopierOrderLicense`, `CommerceProduct`, `CommerceProductImage` (Faz 3+: içerik, sosyal hesap ve paylaşım modelleri)
+- Dosya deposu: ürün görselleri `var/commerce-products` (veya `COMMERCE_MEDIA_DIR`), `/api/integrations/shopier/product-images/[file]` ile herkese açık sunulur.
 - Testler: `src/modules/commerce/**/*.test.ts`
 
 ### Dosyalar (Faz 1)
@@ -30,7 +31,16 @@ Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla e�
 - Ekranlar: `src/app/dashboard/sales/{orders,activations,license-products,integrations}`; menüde platform grubunda tek "Satış & Pazarlama" girdisi, alt sayfalar sayfa içi sekmelerle.
 - Testler: `license-rules.test.ts`, `webhook-signature.test.ts`, `secret-box.test.ts` (`npm test` listesine ekli).
 
+### Dosyalar (Faz 2)
+- `product-rules.ts` (saf: ürün formu doğrulama, Shopier ürün gövdesi, içe aktarma normalizasyonu, kargo bilgisi, görsel türü) + `product-rules.test.ts`.
+- `product-media.ts` (görsel kaydet/oku/sil; JPG/PNG sihirli bayt kontrolü, 2 MB) ve `src/app/api/integrations/shopier/product-images/[file]/route.ts`.
+- `product-catalog.ts` (ürün oluştur/güncelle, görsel sırası, Shopier'de yayınla/güncelle/kaldır, tek yönlü içe aktarma, siparişi gönderildi işaretleme).
+- Ekranlar: `src/app/dashboard/sales/products/**` (liste, yeni, düzenle + galeri) ve `src/app/dashboard/sales/orders/[id]` (sipariş detayı, adres, kargo formu).
+
 ### Uygulama notları
+- Faz 2 ürün kararları (2026-10-15): panel asıl kaynaktır (Shopier'deki mevcut ürünler bir kez içe aktarılır, sonraki içe aktarmalar mevcut kaydı ezmez); varyant yok; kargo panelden "gönderildi" işaretlenir (`PUT /orders/{id}` `fulfillments`) ve takip no Shopier'e gider.
+- Shopier'de doğrudan kapatılan sipariş (`status = fulfilled`) "Shopier'de kapatıldı" görünür ve kargo bekleyenlere girmez.
+- Görsel adresi Shopier'in indirebilmesi için mutlak https olmalıdır: `APP_URL`, yoksa isteğin host'u kullanılır. Görseller `public/` altına yazılmaz (build sonrası eklenen dosyalar oradan sunulmaz).
 - `ShopierOrderLicense.activatedById`: ACTIVATED kayıtta null = otomatik aktivasyon, dolu = elle aktive eden admin. IGNORED kayıtta (`ignorePending`) kararı veren admindir.
 - Sıra dışı webhook: saklanan siparişte tamamlanmış iade (`full`, `partial`) varsa daha eski gövde iade durumunu geri almaz (`mergeRefundStatus`) ve lisans açmaz. Lisans açılmadan tam iade edilen sipariş için eşlemesi olan satırlara REFUNDED kayıt yazılır; böylece sonradan gelen eski "paid" teslimi unique anahtara takılır.
 - Shopier belgesi (Order modeli) "şu an yalnız paid siparişler kapsamda, unpaid ileride kullanılmak üzere ayrılmış" der ve ödeme durumu değişikliği için ayrı bir olay tanımlamaz. Bu yüzden order.created + order.fulfilled + refund.updated aboneliği yeterli kabul edildi.
@@ -61,11 +71,11 @@ Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla e�
 
 ## Yol haritası
 1. **Faz 1 (tamamlandı, staging 2026-10-15)**: Entegrasyon ayarları (Shopier token, webhook kaydı), Shopier ürünü ile modül eşlemesi, webhook ve elle eşitleme ile otomatik lisans aktivasyonu, sipariş listesi, eşleşme bekleyen kuyruk.
-2. **Faz 2**: Fiziksel ürün kataloğu, Shopier'e ürün yayınlama (`POST /v1/products`, görseller URL olarak), fiziksel siparişler ve kargo durumu.
+2. **Faz 2 (kodlandı 2026-10-15, Shopier ürün uçları canlıda doğrulanmadı)**: Fiziksel ürün kataloğu, Shopier'e ürün yayınlama (`POST/PUT /v1/products`, görseller URL olarak), fiziksel siparişler ve kargo durumu.
 3. **Faz 3**: Şablon tabanlı ürün görseli (kare/dikey) ve kısa video üretimi; daha sonra isteğe bağlı AI sağlayıcısı.
 4. **Faz 4**: Instagram ve TikTok işletme hesabı bilgilerinin girildiği alan, paylaşım planlama ve otomatik yayın.
 
 Faz notları:
-- Faz 2: Mevcut token Shopier `GET /v1/products` ucunda 403 alıyor (sipariş ve webhook uçları çalışıyor). Ürün yayınlamadan önce `products:write` erişimi canlıda denenmeli; gerekirse kullanıcı yeni token alır.
+- Faz 2: Mevcut token `GET /v1/products` ucunda 403 ("Access to this resource on the server is denied") alıyor; aynı `products:read` kapsamındaki `GET /v1/categories` ise 200 dönüyor (2026-10-15). Shopier tek PAT veriyor, kapsam seçimi yok; sorun büyük olasılıkla Shopier tarafında. Yayınlama ve içe aktarma ilk denemede bu hatayı gösterebilir; gerekirse Shopier desteğine sorulmalı.
 - Faz 3: Önce şablonla üretim (ürün fotoğrafı + başlık + fiyat + logo; kare ve dikey format), AI sağlayıcısı sonra.
 - Faz 4: Kullanıcının henüz işletme hesabı yok. Instagram/TikTok hesap bilgileri Entegrasyonlar sayfasında girilecek, şifreli `IntegrationCredential` tablosunda saklanacak; paylaşım planlanacak ve otomatik yayınlanacak.

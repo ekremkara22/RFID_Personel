@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 
 import { ActionError, actionErrorMessage, type ActionResult } from "@/lib/action-error";
@@ -19,6 +20,18 @@ import {
 import { activatePending, ignorePending, ingestOrder } from "./license-activation";
 import { webhookEventLabel } from "./labels";
 import { normalizeEmail, normalizeShopierId, parseDurationDays } from "./license-rules";
+import {
+  createProduct,
+  deleteProduct,
+  fulfillOrder,
+  importShopierProducts,
+  makePrimaryImage,
+  publishProduct,
+  removeProductImage,
+  unpublishProduct,
+  updateProduct,
+} from "./product-catalog";
+import { parseFulfillmentInput, parseProductInput, ProductRuleError } from "./product-rules";
 import { SHOPIER_WEBHOOK_PATH } from "./repository";
 import { createShopierClient, getShopierClient } from "./shopier-client";
 import { SHOPIER_LICENSE_WEBHOOK_EVENTS } from "./shopier-types";
@@ -246,6 +259,139 @@ export async function activatePendingLicenseAction(formData: FormData) {
     revalidateSales();
     revalidatePath("/dashboard", "layout");
     return "Lisans kullanıcıya aktive edildi.";
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Physical products (Faz 2)
+// ---------------------------------------------------------------------------
+
+const PRODUCT_FIELDS = ["title", "description", "price", "currency", "vatPercent", "shippingPayer", "shippingPrice", "stockQuantity", "dispatchDuration"] as const;
+
+function productInputFromForm(formData: FormData) {
+  const fields = Object.fromEntries(PRODUCT_FIELDS.map((name) => [name, getString(formData, name)]));
+  try {
+    return parseProductInput(fields);
+  } catch (error) {
+    if (error instanceof ProductRuleError) throw new ActionError(error.message);
+    throw error;
+  }
+}
+
+function uploadedImages(formData: FormData) {
+  return formData.getAll("images").filter((value): value is File => value instanceof File && value.size > 0);
+}
+
+/** Absolute origin Shopier can download product images from: APP_URL, else this request's host. */
+async function publicBaseUrl() {
+  const configured = process.env.APP_URL?.trim();
+  if (configured) return new URL(configured).origin;
+  const headerList = await headers();
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  if (!host) throw new ActionError("Uygulama adresi belirlenemedi. Sunucuda APP_URL tanımlayın.");
+  return `${headerList.get("x-forwarded-proto") ?? "https"}://${host}`;
+}
+
+function revalidateProducts(id?: number) {
+  revalidatePath("/dashboard/sales/products");
+  if (id) revalidatePath(`/dashboard/sales/products/${id}`);
+}
+
+export async function saveProductAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    const id = getOptionalId(formData, "id");
+    const input = productInputFromForm(formData);
+    const files = uploadedImages(formData);
+    if (!id) {
+      const newId = await createProduct(input, files);
+      revalidateProducts();
+      redirect(`/dashboard/sales/products/${newId}`);
+    }
+    const { published } = await updateProduct(id, input, files);
+    revalidateProducts(id);
+    return published ? "Değişiklikler kaydedildi. Shopier'e yansıtmak için “Shopier'i güncelle”yi kullanın." : "Ürün kaydedildi.";
+  });
+}
+
+export async function makePrimaryProductImageAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    const id = getId(formData, "id");
+    await makePrimaryImage(id, getId(formData, "imageId"));
+    revalidateProducts(id);
+    return "Ana görsel değiştirildi.";
+  });
+}
+
+export async function removeProductImageAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    const id = getId(formData, "id");
+    await removeProductImage(id, getId(formData, "imageId"));
+    revalidateProducts(id);
+    return "Görsel kaldırıldı.";
+  });
+}
+
+export async function publishProductAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    const id = getId(formData, "id");
+    try {
+      const { created } = await publishProduct(id, await publicBaseUrl());
+      return created ? "Ürün Shopier'de yayınlandı." : "Shopier'deki ürün güncellendi.";
+    } catch (error) {
+      if (error instanceof ProductRuleError) throw new ActionError(error.message);
+      throw error;
+    } finally {
+      revalidateProducts(id);
+    }
+  });
+}
+
+export async function unpublishProductAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    const id = getId(formData, "id");
+    await unpublishProduct(id);
+    revalidateProducts(id);
+    return "Ürün Shopier'den kaldırıldı ve arşivlendi.";
+  });
+}
+
+export async function deleteProductAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    await deleteProduct(getId(formData, "id"));
+    revalidateProducts();
+    redirect("/dashboard/sales/products");
+  });
+}
+
+export async function importShopierProductsAction() {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    const totals = await importShopierProducts();
+    revalidateProducts();
+    return `İçe aktarma tamamlandı: Shopier'de ${totals.found} fiziksel ürün bulundu, ${totals.imported} yeni ürün eklendi, ${totals.existing} ürün zaten katalogdaydı${totals.skipped ? `, ${totals.skipped} kayıt atlandı` : ""}.`;
+  });
+}
+
+export async function fulfillOrderAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    const admin = await assertSuperadminUser();
+    const id = getId(formData, "id");
+    let input;
+    try {
+      input = parseFulfillmentInput({ shippingCompany: getString(formData, "shippingCompany"), trackingNumber: getString(formData, "trackingNumber") });
+    } catch (error) {
+      if (error instanceof ProductRuleError) throw new ActionError(error.message);
+      throw error;
+    }
+    await fulfillOrder(id, input, admin.id);
+    revalidateSales();
+    return "Sipariş Shopier'de gönderildi olarak işaretlendi.";
   });
 }
 

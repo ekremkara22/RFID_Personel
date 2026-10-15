@@ -14,7 +14,7 @@ import {
   shopierWebhookKey,
 } from "./credentials";
 import { getShopierClient } from "./shopier-client";
-import { SHOPIER_LICENSE_WEBHOOK_EVENTS } from "./shopier-types";
+import { SHOPIER_LICENSE_WEBHOOK_EVENTS, type ShopierApiOrder } from "./shopier-types";
 
 /** Read models for src/app/dashboard/sales pages (pages never import Prisma directly). */
 
@@ -87,10 +87,24 @@ export async function listShopierDigitalProducts(): Promise<{ products: { id: st
   }
 }
 
-export type OrderListFilter = { q?: string; from?: string; to?: string };
+/** Paid physical orders waiting for shipment; null refundStatus must be listed explicitly (SQL NULL). */
+const TO_SHIP_WHERE = {
+  hasPhysicalItems: true,
+  paymentStatus: "paid",
+  fulfilledAt: null,
+  status: { not: "fulfilled" },
+  OR: [{ refundStatus: null }, { refundStatus: { not: "full" } }],
+} satisfies Prisma.ShopierOrderWhereInput;
+
+export type OrderKindFilter ="" | "physical" | "toShip" | "digital";
+export type OrderListFilter = { q?: string; from?: string; to?: string; kind?: OrderKindFilter };
 
 export async function listShopierOrders(filter: OrderListFilter) {
   const where: Prisma.ShopierOrderWhereInput = {};
+  if (filter.kind === "physical") where.hasPhysicalItems = true;
+  if (filter.kind === "digital") where.hasPhysicalItems = false;
+  // AND keeps TO_SHIP_WHERE's OR separate from the search OR below.
+  if (filter.kind === "toShip") where.AND = [TO_SHIP_WHERE];
   const q = filter.q?.trim();
   if (q) where.OR = [{ shopierOrderId: { contains: q } }, { buyerEmail: { contains: q.toLowerCase() } }, { buyerName: { contains: q } }];
   const orderedAt: Prisma.DateTimeFilter = {};
@@ -111,11 +125,69 @@ export async function listShopierOrders(filter: OrderListFilter) {
       orderedAt: true,
       refundStatus: true,
       source: true,
+      hasPhysicalItems: true,
+      fulfilledAt: true,
       licenses: { select: { status: true } },
     },
     orderBy: { orderedAt: "desc" },
     take: 500,
   });
+}
+
+/** Paid physical orders not yet marked as shipped. */
+export function countOrdersToShip() {
+  return prisma.shopierOrder.count({ where: TO_SHIP_WHERE });
+}
+
+export type OrderLineView = { productId: string; title: string; type: string | null; quantity: number; total: string | null };
+export type ShippingAddressView = { name: string; phone: string | null; lines: string[] };
+
+/** Order detail with line items and shipping address parsed from the stored raw Shopier body. */
+export async function getShopierOrderDetail(id: number) {
+  const order = await prisma.shopierOrder.findUnique({
+    where: { id },
+    include: {
+      fulfilledBy: { select: { email: true, firstName: true, lastName: true, name: true } },
+      licenses: { select: { id: true, status: true, moduleKey: true, shopierProductId: true } },
+    },
+  });
+  if (!order) return null;
+  let raw: { lineItems?: ShopierApiOrder["lineItems"]; shippingInfo?: Record<string, unknown> | null } = {};
+  try {
+    raw = JSON.parse(order.payload) as typeof raw;
+  } catch {
+    // Keep the detail page usable without line items.
+  }
+  const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
+  const lines: OrderLineView[] = (Array.isArray(raw.lineItems) ? raw.lineItems : []).map((item) => ({
+    productId: item?.productId !== null && item?.productId !== undefined ? String(item.productId) : "—",
+    title: text(item?.title) ?? "İsimsiz ürün",
+    type: text(item?.type)?.toLowerCase() ?? null,
+    quantity: Number(item?.quantity) > 0 ? Number(item?.quantity) : 1,
+    total: text(item?.total) ?? text(item?.price),
+  }));
+  const info = raw.shippingInfo ?? null;
+  const shipping: ShippingAddressView | null = info
+    ? {
+        name: [text(info.firstName), text(info.lastName)].filter(Boolean).join(" ") || "İsimsiz alıcı",
+        phone: text(info.phone),
+        lines: [text(info.company), text(info.address), [text(info.district), text(info.city) ?? text(info.state), text(info.postcode)].filter(Boolean).join(" "), text(info.country)].filter((line): line is string => !!line),
+      }
+    : null;
+  const { payload, ...rest } = order;
+  void payload;
+  return { ...rest, lines, shipping };
+}
+
+export function listCommerceProducts() {
+  return prisma.commerceProduct.findMany({
+    include: { images: { orderBy: { placement: "asc" }, take: 1 } },
+    orderBy: [{ status: "asc" }, { title: "asc" }],
+  });
+}
+
+export function getCommerceProduct(id: number) {
+  return prisma.commerceProduct.findUnique({ where: { id }, include: { images: { orderBy: { placement: "asc" } } } });
 }
 
 /** Licenses that need a super admin decision: waiting for a match, or refunded after activation. */

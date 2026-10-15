@@ -106,6 +106,7 @@ async function upsertOrder(order: NormalizedShopierOrder, payload: string, sourc
     buyerPhone: order.buyerPhone,
     orderedAt: order.orderedAt,
     refundStatus: order.refundStatus,
+    hasPhysicalItems: order.lineItems.some((item) => item.type === "physical"),
     payload,
   };
   const select = { id: true, refundStatus: true } as const;

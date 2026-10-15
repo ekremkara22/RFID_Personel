@@ -3,6 +3,7 @@ import "server-only";
 import { ActionError } from "@/lib/action-error";
 import { getCredential, SHOPIER_API_TOKEN_KEY, SHOPIER_PROVIDER } from "./credentials";
 import { formatShopierDate } from "./license-rules";
+import type { buildFulfillmentPayload, ShopierProductPayload } from "./product-rules";
 import type { ShopierApiOrder, ShopierApiProduct, ShopierApiWebhook } from "./shopier-types";
 
 /**
@@ -15,7 +16,7 @@ const MAX_PAGES = 200;
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   query?: Record<string, string | number | undefined>;
   body?: unknown;
   timeoutMs?: number;
@@ -101,8 +102,22 @@ export function createShopierClient(token: string) {
     getOrder(id: string, timeoutMs?: number) {
       return request<ShopierApiOrder>(`orders/${encodeURIComponent(id)}`, { timeoutMs });
     },
-    listProducts() {
-      return listAll<ShopierApiProduct>("products");
+    listProducts(query: { productType?: "physical" | "digital" } = {}) {
+      return listAll<ShopierApiProduct>("products", query);
+    },
+    /** Shopier downloads media URLs while creating the product, so creation can be slow. */
+    createProduct(body: ShopierProductPayload) {
+      return request<ShopierApiProduct>("products", { method: "POST", body, timeoutMs: 30_000 });
+    },
+    updateProduct(id: string, body: ShopierProductPayload) {
+      return request<ShopierApiProduct>(`products/${encodeURIComponent(id)}`, { method: "PUT", body, timeoutMs: 30_000 });
+    },
+    async deleteProduct(id: string) {
+      await request<unknown>(`products/${encodeURIComponent(id)}`, { method: "DELETE" });
+    },
+    /** Closes the order (fulfillment); the response is the updated order. */
+    updateOrder(id: string, body: ReturnType<typeof buildFulfillmentPayload>) {
+      return request<ShopierApiOrder>(`orders/${encodeURIComponent(id)}`, { method: "PUT", body, timeoutMs: 20_000 });
     },
     /** First page only; used as a cheap connection test. */
     async testConnection() {

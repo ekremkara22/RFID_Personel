@@ -6,6 +6,7 @@ import styles from "../page.module.css";
 
 const TABS = [
   { href: "/dashboard/sales/orders", label: "Siparişler" },
+  { href: "/dashboard/sales/products", label: "Ürünler" },
   { href: "/dashboard/sales/activations", label: "Lisans Kuyruğu" },
   { href: "/dashboard/sales/license-products", label: "Ürün Eşlemeleri" },
   { href: "/dashboard/sales/integrations", label: "Entegrasyonlar" },

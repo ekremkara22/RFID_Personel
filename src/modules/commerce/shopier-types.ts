@@ -46,7 +46,18 @@ export type ShopierApiProduct = {
   title?: string | null;
   type?: string | null; // physical | digital
   url?: string | null;
-  priceData?: { price?: string | number | null } | null;
+  description?: string | null;
+  media?: { id?: string | null; type?: string | null; url?: string | null; placement?: number | string | null }[] | null;
+  priceData?: {
+    price?: string | number | null;
+    currency?: string | null;
+    vatPercent?: string | number | null;
+    shippingPrice?: string | number | null;
+  } | null;
+  shippingPayer?: string | null; // buyerPays | sellerPays
+  stockQuantity?: number | string | null;
+  stockStatus?: string | null; // inStock | outOfStock
+  dispatchDuration?: number | string | null;
 };
 
 export type ShopierApiWebhook = {
