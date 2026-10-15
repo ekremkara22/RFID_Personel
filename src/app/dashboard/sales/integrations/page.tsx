@@ -89,6 +89,10 @@ export default async function SalesIntegrationsPage() {
               <input name="appUrl" type="url" inputMode="url" required defaultValue={appUrl} placeholder="https://flodeska.com" />
               <small className={ui.helpText}>Bildirimler <span className={ui.monoText}>{SHOPIER_WEBHOOK_PATH}</span> adresine gönderilir. Bu ortamın daha önce kurduğu abonelikler silinip yeniden oluşturulur.</small>
             </label>
+            <label className={`${ui.checkField} ${ui.formFullWidth}`}>
+              <input name="replaceOthers" type="checkbox" />
+              Diğer adreslerdeki aynı olay aboneliklerini de kaldır (ör. test ortamı; o ortam artık bildirim almaz)
+            </label>
           </div>
           <div className={ui.formActions}>
             <SubmitButton idleLabel={webhooksReady ? "Webhook'ları yeniden kur" : "Webhook'ları kur"} pendingLabel="Kuruluyor..." className={ui.secondaryAction} disabled={!overview.apiToken.configured} />

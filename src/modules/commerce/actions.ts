@@ -116,13 +116,17 @@ export async function setupShopierWebhooksAction(formData: FormData) {
   return runCommerceAction(async () => {
     const user = await assertSuperadminUser();
     const url = webhookTargetUrl(getString(formData, "appUrl"));
+    // Opt-in: also remove subscriptions of the same events that point at other addresses (e.g. staging),
+    // for when Shopier refuses a second subscription for an event.
+    const replaceOthers = formData.get("replaceOthers") === "on";
+    const events = new Set<string>(SHOPIER_LICENSE_WEBHOOK_EVENTS);
     const client = await getShopierClient();
     const existing = await client.listWebhooks();
     const storedIds = new Set((await Promise.all(SHOPIER_LICENSE_WEBHOOK_EVENTS.map(storedWebhookId))).filter((id): id is string => !!id));
     const toDelete = existing
       .filter((webhook) => {
         const id = normalizeShopierId(webhook.id);
-        return id && (storedIds.has(id) || webhook.url === url);
+        return id && (storedIds.has(id) || webhook.url === url || (replaceOthers && events.has(webhook.event ?? "")));
       })
       .map((webhook) => normalizeShopierId(webhook.id)!);
     let deleted = 0;
@@ -137,6 +141,7 @@ export async function setupShopierWebhooksAction(formData: FormData) {
     }
 
     const failedEvents: string[] = [];
+    const reasons = new Set<string>();
     for (const event of SHOPIER_LICENSE_WEBHOOK_EVENTS) {
       try {
         const created = await client.createWebhook(event, url);
@@ -145,17 +150,20 @@ export async function setupShopierWebhooksAction(formData: FormData) {
         if (!id || !token) throw new ActionError("imza anahtarı dönmedi");
         // The token is only returned here; it is stored encrypted and never shown.
         await setCredential(SHOPIER_PROVIDER, shopierWebhookKey(event), JSON.stringify({ id, token }), user.id, { maskable: false });
-      } catch {
+      } catch (error) {
         // The old subscription may already be deleted: a stale token must not look "installed".
         await deleteCredential(SHOPIER_PROVIDER, shopierWebhookKey(event));
         failedEvents.push(webhookEventLabel(event));
+        reasons.add(error instanceof ActionError ? error.message : "bilinmeyen hata");
       }
     }
     revalidateSales();
     const cleanup = `${deleted ? ` ${deleted} eski abonelik silindi.` : ""}${deleteFailed ? ` ${deleteFailed} eski abonelik silinemedi; Shopier panelinden kontrol edin.` : ""}`;
     if (failedEvents.length) {
       const installed = SHOPIER_LICENSE_WEBHOOK_EVENTS.length - failedEvents.length;
-      throw new ActionError(`${installed} webhook kuruldu; kurulamayan olaylar: ${failedEvents.join(", ")}. Bu olaylar için tekrar "Webhook'ları kur" deneyin.${cleanup}`);
+      const others = existing.filter((webhook) => events.has(webhook.event ?? "") && webhook.url !== url && !toDelete.includes(normalizeShopierId(webhook.id) ?? "")).length;
+      const hint = others && !replaceOthers ? ` Shopier'de bu olaylar için başka adrese kurulu ${others} abonelik var; "diğer adreslerdeki abonelikleri kaldır" seçeneğiyle tekrar deneyin.` : "";
+      throw new ActionError(`${installed} webhook kuruldu; kurulamayan olaylar: ${failedEvents.join(", ")}. Shopier yanıtı: ${[...reasons].join(" / ")}${cleanup}${hint}`);
     }
     return `${SHOPIER_LICENSE_WEBHOOK_EVENTS.length} webhook aboneliği kuruldu.${cleanup}`;
   });
