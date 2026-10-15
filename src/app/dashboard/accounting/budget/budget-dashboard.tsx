@@ -6,6 +6,7 @@ import { FileDown } from "lucide-react";
 import { buildBudgetReport, UNASSIGNED_LABEL, type BudgetEntry, type BudgetGroup } from "@/lib/budget-report";
 import { SALARY_MONTHS, type SalaryParameters } from "@/lib/salary-calculation";
 import ui from "../../management.module.css";
+import { CostAnatomy, DepartmentDonut, MonthlyStack } from "./budget-charts";
 import styles from "./budget.module.css";
 
 type Source = "net-to-gross" | "gross-to-net" | "all";
@@ -19,11 +20,10 @@ const PREFERENCE_KEY = "rfid-personel.budget-report.v1";
 const amount = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const f2 = (value: number) => amount.format(value);
 const pct = (value: number) => `${(value * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })} %`;
-const short = (value: number) => value >= 1e6 ? `${(value / 1e6).toLocaleString("tr-TR", { maximumFractionDigits: 2 })} Mn` : `${Math.round(value / 1e3).toLocaleString("tr-TR")} bin`;
 
-function GroupTable({ title, groups, wide = false }: { title: string; groups: BudgetGroup[]; wide?: boolean }) {
+function GroupTable({ title, groups }: { title: string; groups: BudgetGroup[] }) {
   return (
-    <section className={`${styles.card} ${wide ? styles.wideCard : ""}`}>
+    <section className={styles.card}>
       <h3>{title}</h3>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -93,7 +93,6 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
   const filterText = [department && `Departman: ${department}`, collar && `Yaka: ${collar}`, raiseRate ? `%${raise} zam senaryosu` : ""].filter(Boolean).join(" · ");
   const months = report.months;
   const monthCosts = months.map((month) => month.employerCost);
-  const maxMonth = Math.max(1, ...monthCosts);
   const peak = monthCosts.indexOf(Math.max(...monthCosts));
   const low = monthCosts.indexOf(Math.min(...monthCosts));
   const top = report.people.slice(0, 5);
@@ -173,20 +172,15 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
             ))}
           </section>
 
+          <CostAnatomy net={report.annualNet} gross={report.annualGross} employerCost={report.annualEmployerCost} headcount={report.headcount} />
+
+          <div className={styles.showcase}>
+            <DepartmentDonut groups={report.byDepartment} total={report.annualEmployerCost} />
+            <MonthlyStack months={months} />
+          </div>
+
           <div className={styles.grid}>
-            <section className={styles.card}>
-              <h3>Aylık işveren maliyeti</h3>
-              <div className={styles.chart} role="img" aria-label={`Aylık işveren maliyeti; en yüksek ${SALARY_MONTHS[peak]}`}>
-                {months.map((month) => (
-                  <div key={month.month} title={`${month.label}: ${f2(month.employerCost)}`}>
-                    <span>{short(month.employerCost)}</span>
-                    <i style={{ height: `${Math.round((month.employerCost / maxMonth) * 120)}px` }} />
-                    <span>{month.label.slice(0, 3)}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-            <section className={styles.card}>
+            <section className={`${styles.card} ${styles.wideCard}`}>
               <h3>Değerlendirme</h3>
               <ul className={styles.insights}>
                 <li>Aylık maliyet Ocak&apos;tan Aralık&apos;a <b>{pct(monthCosts[0] ? monthCosts[11] / monthCosts[0] - 1 : 0)}</b> değişiyor (vergi dilimi ve asgari ücret istisnası etkisi).</li>
@@ -202,7 +196,21 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
           </div>
 
           <div className={`${styles.grid} ${styles.tablesGrid}`}>
-            <GroupTable title="Departman bazında" groups={report.byDepartment} wide />
+            <GroupTable title="Departman bazında" groups={report.byDepartment} />
+            <section className={styles.card}>
+              <h3>Aylık özet</h3>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead><tr><th>Ay</th><th>Brüt</th><th>Net</th><th>İşveren maliyeti</th><th>Kümülatif</th></tr></thead>
+                  <tbody>
+                    {months.map((month) => (
+                      <tr key={month.month}><td className={styles.textCell}>{month.label}</td><td>{f2(month.gross)}</td><td>{f2(month.net)}</td><td>{f2(month.employerCost)}</td><td>{f2(month.cumulativeEmployerCost)}</td></tr>
+                    ))}
+                    <tr className={styles.totalRow}><td className={styles.textCell}>TOPLAM</td><td>{f2(report.annualGross)}</td><td>{f2(report.annualNet)}</td><td>{f2(report.annualEmployerCost)}</td><td /></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
             <GroupTable title="Pozisyon bazında" groups={report.byPosition} />
             <GroupTable title="Yaka bazında" groups={report.byCollar} />
             <GroupTable title="Çalışan tipi bazında" groups={report.byInsurance} />
@@ -214,20 +222,6 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
                   <tbody>{top.map((person) => (
                     <tr key={person.key}><td className={styles.textCell}>{person.name}</td><td className={styles.textCell}>{person.department ?? "—"}</td><td className={styles.textCell}>{person.position ?? "—"}</td><td>{f2(person.annualEmployerCost)}</td></tr>
                   ))}</tbody>
-                </table>
-              </div>
-            </section>
-            <section className={`${styles.card} ${styles.wideCard}`}>
-              <h3>Aylık özet</h3>
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead><tr><th>Ay</th><th>Brüt</th><th>Net</th><th>İşveren maliyeti</th><th>Kümülatif</th></tr></thead>
-                  <tbody>
-                    {months.map((month) => (
-                      <tr key={month.month}><td className={styles.textCell}>{month.label}</td><td>{f2(month.gross)}</td><td>{f2(month.net)}</td><td>{f2(month.employerCost)}</td><td>{f2(month.cumulativeEmployerCost)}</td></tr>
-                    ))}
-                    <tr className={styles.totalRow}><td className={styles.textCell}>TOPLAM</td><td>{f2(report.annualGross)}</td><td>{f2(report.annualNet)}</td><td>{f2(report.annualEmployerCost)}</td><td /></tr>
-                  </tbody>
                 </table>
               </div>
             </section>
