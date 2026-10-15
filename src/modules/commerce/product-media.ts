@@ -18,7 +18,7 @@ const STORAGE_KEY = /^[0-9a-f-]{36}\.(jpg|png)$/;
 export const PRODUCT_IMAGE_ROUTE = "/api/integrations/shopier/product-images";
 
 function storageDirectory() {
-  return path.resolve(process.env.COMMERCE_MEDIA_DIR || DEFAULT_DIRECTORY);
+  return path.resolve(/* turbopackIgnore: true */ process.env.COMMERCE_MEDIA_DIR || DEFAULT_DIRECTORY);
 }
 
 export function isProductImageKey(key: string) {
@@ -27,7 +27,7 @@ export function isProductImageKey(key: string) {
 
 function storagePath(key: string) {
   if (!isProductImageKey(key)) throw new Error("Invalid product image key.");
-  return path.join(storageDirectory(), key);
+  return path.join(/* turbopackIgnore: true */ storageDirectory(), key);
 }
 
 /** Validates (type by magic bytes, size) and stores one uploaded image; returns its storage key. */
