@@ -71,6 +71,11 @@ test("buyer email prefers shipping info and falls back to billing info", () => {
   assert.equal(normalizeShopierOrder({ ...base, shippingInfo: null, billingInfo: null }, now).buyerEmail, null);
 });
 
+test("order date accepts Shopier's colon-less offset", () => {
+  const order = normalizeShopierOrder({ id: "1002", paymentStatus: "paid", lineItems: [], dateCreated: "2026-10-12T18:29:05+0300" }, now);
+  assert.equal(order.orderedAt.toISOString(), "2026-10-12T15:29:05.000Z");
+});
+
 test("order normalization maps Shopier fields", () => {
   const order = normalizeShopierOrder({
     id: 555,

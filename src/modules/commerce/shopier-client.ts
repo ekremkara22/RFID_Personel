@@ -106,7 +106,8 @@ export function createShopierClient(token: string) {
     },
     /** First page only; used as a cheap connection test. */
     async testConnection() {
-      await request<ShopierApiProduct[]>("products", { query: { limit: 1, page: 1 } });
+      // Orders are what license activation needs; some PATs get 403 on /products even with products:read.
+      await request<ShopierApiOrder[]>("orders", { query: { limit: 1, page: 1 } });
     },
     /** The returned token exists only in this response and must be stored immediately. */
     createWebhook(event: string, url: string) {

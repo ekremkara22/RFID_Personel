@@ -64,7 +64,8 @@ function normalizeQuantity(value: unknown): number {
 function parseShopierDate(value: unknown, fallback: Date): Date {
   const raw = text(value, 40);
   if (!raw) return fallback;
-  const date = new Date(raw);
+  // Shopier sends "+0300" offsets (no colon) although the docs show "Z"; normalize for strict parsers.
+  const date = new Date(raw.replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
   return Number.isNaN(date.getTime()) ? fallback : date;
 }
 

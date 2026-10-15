@@ -48,8 +48,13 @@ export function getLicenseProduct(id: number) {
 
 /** Digital Shopier products for the mapping picker; API failures become a readable message. */
 export async function listShopierDigitalProducts(): Promise<{ products: { id: string; title: string; price: string | null }[]; error: string | null }> {
+  let client: Awaited<ReturnType<typeof getShopierClient>>;
   try {
-    const client = await getShopierClient();
+    client = await getShopierClient();
+  } catch (error) {
+    return { products: [], error: error instanceof ActionError ? error.message : "Shopier ürünleri alınamadı." };
+  }
+  try {
     const products = await client.listProducts();
     return {
       products: products
@@ -61,8 +66,24 @@ export async function listShopierDigitalProducts(): Promise<{ products: { id: st
         })),
       error: null,
     };
-  } catch (error) {
-    return { products: [], error: error instanceof ActionError ? error.message : "Shopier ürünleri alınamadı." };
+  } catch {
+    // Some tokens are denied on /products; fall back to digital products seen in the last 60 days of orders.
+    try {
+      const byId = new Map<string, { id: string; title: string; price: string | null }>();
+      for (const order of await client.listOrders()) {
+        for (const item of order.lineItems ?? []) {
+          if (item.productId === null || item.productId === undefined || (item.type ?? "").toLowerCase() !== "digital") continue;
+          const id = String(item.productId);
+          if (!byId.has(id)) byId.set(id, { id, title: item.title?.trim() || `Ürün ${id}`, price: item.price ?? null });
+        }
+      }
+      return {
+        products: [...byId.values()],
+        error: byId.size ? null : "Shopier ürün listesine erişilemedi ve son 60 günde dijital ürün siparişi yok. Ürün numarasını Shopier ürün sayfasından elle girin.",
+      };
+    } catch (error) {
+      return { products: [], error: error instanceof ActionError ? error.message : "Shopier ürünleri alınamadı." };
+    }
   }
 }
 
