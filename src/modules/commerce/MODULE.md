@@ -71,7 +71,7 @@ Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla e�
 
 ## Yol haritası
 1. **Faz 1 (tamamlandı, staging 2026-10-15)**: Entegrasyon ayarları (Shopier token, webhook kaydı), Shopier ürünü ile modül eşlemesi, webhook ve elle eşitleme ile otomatik lisans aktivasyonu, sipariş listesi, eşleşme bekleyen kuyruk.
-2. **Faz 2 (kodlandı 2026-10-15, Shopier ürün uçları canlıda doğrulanmadı)**: Fiziksel ürün kataloğu, Shopier'e ürün yayınlama (`POST/PUT /v1/products`, görseller URL olarak), fiziksel siparişler ve kargo durumu.
+2. **Faz 2 (kodlandı ve staging'de 2026-10-15; ürün sahibi kararıyla beklemede: ürünler şimdilik Shopier'e elle giriliyor, öncelik dijital lisanslama)**: Fiziksel ürün kataloğu, Shopier'e ürün yayınlama (`POST/PUT /v1/products`, görseller URL olarak), fiziksel siparişler ve kargo durumu.
 3. **Faz 3**: Şablon tabanlı ürün görseli (kare/dikey) ve kısa video üretimi; daha sonra isteğe bağlı AI sağlayıcısı.
 4. **Faz 4**: Instagram ve TikTok işletme hesabı bilgilerinin girildiği alan, paylaşım planlama ve otomatik yayın.
 

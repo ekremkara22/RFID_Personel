@@ -25,7 +25,8 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     adapter,
-    log: ["query"],
+    // Query logging only in development: on servers it floods journald with every SQL statement.
+    log: process.env.NODE_ENV === "development" ? ["query", "warn", "error"] : ["warn", "error"],
   });
 
 if (process.env.NODE_ENV !== "production") {

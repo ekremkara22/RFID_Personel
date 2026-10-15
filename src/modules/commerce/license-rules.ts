@@ -35,6 +35,24 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+const NAMED_ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+
+/** Shopier sends some titles HTML-encoded ("Net &amp; Brüt"); decode once for display. */
+export function decodeHtmlEntities(value: string): string {
+  return value.replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]+);/gi, (match, entity: string) => {
+    if (entity[0] === "#") {
+      const code = entity[1].toLowerCase() === "x" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
+      return Number.isInteger(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+    }
+    return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
+  });
+}
+
+/** Display text from Shopier (titles): trimmed, entity-decoded, length-capped. */
+export function shopierTitle(value: unknown, max: number): string {
+  return decodeHtmlEntities(text(value, max * 2)).trim().slice(0, max);
+}
+
 /** Lower-case and trim; anything that is not a plausible address becomes null. */
 export function normalizeEmail(value: unknown): string | null {
   const email = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -124,7 +142,7 @@ function normalizeLineItems(items: readonly ShopierLineItem[] | null | undefined
   return items.flatMap((item) => {
     const productId = normalizeShopierId(item?.productId);
     if (!productId) return [];
-    return [{ productId, title: text(item.title, 200), type: text(item.type, 16).toLowerCase() || null, quantity: normalizeQuantity(item.quantity) }];
+    return [{ productId, title: shopierTitle(item.title, 200), type: text(item.type, 16).toLowerCase() || null, quantity: normalizeQuantity(item.quantity) }];
   });
 }
 

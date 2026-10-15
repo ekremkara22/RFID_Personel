@@ -5,6 +5,8 @@ import {
   aggregateLineItems,
   computeEntitlementExpiry,
   computeRefundStatus,
+  decodeHtmlEntities,
+  shopierTitle,
   formatShopierDate,
   isFullyRefunded,
   isOrderPayload,
@@ -16,6 +18,14 @@ import {
   parseDurationDays,
   refundPayloadOrderId,
 } from "./license-rules";
+
+test("decodes HTML-encoded Shopier titles once", () => {
+  assert.equal(decodeHtmlEntities("2026 Net → Brüt &amp; Brüt → Net &amp; İşveren"), "2026 Net → Brüt & Brüt → Net & İşveren");
+  assert.equal(decodeHtmlEntities("&quot;LED&quot; &#39;logo&#39; &#x130;stanbul &lt;3"), "\"LED\" 'logo' İstanbul <3");
+  assert.equal(decodeHtmlEntities("&amp;amp; &unknown; & alone"), "&amp; &unknown; & alone");
+  assert.equal(shopierTitle("  Maaş &amp; Bordro  ", 200), "Maaş & Bordro");
+  assert.equal(shopierTitle(null, 200), "");
+});
 
 const DAY = 24 * 60 * 60 * 1000;
 const now = new Date("2026-10-14T09:00:00.000Z");

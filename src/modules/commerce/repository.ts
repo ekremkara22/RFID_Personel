@@ -14,6 +14,7 @@ import {
   shopierWebhookKey,
 } from "./credentials";
 import { getShopierClient } from "./shopier-client";
+import { shopierTitle } from "./license-rules";
 import { SHOPIER_LICENSE_WEBHOOK_EVENTS, type ShopierApiOrder } from "./shopier-types";
 
 /** Read models for src/app/dashboard/sales pages (pages never import Prisma directly). */
@@ -61,7 +62,7 @@ export async function listShopierDigitalProducts(): Promise<{ products: { id: st
         .filter((product) => product.id !== null && product.id !== undefined && (product.type ?? "").toLowerCase() === "digital")
         .map((product) => ({
           id: String(product.id),
-          title: product.title?.trim() || `Ürün ${product.id}`,
+          title: shopierTitle(product.title, 200) || `Ürün ${product.id}`,
           price: product.priceData?.price !== null && product.priceData?.price !== undefined ? String(product.priceData.price) : null,
         })),
       error: null,
@@ -74,7 +75,7 @@ export async function listShopierDigitalProducts(): Promise<{ products: { id: st
         for (const item of order.lineItems ?? []) {
           if (item.productId === null || item.productId === undefined || (item.type ?? "").toLowerCase() !== "digital") continue;
           const id = String(item.productId);
-          if (!byId.has(id)) byId.set(id, { id, title: item.title?.trim() || `Ürün ${id}`, price: item.price ?? null });
+          if (!byId.has(id)) byId.set(id, { id, title: shopierTitle(item.title, 200) || `Ürün ${id}`, price: item.price ?? null });
         }
       }
       return {
@@ -161,7 +162,7 @@ export async function getShopierOrderDetail(id: number) {
   const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
   const lines: OrderLineView[] = (Array.isArray(raw.lineItems) ? raw.lineItems : []).map((item) => ({
     productId: item?.productId !== null && item?.productId !== undefined ? String(item.productId) : "—",
-    title: text(item?.title) ?? "İsimsiz ürün",
+    title: shopierTitle(item?.title, 200) || "İsimsiz ürün",
     type: text(item?.type)?.toLowerCase() ?? null,
     quantity: Number(item?.quantity) > 0 ? Number(item?.quantity) : 1,
     total: text(item?.total) ?? text(item?.price),

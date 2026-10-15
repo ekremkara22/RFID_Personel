@@ -3,7 +3,7 @@
  * product-rules.test.ts. Field limits follow Shopier's "Create a product" and
  * "Update an order" schemas (https://developer.shopier.com/reference/post-products).
  */
-import { normalizeShopierId } from "./license-rules";
+import { normalizeShopierId, shopierTitle } from "./license-rules";
 import type { ShopierApiProduct } from "./shopier-types";
 
 export const MAX_PRODUCT_IMAGES = 5;
@@ -161,8 +161,8 @@ export function normalizeImportedProduct(raw: ShopierApiProduct): ImportedProduc
   media.sort((a, b) => (numberOrNull(a?.placement) ?? 99) - (numberOrNull(b?.placement) ?? 99));
   return {
     shopierProductId,
-    title: (raw.title ?? "").trim().slice(0, 200) || `Shopier ürünü ${shopierProductId}`,
-    description: (raw.description ?? "").trim() || null,
+    title: shopierTitle(raw.title, 200) || `Shopier ürünü ${shopierProductId}`,
+    description: shopierTitle(raw.description, 20_000) || null,
     price: price.toFixed(2),
     currency: (PRODUCT_CURRENCIES as readonly string[]).includes(currency) ? currency : "TRY",
     vatPercent: vat !== null && (PRODUCT_VAT_PERCENTS as readonly number[]).includes(vat) ? vat : null,
