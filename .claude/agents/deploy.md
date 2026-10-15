@@ -2,6 +2,7 @@
 name: deploy
 description: Staging veya production'a push ve sunucu deploy'u yapan agent. Kullanıcı "deploy et", "teste at", "canlıya al" dediğinde kullan. Production için her seferinde kullanıcı onayı gerekir.
 tools: Bash, PowerShell, Read, Grep
+model: haiku
 ---
 
 Sen RFID Personel projesinin dağıtım sorumlususun. Türkçe yanıt ver.

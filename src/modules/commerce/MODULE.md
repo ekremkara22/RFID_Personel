@@ -60,7 +60,12 @@ Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla e�
 - Firma içi rol/izin yönetimi (erişim), tanıtım sitesi (pazarlama).
 
 ## Yol haritası
-1. **Faz 1**: Entegrasyon ayarları (Shopier token, webhook kaydı), Shopier ürünü ile modül eşlemesi, webhook ve elle eşitleme ile otomatik lisans aktivasyonu, sipariş listesi, eşleşme bekleyen kuyruk.
+1. **Faz 1 (tamamlandı, staging 2026-10-15)**: Entegrasyon ayarları (Shopier token, webhook kaydı), Shopier ürünü ile modül eşlemesi, webhook ve elle eşitleme ile otomatik lisans aktivasyonu, sipariş listesi, eşleşme bekleyen kuyruk.
 2. **Faz 2**: Fiziksel ürün kataloğu, Shopier'e ürün yayınlama (`POST /v1/products`, görseller URL olarak), fiziksel siparişler ve kargo durumu.
 3. **Faz 3**: Şablon tabanlı ürün görseli (kare/dikey) ve kısa video üretimi; daha sonra isteğe bağlı AI sağlayıcısı.
 4. **Faz 4**: Instagram ve TikTok işletme hesabı bilgilerinin girildiği alan, paylaşım planlama ve otomatik yayın.
+
+Faz notları:
+- Faz 2: Mevcut token Shopier `GET /v1/products` ucunda 403 alıyor (sipariş ve webhook uçları çalışıyor). Ürün yayınlamadan önce `products:write` erişimi canlıda denenmeli; gerekirse kullanıcı yeni token alır.
+- Faz 3: Önce şablonla üretim (ürün fotoğrafı + başlık + fiyat + logo; kare ve dikey format), AI sağlayıcısı sonra.
+- Faz 4: Kullanıcının henüz işletme hesabı yok. Instagram/TikTok hesap bilgileri Entegrasyonlar sayfasında girilecek, şifreli `IntegrationCredential` tablosunda saklanacak; paylaşım planlanacak ve otomatik yayınlanacak.
