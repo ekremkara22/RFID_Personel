@@ -5,6 +5,7 @@ import { SubmitButton } from "@/app/dashboard/submit-button";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { getModuleCatalog } from "@/modules/module-definitions/repository";
+import { isReleasedModule } from "@/modules/registry";
 import styles from "../../page.module.css";
 
 export default async function NewCompanyPage() {
@@ -14,10 +15,11 @@ export default async function NewCompanyPage() {
     redirect("/dashboard");
   }
 
-  const [categories, moduleCatalog] = await Promise.all([
+  const [categories, fullCatalog] = await Promise.all([
     queryRepository.companyCategory.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     getModuleCatalog(),
   ]);
+  const moduleCatalog = user.role === "SUPERADMIN" ? fullCatalog : fullCatalog.filter((module) => isReleasedModule(module.key));
 
   return (
     <div className={styles.page}>

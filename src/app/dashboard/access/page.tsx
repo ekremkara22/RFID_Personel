@@ -8,6 +8,7 @@ import { requireSessionUser } from "@/lib/session";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
 import { createModuleNameMap, getModuleCatalog } from "@/modules/module-definitions/repository";
+import { isReleasedModule } from "@/lib/module-catalog";
 
 const statusLabels: Record<CompanyMembershipStatus, string> = {
   PENDING: "Bekleyen",
@@ -20,7 +21,7 @@ function fullName(item: { user: { firstName: string | null; lastName: string | n
   return `${item.user.firstName ?? ""} ${item.user.lastName ?? ""}`.trim() || item.user.name || item.user.email;
 }
 
-export default async function AccessPage(props: { searchParams: Promise<{ q?: string; status?: string; invite?: string }> }) {
+export default async function AccessPage(props: { searchParams: Promise<{ q?: string; status?: string }> }) {
   const { authorization } = await requireSessionUser();
   assertPermission(authorization, PERMISSIONS.ACCESS_VIEW);
   if (!authorization.companyId) throw new Error("Aktif firma seçilmedi.");
@@ -56,8 +57,6 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
   ]);
   const moduleNames = createModuleNameMap(moduleCatalog);
 
-  const inviteLink = params.invite?.startsWith("https://test.flodeska.com/activate/") ? params.invite : "";
-
   return (
     <div className={`${styles.page} ${ui.managementPage}`}>
       <header className={ui.pageHeader}>
@@ -73,14 +72,6 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
           <Link href="/dashboard/access/audit" className={ui.secondaryAction}><History size={16} />Geçmiş</Link>
         </div>
       </header>
-
-      {inviteLink ? (
-        <section className={ui.notice}>
-          <h2>Davet bağlantısı hazır</h2>
-          <p>Bağlantı tek kullanımlıdır ve 72 saat geçerlidir. E-posta gönderimi yapılmadı.</p>
-          <code className={ui.inviteCode}>{inviteLink}</code>
-        </section>
-      ) : null}
 
       <section className={ui.surface} aria-label="Kullanıcı filtreleri">
         <form className={`${ui.filterBar} ${ui.filterBarWide}`}>
@@ -124,7 +115,7 @@ export default async function AccessPage(props: { searchParams: Promise<{ q?: st
                     <td><strong className={ui.primaryText}>{name}</strong><span className={ui.secondaryText}>{item.user.username ? `@${item.user.username} · ` : ""}{item.user.email}</span></td>
                     <td><strong className={ui.primaryText}>{item.role.name}</strong></td>
                     <td><span className={item.status === "ACTIVE" ? ui.statusBadge : ui.statusWarning}><span className={ui.statusDot} />{statusLabels[item.status]}</span></td>
-                    <td><strong className={ui.primaryText}>{item.modules.map((module) => moduleNames.get(module.moduleKey) ?? module.moduleKey).join(", ") || "Modül yok"}</strong><span className={ui.secondaryText}>{scopeSummary(context)}</span></td>
+                    <td><strong className={ui.primaryText}>{item.modules.filter((module) => isReleasedModule(module.moduleKey)).map((module) => moduleNames.get(module.moduleKey) ?? module.moduleKey).join(", ") || "Modül yok"}</strong><span className={ui.secondaryText}>{scopeSummary(context)}</span></td>
                     <td><strong className={ui.primaryText}>{item.role.permissions.length}</strong><span className={ui.secondaryText}>işlem</span></td>
                     <td><Link href={`/dashboard/access/members/${item.id}`} className={ui.rowAction} aria-label={`${name} rol ve kapsamını incele`}>Yönet <ArrowUpRight size={14} /></Link></td>
                   </tr>

@@ -1,7 +1,7 @@
 import { CompanyMembershipStatus, DataScopeMode } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ALL_PERMISSIONS, PERMISSIONS } from "@/lib/permission-catalog";
-import { ALL_MODULE_KEYS } from "@/lib/module-catalog";
+import { ALL_MODULE_KEYS, isReleasedModule } from "@/lib/module-catalog";
 import { effectiveLicenseKeys, licensedModules } from "@/lib/module-license-policy";
 import type { AuthorizationContext } from "@/lib/authorization-scope";
 export * from "@/lib/authorization-scope";
@@ -43,13 +43,14 @@ export async function getAuthorizationContext(user: { id: number; role: string }
       where: { id: user.id },
       select: { trialEndsAt: true, moduleEntitlements: { select: { moduleKey: true, expiresAt: true } } },
     });
-    return { isPlatformAdmin: false, userId: user.id, companyId: null, membershipId: null, membershipStatus: null, sessionVersion: 0, roleKey: "PENDING_COMPANY_OWNER", roleName: "Firma yöneticisi", permissions: new Set(), modules: new Set(holder ? effectiveLicenseKeys(holder) : []), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [] };
+    return { isPlatformAdmin: false, userId: user.id, companyId: null, membershipId: null, membershipStatus: null, sessionVersion: 0, roleKey: "PENDING_COMPANY_OWNER", roleName: "Firma yöneticisi", permissions: new Set(), modules: new Set(holder ? effectiveLicenseKeys(holder).filter(isReleasedModule) : []), scopeMode: DataScopeMode.NONE, employeeId: null, branchIds: [], departmentIds: [], employeeIds: [], deviceIds: [], teamEmployeeIds: [] };
   }
   // The current owner's platform licenses are the ceiling for every company member.
   // Read on each request so revocation also applies to already signed-in users.
   const principal = await findCompanyLicensePrincipal(membership.companyId);
   // Trial and license expiry are evaluated here so closing happens without a background job.
-  const companyLicenses = principal ? effectiveLicenseKeys(principal.user) : [];
+  // Unreleased modules stay closed for every company user, whatever their role or license rows say.
+  const companyLicenses = principal ? effectiveLicenseKeys(principal.user).filter(isReleasedModule) : [];
   const isLicensePrincipal = principal?.userId === user.id;
   return {
     isPlatformAdmin: false,

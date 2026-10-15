@@ -4,7 +4,7 @@ import { Building2, Calculator, CheckCircle2, ExternalLink, Factory, Mail, Shopp
 import { APP_TIME_ZONE } from "@/lib/app-time";
 import { activeEntitlementKeys, isTrialActive, licenseState, trialDaysLeft } from "@/lib/module-license-policy";
 import { requireSessionUser } from "@/lib/session";
-import { MODULES } from "@/modules/registry";
+import { isReleasedModule, MODULES } from "@/modules/registry";
 import { getSessionLicense } from "@/modules/licensing/repository";
 import { getModuleCatalog } from "@/modules/module-definitions/repository";
 import pageStyles from "../page.module.css";
@@ -93,7 +93,7 @@ export default async function StorePage() {
         </div>
 
         <div className={styles.moduleGrid}>
-          {catalog.map((module) => {
+          {catalog.filter((module) => isReleasedModule(module.key)).map((module) => {
             const Icon = moduleIcons[module.key] ?? ShoppingCart;
             const entitlement = entitlementByKey.get(module.key);
             const licensed = activeKeys.has(module.key);

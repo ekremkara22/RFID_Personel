@@ -12,6 +12,7 @@ import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import ui from "../../../management.module.css";
 import styles from "../../../page.module.css";
+import { isReleasedModule } from "@/lib/module-catalog";
 
 const scopeLabels: Record<DataScopeMode, string> = {
   COMPANY: "Firmanın tamamı",
@@ -59,7 +60,7 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
         <div className={ui.headerCopy}>
           <p className={ui.kicker}>Kullanıcı yönetimi</p>
           <h1 className={ui.pageTitle}>{membership.user.firstName} {membership.user.lastName}</h1>
-          <p className={ui.pageDescription}>{membership.user.email} · {membership.role.name} · {membership.role.modules.map((item) => moduleNames.get(item.moduleKey) ?? item.moduleKey).join(", ") || "Modül tanımsız"}</p>
+          <p className={ui.pageDescription}>{membership.user.email} · {membership.role.name} · {membership.role.modules.filter((item) => isReleasedModule(item.moduleKey)).map((item) => moduleNames.get(item.moduleKey) ?? item.moduleKey).join(", ") || "Modül tanımsız"}</p>
         </div>
         <span className={ui.summaryIcon}><UserRoundCog size={18} /></span>
       </header>
@@ -83,7 +84,7 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
           <section className={ui.formSection}>
             <div className={ui.formSectionHeader}><h2>Rol ve veri kapsamı</h2><p>Modüller ve işlem yetkileri seçilen rolden otomatik alınır. Veri kapsamı görülebilecek kayıtları belirler.</p></div>
             <div className={ui.formGridThree}>
-              <label className={ui.formField}><span>Rol</span><select name="roleId" defaultValue={membership.roleId}>{assignableRoles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.modules.map((item) => moduleNames.get(item.moduleKey) ?? item.moduleKey).join(" + ") || "Modül tanımsız"}</option>)}</select><small className={ui.helpText}>Rol değiştirildiğinde kullanıcının modülleri de yeni role göre güncellenir.</small></label>
+              <label className={ui.formField}><span>Rol</span><select name="roleId" defaultValue={membership.roleId}>{assignableRoles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.modules.filter((item) => isReleasedModule(item.moduleKey)).map((item) => moduleNames.get(item.moduleKey) ?? item.moduleKey).join(" + ") || "Modül tanımsız"}</option>)}</select><small className={ui.helpText}>Rol değiştirildiğinde kullanıcının modülleri de yeni role göre güncellenir.</small></label>
               <label className={ui.formField}><span>Üyelik durumu</span><select name="status" defaultValue={membership.status}>{Object.values(CompanyMembershipStatus).map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></label>
               <label className={ui.formField}><span>Veri erişim kapsamı</span><select name="scopeMode" defaultValue={membership.scopeMode}>{Object.values(DataScopeMode).map((mode) => <option key={mode} value={mode}>{scopeLabels[mode]}</option>)}</select><small className={ui.helpText}>Kullanıcının firma verilerinin ne kadarını görebileceğini belirler.</small></label>
               <label className={ui.formField}><span>Kullanıcının bağlı olduğu personel</span><select name="employeeId" defaultValue={membership.employeeId ?? ""}><option value="">Personel bağlantısı yok</option>{employees.map((item) => <option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}</select><small className={ui.helpText}>“Yalnız bağlı personelin kendi kaydı” seçildiğinde kullanıcının hangi personel kaydını göreceğini belirler.</small></label>

@@ -11,6 +11,7 @@ import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import ui from "../../management.module.css";
 import styles from "../../page.module.css";
+import { isReleasedModule } from "@/lib/module-catalog";
 
 const scopeLabels: Record<DataScopeMode, string> = {
   COMPANY: "Firmanın tamamı",
@@ -63,7 +64,7 @@ export default async function NewCompanyUserPage() {
         <section className={ui.formSection}>
           <div className={ui.formSectionHeader}><h2>Rol ve veri kapsamı</h2><p>Rol işlem yetkilerini ve kullanılabilir modülleri; veri kapsamı ise hangi kayıtların görülebileceğini belirler.</p></div>
           <div className={ui.formGridThree}>
-            <label className={ui.formField}><span>Firma rolü</span><select name="roleId" required>{assignableRoles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.modules.map((module) => moduleNames.get(module.moduleKey) ?? module.moduleKey).join(" + ") || "Modül tanımsız"}</option>)}</select><small className={ui.helpText}>Kullanıcının modülleri ve işlem yetkileri seçilen rol üzerinden otomatik uygulanır.</small></label>
+            <label className={ui.formField}><span>Firma rolü</span><select name="roleId" required>{assignableRoles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.modules.filter((module) => isReleasedModule(module.moduleKey)).map((module) => moduleNames.get(module.moduleKey) ?? module.moduleKey).join(" + ") || "Modül tanımsız"}</option>)}</select><small className={ui.helpText}>Kullanıcının modülleri ve işlem yetkileri seçilen rol üzerinden otomatik uygulanır.</small></label>
             <label className={ui.formField}><span>Veri erişim kapsamı</span><select name="scopeMode" defaultValue={DataScopeMode.RESTRICTED}>{Object.values(DataScopeMode).map((mode) => <option key={mode} value={mode}>{scopeLabels[mode]}</option>)}</select><small className={ui.helpText}>Kullanıcının firma verilerinin ne kadarını görebileceğini belirler.</small></label>
             <label className={ui.formField}><span>Kullanıcının bağlı olduğu personel</span><select name="employeeId" defaultValue=""><option value="">Personel bağlantısı yok</option>{employees.map((item) => <option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}</select><small className={ui.helpText}>“Yalnız bağlı personelin kendi kaydı” seçildiğinde kullanıcının hangi personel kaydını göreceğini belirler.</small></label>
           </div>

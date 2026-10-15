@@ -42,6 +42,17 @@ export const MODULE_REGISTRY = [
 
 export const ALL_MODULE_KEYS = MODULE_REGISTRY.map((item) => item.key);
 
+/**
+ * Modules not released to customers yet (product owner decision 2026-10-15): only the platform
+ * super admin sees and uses them. Stored role/license rows are kept untouched; they are filtered
+ * out of company authorization and company-facing screens until the module is removed from here.
+ */
+export const UNRELEASED_MODULE_KEYS: readonly string[] = [MODULES.PRODUCTION_PLANNING];
+
+export function isReleasedModule(key: string) {
+  return !UNRELEASED_MODULE_KEYS.includes(key);
+}
+
 export function moduleLabel(key: string) {
   return MODULE_REGISTRY.find((item) => item.key === key)?.name ?? key;
 }

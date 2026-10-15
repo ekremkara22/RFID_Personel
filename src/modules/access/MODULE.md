@@ -11,7 +11,7 @@
 - Her kullanıcı oturumda aktif firmasını seçebilir.
 
 ## Kapsam
-- Ekranlar: `src/app/dashboard/access/**` (members, roles, teams, invite, audit), `src/app/dashboard/users/**`, `src/app/login`, `src/app/activate`
+- Ekranlar: `src/app/dashboard/access/**` (members, roles, teams, invite, audit), `src/app/dashboard/users/**`, `src/app/login` (davet linki 2026-10-15'te kaldırıldı: firma adminleri kullanıcıyı doğrudan "Kullanıcı Tanımla" ile açar; `CompanyInvitation` tablosu yalnız geçmiş kayıt olarak durur)
 - API: `src/app/api/auth/login`
 - İş mantığı: `src/modules/access/`, `src/modules/users/`, `src/modules/auth/`, `src/lib/auth.ts`, `session.ts`, `api-session.ts`, `access.ts`, `authorization.ts`, `authorization-scope.ts`, `company-scope.ts`, `company-role-policy.ts`, `permission-catalog.ts`, `role-editor-options.ts`
 - Script'ler: `scripts/migrate-company-rbac.ts`, `scripts/seed-rbac-staging-demo.ts`
