@@ -40,6 +40,14 @@ export function activeEntitlementKeys(holder: Pick<LicenseHolder, "moduleEntitle
   return holder.moduleEntitlements.filter((item) => isEntitlementActive(item, now)).map((item) => item.moduleKey);
 }
 
+/**
+ * True only for a purchased/assigned license that is still valid. The free trial alone never counts,
+ * so features reserved for paying customers (e.g. Muhasebe CSV/PDF transfer) stay locked during it.
+ */
+export function hasPaidModuleLicense(holder: Pick<LicenseHolder, "moduleEntitlements">, moduleKey: string, now = new Date()) {
+  return activeEntitlementKeys(holder, now).includes(moduleKey);
+}
+
 /** The trial opens every module; after it ends only active licenses remain. */
 export function effectiveLicenseKeys(holder: LicenseHolder, now = new Date()): string[] {
   const keys = new Set(activeEntitlementKeys(holder, now));

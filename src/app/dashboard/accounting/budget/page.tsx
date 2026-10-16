@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { can } from "@/lib/authorization";
 import type { BudgetEntry } from "@/lib/budget-report";
+import { MODULES } from "@/lib/module-catalog";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { requireSessionUser } from "@/lib/session";
+import { hasPaidLicenseFor } from "@/modules/licensing/repository";
 import { getSalaryParameters, getSalaryWorksheet, type WorksheetModeKey } from "@/modules/accounting/repository";
 import { BudgetDashboard } from "./budget-dashboard";
 
@@ -10,10 +12,11 @@ export default async function BudgetPage() {
   const { user, authorization } = await requireSessionUser();
   if (!can(authorization, PERMISSIONS.ACCOUNTING_SALARY_VIEW)) redirect("/dashboard/accounting");
   const companyId = authorization.companyId;
-  const [grossRows, netRows, parameters] = await Promise.all([
+  const [grossRows, netRows, parameters, paidLicense] = await Promise.all([
     getSalaryWorksheet(companyId, "gross-to-net"),
     getSalaryWorksheet(companyId, "net-to-gross"),
     getSalaryParameters(companyId),
+    hasPaidLicenseFor(authorization, MODULES.ACCOUNTING),
   ]);
   const toEntries = (rows: typeof grossRows, mode: WorksheetModeKey): BudgetEntry[] => rows.map((row, index) => ({
     key: `${mode}-${index}`,
@@ -33,6 +36,7 @@ export default async function BudgetPage() {
       netEntries={toEntries(netRows, "net-to-gross")}
       parameters={parameters}
       canExport={can(authorization, PERMISSIONS.ACCOUNTING_SALARY_EXPORT)}
+      exportLocked={!paidLicense}
     />
   );
 }

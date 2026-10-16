@@ -21,6 +21,7 @@ Bordro ve muhasebe ekiplerinin maaş hesabını doğru, şeffaf ve dışa aktar�
 - Yıllık bordro sabitleri (asgari ücret, SGK tavanı, vergi dilimleri) tek yerde tanımlıdır ve değiştiğinde testlerle doğrulanır.
 - Netten brüte hesap, brütten nete hesabın tersiyle tutarlı olmalıdır (aynı sonuca döner).
 - Para hesaplarında yuvarlama kuralı tutarlıdır; ara sonuçlar keyfi yuvarlanmaz.
+- CSV ile içe aktarma, CSV dışa aktarma ve PDF dışa aktarma yalnız ücretli Muhasebe lisansı olan firmalara açıktır; 14 günlük deneme bunları açmaz. Kural `hasPaidModuleLicense` (`src/lib/module-license-policy.ts`), sunucu kontrolü `hasPaidLicenseFor` (`src/modules/licensing/repository.ts`). Lisanssızken butonlar `LicenseLockedAction` ile pasif ve açıklamalı görünür; `importAccountingPersonnelAction` sunucuda da reddeder. CSV/PDF dosyaları tarayıcıda üretildiği için dışa aktarma kilidi arayüz düzeyindedir (bütçe raporunun tarayıcı yazdırması da lisanssızken yalnız uyarı basar).
 
 ## Bağımlılıklar
 - Kullandıkları: personel (brüt maaş, sigorta türü), pdks (kilitli puantaj dönemi — gelecekte).

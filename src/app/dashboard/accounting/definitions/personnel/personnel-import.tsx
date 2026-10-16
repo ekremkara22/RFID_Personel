@@ -6,11 +6,12 @@ import { FileDown, FileUp } from "lucide-react";
 import { decodeCsv } from "@/lib/personnel-import";
 import { parseSalarySheetCsv, personnelCsvTemplate } from "@/lib/salary-sheet-csv";
 import { importAccountingPersonnelAction } from "@/modules/accounting/actions";
+import { LicenseLockedAction } from "../../../license-locked-action";
 import ui from "../../../management.module.css";
 import styles from "../../accounting.module.css";
 
 /** CSV buttons of the personnel list; parsing happens in the browser, saving on the server. */
-export function AccountingPersonnelImport() {
+export function AccountingPersonnelImport({ locked = false }: { locked?: boolean }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -42,7 +43,9 @@ export function AccountingPersonnelImport() {
   return (
     <>
       <button type="button" className={ui.secondaryAction} onClick={downloadTemplate}><FileDown size={16} />CSV şablonu</button>
-      <button type="button" className={ui.secondaryAction} onClick={() => input.current?.click()} disabled={pending}><FileUp size={16} />{pending ? "Yükleniyor..." : "CSV'den yükle"}</button>
+      {locked
+        ? <LicenseLockedAction moduleName="Muhasebe"><FileUp size={16} />CSV&apos;den yükle</LicenseLockedAction>
+        : <button type="button" className={ui.secondaryAction} onClick={() => input.current?.click()} disabled={pending}><FileUp size={16} />{pending ? "Yükleniyor..." : "CSV'den yükle"}</button>}
       <input ref={input} type="file" accept=".csv,.txt,text/csv" hidden onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = ""; }} />
       {message ? <p className={message.ok ? styles.feedback : styles.feedbackError} role={message.ok ? "status" : "alert"}>{message.text}</p> : null}
     </>

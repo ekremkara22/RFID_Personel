@@ -75,3 +75,19 @@ test("lisans bitiş tarihi seçilen günün sonuna kadar geçerlidir", async () 
   assert.equal(licenseDateFromInput("2026-02-30"), undefined);
   assert.equal(licenseDateFromInput("27.10.2026"), undefined);
 });
+
+test("deneme erişimi ücretli lisans sayılmaz; yalnız geçerli lisans ücretli özellikleri açar", async () => {
+  const { effectiveLicenseKeys, hasPaidModuleLicense, trialEndDate } = await import("./module-license-policy");
+  const now = new Date("2026-10-05T09:00:00Z");
+  const holder = { trialEndsAt: trialEndDate(new Date("2026-10-01T09:00:00Z")), moduleEntitlements: [] as { moduleKey: string; expiresAt: Date | null }[] };
+  assert.ok(effectiveLicenseKeys(holder, now).includes("ACCOUNTING"));
+  assert.equal(hasPaidModuleLicense(holder, "ACCOUNTING", now), false);
+
+  holder.moduleEntitlements.push({ moduleKey: "HR", expiresAt: null });
+  assert.equal(hasPaidModuleLicense(holder, "ACCOUNTING", now), false);
+
+  holder.moduleEntitlements.push({ moduleKey: "ACCOUNTING", expiresAt: new Date("2026-11-01T00:00:00Z") });
+  assert.equal(hasPaidModuleLicense(holder, "ACCOUNTING", now), true);
+  assert.equal(hasPaidModuleLicense(holder, "ACCOUNTING", new Date("2026-11-01T00:00:01Z")), false);
+  assert.equal(hasPaidModuleLicense({ moduleEntitlements: [{ moduleKey: "ACCOUNTING", expiresAt: null }] }, "ACCOUNTING", now), true);
+});

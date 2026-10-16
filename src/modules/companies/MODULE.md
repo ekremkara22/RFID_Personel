@@ -21,6 +21,7 @@ Yeni müşterinin kendi kendine kaydolup 14 günlük deneme ile başlaması, lis
 - Ürün modülleri tek kaynaktan gelir: `src/modules/registry.ts`. Menü ve lisans buradan beslenir; modül anahtarları benzersizdir.
 - Deneme süresi 14 gündür (`TRIAL_DAYS`). Süresi biten ve lisansı olmayan hesap lisanslı modüllere erişemez.
 - Lisans süresi (`expiresAt`) dolan modül etkin sayılmaz.
+- Deneme erişimi ücretli lisans sayılmaz: yalnız ücretli müşterilere ayrılan özellikler (ör. Muhasebe CSV/PDF aktarımı) `hasPaidModuleLicense` / `hasPaidLicenseFor` ile geçerli `UserModuleEntitlement` kaydı arar. Süper admin bu kısıttan muaftır.
 - Süper admin her modülü lisans seçimi olmadan görür.
 - Firma silme tüm bağlı veriyi siler; yalnız süper admin yapar ve onay ister.
 - Cihazın firmaya atanması yalnız süper admin yetkisindedir.
