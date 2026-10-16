@@ -26,7 +26,6 @@ Bu dosya projede calisirken sorumluluk alanlarini ayirmak icin kullanilir.
 
 - `prisma/schema.prisma`, seed verileri ve veritabani gecislerinden sorumludur.
 - RFID kart ID alanini benzersiz tutar.
-- Dinamik QR token, enlem, boylam ve konum dogrulama kolonlarini geri getirmez.
 
 ## Cihaz Agent
 

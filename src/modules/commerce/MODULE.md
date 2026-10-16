@@ -71,11 +71,11 @@ Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla e�
 
 ## Yol haritası
 1. **Faz 1 (tamamlandı, staging 2026-10-15)**: Entegrasyon ayarları (Shopier token, webhook kaydı), Shopier ürünü ile modül eşlemesi, webhook ve elle eşitleme ile otomatik lisans aktivasyonu, sipariş listesi, eşleşme bekleyen kuyruk.
-2. **Faz 2 (kodlandı ve staging'de 2026-10-15; ürün sahibi kararıyla beklemede: ürünler şimdilik Shopier'e elle giriliyor, öncelik dijital lisanslama)**: Fiziksel ürün kataloğu, Shopier'e ürün yayınlama (`POST/PUT /v1/products`, görseller URL olarak), fiziksel siparişler ve kargo durumu.
+2. **Faz 2 (kodlandı ve staging'de 2026-10-15; panelden Shopier'e ürün yayınlama çalışıyor)**: Fiziksel ürün kataloğu, Shopier'e ürün yayınlama (`POST/PUT /v1/products`, görseller URL olarak), fiziksel siparişler ve kargo durumu.
 3. **Faz 3**: Şablon tabanlı ürün görseli (kare/dikey) ve kısa video üretimi; daha sonra isteğe bağlı AI sağlayıcısı.
 4. **Faz 4**: Instagram ve TikTok işletme hesabı bilgilerinin girildiği alan, paylaşım planlama ve otomatik yayın.
 
 Faz notları:
-- Faz 2: Mevcut token `GET /v1/products` ucunda 403 ("Access to this resource on the server is denied") alıyor; aynı `products:read` kapsamındaki `GET /v1/categories` ise 200 dönüyor (2026-10-15). Shopier tek PAT veriyor, kapsam seçimi yok; sorun büyük olasılıkla Shopier tarafında. Yayınlama ve içe aktarma ilk denemede bu hatayı gösterebilir; gerekirse Shopier desteğine sorulmalı.
+- Faz 2: 2026-10-15'te `GET /v1/products` ucunda görülen 403 hatası çözüldü; panelden Shopier'e ürün girişi çalışıyor (ürün sahibi teyidi, 2026-10-16).
 - Faz 3: Önce şablonla üretim (ürün fotoğrafı + başlık + fiyat + logo; kare ve dikey format), AI sağlayıcısı sonra.
 - Faz 4: Kullanıcının henüz işletme hesabı yok. Instagram/TikTok hesap bilgileri Entegrasyonlar sayfasında girilecek, şifreli `IntegrationCredential` tablosunda saklanacak; paylaşım planlanacak ve otomatik yayınlanacak.
