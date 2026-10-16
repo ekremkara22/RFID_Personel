@@ -17,16 +17,17 @@ export function SiteHeader() {
         </Link>
         <nav className={styles.nav} aria-label="Ana menü">
           <Link href="/moduller">Modüller</Link>
+          <Link href="/moduller/ik-rfid-personel-takip">İK &amp; RFID</Link>
+          <Link href="/moduller/muhasebe">Muhasebe</Link>
           <Link href="/blog">Blog</Link>
-          <Link href="/#hakkimizda">Hakkımızda</Link>
           <Link href="/iletisim">İletişim</Link>
         </nav>
         <div className={styles.headerButtons}>
           <Link href="/register" className={styles.trialButton}>
-            Ücretsiz Dene
+            Ücretsiz dene
           </Link>
           <Link href="/login" className={styles.panelButton}>
-            Panel Girişi
+            Giriş yap
           </Link>
         </div>
       </div>

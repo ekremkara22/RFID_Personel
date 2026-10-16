@@ -1,0 +1,64 @@
+.frame { container-type: inline-size; aspect-ratio: 16 / 9; display: flex; flex-direction: column; background: #f4f6f9; color: #14202e; font-size: 14px; }
+.bar { display: flex; align-items: center; gap: 14px; min-height: 42px; padding: 0 16px; border-bottom: 1px solid #e1e6ec; background: #fff; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #dfe4ea; }
+.crumb { color: #6b7886; font-size: 13px; }
+.crumb b { color: #14202e; font-weight: 600; }
+.sample { margin-left: auto; padding: 3px 8px; border: 1px solid #e3d9b8; border-radius: 6px; background: #fbf7ea; color: #7a6420; font-size: 11px; font-weight: 600; }
+.body { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 20px 22px 22px; }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.head strong { display: block; font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
+.head span { color: #6b7886; font-size: 12.5px; }
+.tag { flex: 0 0 auto; padding: 5px 9px; border: 1px solid #dfe5ec; border-radius: 6px; background: #fff; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.kpi { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid #e1e6ec; border-radius: 10px; background: #fff; }
+.kpi span { color: #6b7886; font-size: 12px; }
+.kpi b { font-size: 19px; font-weight: 650; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.kpi small { color: #6b7886; font-size: 11.5px; }
+.good { color: #1d7a4b; }
+.panel { padding: 14px 16px; border: 1px solid #e1e6ec; border-radius: 10px; background: #fff; }
+.panelTitle { display: block; margin-bottom: 10px; color: #3b4856; font-size: 12.5px; font-weight: 600; }
+.anatomy { display: flex; height: 30px; overflow: hidden; border-radius: 6px; }
+.anatomy span { display: flex; align-items: center; padding-left: 8px; color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.anatomy span + span { border-left: 2px solid #fff; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; color: #4a5866; font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 9px; height: 9px; border-radius: 2px; }
+.tone_a { background: #1f4e79; }
+.tone_b { background: #4f86bd; }
+.tone_c { background: #9bbcdc; }
+.tone_d { background: #c8873a; }
+.anatomy .tone_c { color: #14304d; }
+.grid { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1.25fr; gap: 14px; }
+.grid > .panel { display: flex; flex-direction: column; }
+.donutRow { flex: 1; display: flex; align-items: center; gap: 18px; }
+.donut { width: 128px; height: 128px; flex: 0 0 auto; }
+.donutValue { fill: #14202e; font-size: 17px; font-weight: 700; }
+.donutLabel { fill: #6b7886; font-size: 8px; }
+.shareList { flex: 1; display: grid; gap: 6px; list-style: none; font-size: 12.5px; }
+.shareList li { display: flex; align-items: center; gap: 8px; }
+.shareList i { width: 9px; height: 9px; border-radius: 2px; }
+.shareList b { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+.columns { flex: 1 1 auto; min-height: 118px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; align-items: stretch; }
+.column { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; }
+.columnBar { flex: 1 1 auto; min-height: 0; width: 100%; max-width: 26px; display: flex; flex-direction: column-reverse; overflow: hidden; border-radius: 4px 4px 0 0; }
+.columnBar > span { display: block; width: 100%; }
+.column small { color: #7a8693; font-size: 10px; }
+
+@container (max-width: 760px) {
+  .body { padding: 16px; gap: 12px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid { grid-template-columns: 1fr; }
+  .tag { display: none; }
+}
+
+@container (max-width: 420px) {
+  .crumb { display: none; }
+  .kpi b { font-size: 16px; }
+  .anatomy span { font-size: 0; padding: 0; }
+  .donut { width: 92px; height: 92px; }
+  .columns { gap: 3px; }
+  .column small { font-size: 8.5px; }
+  .grid > .panel:last-child { display: none; }
+  .head span { display: none; }
+}

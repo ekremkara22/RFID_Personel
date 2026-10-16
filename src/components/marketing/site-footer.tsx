@@ -10,30 +10,37 @@ export function SiteFooter() {
           <div>
             <Link href="/" className={styles.footerBrand}>flodeska</Link>
             <p className={styles.footerText}>
-              İş süreçlerini, insanı ve bağlı cihazları tek bir dijital akışta buluşturur.
+              Personel takibi, bordro ve operasyon verisi için modüler yönetim paneli.
             </p>
           </div>
           <div>
-            <h2>Keşfedin</h2>
+            <h2>Modüller</h2>
             <div className={styles.footerLinks}>
-              <Link href="/moduller">Modüller</Link>
               <Link href="/moduller/ik-rfid-personel-takip">İK &amp; RFID</Link>
+              <Link href="/moduller/muhasebe">Muhasebe</Link>
+              <Link href="/moduller">Tüm modüller</Link>
+            </div>
+          </div>
+          <div>
+            <h2>Flodeska</h2>
+            <div className={styles.footerLinks}>
               <Link href="/blog">Blog</Link>
-              <Link href="/iletisim">İletişim</Link>
+              <Link href="/#hakkimizda">Hakkımızda</Link>
+              <Link href="/register">Ücretsiz dene</Link>
             </div>
           </div>
           <div>
             <h2>İletişim</h2>
             <address className={styles.contactList}>
-              <span><MapPin size={17} /> Şişli / İstanbul</span>
-              <a href="tel:+905078368320"><Phone size={17} /> +90 507 836 83 20</a>
-              <a href="mailto:ekremkara22@gmail.com"><Mail size={17} /> ekremkara22@gmail.com</a>
+              <span><MapPin size={16} /> Şişli / İstanbul</span>
+              <a href="tel:+905078368320"><Phone size={16} /> +90 507 836 83 20</a>
+              <a href="mailto:ekremkara22@gmail.com"><Mail size={16} /> ekremkara22@gmail.com</a>
             </address>
           </div>
         </div>
         <div className={styles.footerBottom}>
-          <span>© {new Date().getFullYear()} Flodeska. Tüm hakları saklıdır.</span>
-          <span>Flow design. Connected work.</span>
+          <span>© {new Date().getFullYear()} Flodeska</span>
+          <Link href="/iletisim">Bize yazın</Link>
         </div>
       </div>
     </footer>

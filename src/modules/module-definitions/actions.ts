@@ -49,5 +49,7 @@ export async function updateModuleDefinitionAction(formData: FormData) {
     revalidatePath("/dashboard", "layout");
     revalidatePath("/dashboard/settings/modules");
     revalidatePath("/dashboard/store");
+    // Public site shows the same purchase links next to every module card.
+    revalidatePath("/", "layout");
   });
 }

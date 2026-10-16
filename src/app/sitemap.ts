@@ -7,6 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: baseUrl, changeFrequency: "weekly", priority: 1 },
     { url: `${baseUrl}/moduller`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${baseUrl}/moduller/ik-rfid-personel-takip`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${baseUrl}/moduller/muhasebe`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${baseUrl}/blog`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/iletisim`, changeFrequency: "yearly", priority: 0.6 },
   ];
