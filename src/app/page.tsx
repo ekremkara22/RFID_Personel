@@ -37,17 +37,8 @@ export default async function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
 
       <section className={site.hero}><div className="container">
-        <div className={site.heroCopy}>
-          <h1>Personel takibi ve maaş bütçesi, aynı panelde.</h1>
-          <div>
-            <p>Kartını okutan personelin hareketi panele düşer; ay sonunda maaşı, işveren maliyetini ve yıllık bütçeyi aynı yerden hesaplarsınız. İhtiyacınız olan modülle başlayın.</p>
-            <div className={site.heroActions}>
-              <Link href="/register" className={site.primaryButton}>14 gün ücretsiz dene</Link>
-              <Link href="/moduller" className={site.secondaryButton}>Modülleri incele</Link>
-            </div>
-            <p className={site.heroNote}>Kart bilgisi istenmez. Deneme süresince tüm modüller açıktır; Muhasebe’de CSV ve PDF aktarımı lisansla açılır.</p>
-          </div>
-        </div>
+        {/* The slider opens the page right under the header; the page heading stays for screen readers and search engines. */}
+        <h1 className={site.visuallyHidden}>Flodeska: RFID personel takibi, maaş hesaplama ve bütçe raporu</h1>
         <ModuleSlider slides={[
           {
             id: "hr", tab: "İK & RFID Personel Takip", title: hr.title,
@@ -64,7 +55,7 @@ export default async function Home() {
         ]} />
       </div></section>
 
-      <section className={styles.section} id="moduller"><div className="container">
+      <section className={`${styles.section} ${styles.softSection}`} id="moduller"><div className="container">
         <div className={styles.sectionHead}>
           <div>
             <span className={styles.label}>Modüller</span>
@@ -77,7 +68,7 @@ export default async function Home() {
         <p className={styles.roadmap}><b>Hazırlanıyor:</b> Üretim Planlama (iş emirleri, kapasite, Gantt)</p>
       </div></section>
 
-      <section className={`${styles.section} ${styles.softSection}`}><div className="container">
+      <section className={styles.section}><div className="container">
         <div className={styles.sectionHead}><div><span className={styles.label}>Nasıl başlanır?</span><h2>Kayıttan lisansa üç adım</h2></div></div>
         <ol className={styles.steps}>
           <li><strong>Hesap açın</strong><span>Firma adınız ve e-posta adresinizle kayıt olun. 14 gün boyunca tüm modüller açık olur.</span></li>
@@ -86,7 +77,7 @@ export default async function Home() {
         </ol>
       </div></section>
 
-      <section id="hakkimizda" className={styles.section}><div className={`container ${styles.aboutGrid}`}>
+      <section id="hakkimizda" className={`${styles.section} ${styles.softSection}`}><div className={`container ${styles.aboutGrid}`}>
         <div><span className={styles.label}>Hakkımızda</span><h2>Sahadaki veriyi, ofiste kullanılan bilgiye çeviriyoruz.</h2></div>
         <div>
           <p>Flodeska, İstanbul’da geliştirilen bir yönetim panelidir. Kendi tasarladığımız RFID okuyucularla personel hareketini topluyor, bu veriyi puantaj ve bordro hesabında kullanılabilir hale getiriyoruz.</p>
@@ -94,7 +85,7 @@ export default async function Home() {
         </div>
       </div></section>
 
-      <section className={`${styles.section} ${styles.softSection}`}><div className="container">
+      <section className={styles.section}><div className="container">
         <div className={styles.sectionHead}><div><span className={styles.label}>Blog</span><h2>Rehberler ve uygulama notları</h2></div><Link href="/blog" className={styles.textLink}>Tüm yazılar <ArrowRight size={16} /></Link></div>
         <div className={styles.threeGrid}>{blogPosts.slice(0, 3).map((post) => <article className={styles.blogCard} key={post.slug}><span>{post.category} · {post.readingTime}</span><h3><Link href={`/blog/${post.slug}`}>{post.title}</Link></h3><p>{post.description}</p><Link href={`/blog/${post.slug}`} className={styles.textLink}>Yazıyı oku <ArrowRight size={16} /></Link></article>)}</div>
       </div></section>

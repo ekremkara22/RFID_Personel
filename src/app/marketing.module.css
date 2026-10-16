@@ -1,6 +1,6 @@
-.section { padding: 88px 0; }
-.sectionTight { padding: 64px 0; }
-.softSection { background: #f6f7f9; border-block: 1px solid #e8ebef; }
+.section { padding: 88px 0; background: #fff; }
+.sectionTight { padding: 64px 0; background: #fff; }
+.softSection { background: #eef3f8; border-block: 1px solid #dde5ee; }
 .sectionHead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 36px; }
 .sectionHead > div { max-width: 660px; }
 .sectionHead h2, .aboutGrid h2, .ctaInner h2 { color: #14202e; font-size: clamp(26px, 3vw, 36px); font-weight: 650; line-height: 1.15; letter-spacing: -.025em; }
@@ -31,12 +31,12 @@
 .aboutGrid p { color: #4e5b68; font-size: 16px; line-height: 1.75; }
 .aboutGrid p + p { margin-top: 16px; }
 
-.ctaSection { padding: 64px 0; border-top: 1px solid #e3e7ec; }
+.ctaSection { padding: 64px 0; border-top: 1px solid #cfdcec; background: #e4edf8; }
 .ctaInner { display: flex; align-items: center; justify-content: space-between; gap: 30px; }
 .ctaInner p { margin-top: 10px; color: #4e5b68; font-size: 16px; }
 .ctaActions { display: flex; flex-wrap: wrap; gap: 10px; }
 
-.pageHero { padding: 64px 0 48px; border-bottom: 1px solid #e8ebef; }
+.pageHero { padding: 64px 0 48px; border-bottom: 1px solid #dde5ee; background: #eef3f8; }
 .breadcrumbs { margin-bottom: 18px; color: #6b7682; font-size: 13px; }
 .breadcrumbs a:hover { color: #1f5fae; }
 .pageHero h1 { max-width: 860px; color: #14202e; font-size: clamp(32px, 4.2vw, 50px); font-weight: 650; line-height: 1.08; letter-spacing: -.03em; }
