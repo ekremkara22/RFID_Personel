@@ -52,7 +52,7 @@ export default async function SalesActivationsPage() {
                     <ActionForm action={activatePendingLicenseAction} className={ui.reviewForm}>
                       <input type="hidden" name="licenseId" value={item.id} />
                       <label className={ui.srOnly} htmlFor={`activate-email-${item.id}`}>Lisansın verileceği kullanıcı e-postası</label>
-                      <input id={`activate-email-${item.id}`} name="email" type="email" required maxLength={191} defaultValue={item.order.buyerEmail ?? ""} placeholder="kullanici@firma.com" />
+                      <input id={`activate-email-${item.id}`} name="email" autoComplete="off" type="email" required maxLength={191} defaultValue={item.order.buyerEmail ?? ""} placeholder="kullanici@firma.com" />
                       <SubmitButton idleLabel="Aktive et" pendingLabel="Aktive ediliyor..." className={ui.rowAction} icon={<CheckCircle2 size={15} />} />
                     </ActionForm>
                     <ActionForm action={ignorePendingLicenseAction} className={ui.reviewForm}>

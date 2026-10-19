@@ -129,12 +129,12 @@ export default async function NewCompanyPage() {
 
               <label className={styles.field}>
                 <span>Admin E-postasi</span>
-                <input name="adminEmail" type="email" required placeholder="yonetici@firma.com" />
+                <input name="adminEmail" autoComplete="off" type="email" required placeholder="yonetici@firma.com" />
               </label>
 
               <label className={styles.field}>
                 <span>Admin Kullanıcı Adı</span>
-                <input name="adminUsername" required minLength={3} pattern="[a-zA-Z0-9._-]+" placeholder="firma.admin" />
+                <input name="adminUsername" autoComplete="off" required minLength={3} pattern="[a-zA-Z0-9._-]+" placeholder="firma.admin" />
               </label>
 
               <label className={styles.field}>
@@ -144,7 +144,7 @@ export default async function NewCompanyPage() {
 
               <label className={styles.field}>
                 <span>Admin Sifresi</span>
-                <input name="adminPassword" type="password" minLength={10} required placeholder="En az 10 karakter" />
+                <input name="adminPassword" type="password" autoComplete="new-password" minLength={10} required placeholder="En az 10 karakter" />
               </label>
 
               <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}>

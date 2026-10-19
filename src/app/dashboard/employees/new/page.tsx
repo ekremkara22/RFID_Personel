@@ -43,8 +43,8 @@ export default async function NewEmployeePage() {
               <label className={ui.formField}><span>Ad</span><input name="firstName" required placeholder="Ahmet" /></label>
               <label className={ui.formField}><span>Soyad</span><input name="lastName" required placeholder="Yılmaz" /></label>
               <label className={ui.formField}><span>Yaş</span><input name="age" type="number" min="16" max="90" defaultValue={18} required /></label>
-              <label className={ui.formField}><span>E-posta</span><input name="email" type="email" placeholder="ahmet@firma.com" /></label>
-              <label className={ui.formField}><span>Şifre</span><input name="password" type="password" placeholder="Opsiyonel personel şifresi" /></label>
+              <label className={ui.formField}><span>E-posta</span><input name="email" autoComplete="off" type="email" placeholder="ahmet@firma.com" /></label>
+              <label className={ui.formField}><span>Şifre</span><input name="password" type="password" autoComplete="new-password" placeholder="Opsiyonel personel şifresi" /></label>
               <label className={ui.formField}><span>Sicil numarası</span><input name="registrationNumber" placeholder="PDKS sicil numarası" /></label>
             </div>
           </section>

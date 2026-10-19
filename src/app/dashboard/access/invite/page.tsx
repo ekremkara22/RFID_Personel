@@ -55,8 +55,8 @@ export default async function NewCompanyUserPage() {
             <label className={ui.formField}><span>Ad</span><input name="firstName" required /></label>
             <label className={ui.formField}><span>Soyad</span><input name="lastName" required /></label>
             <label className={ui.formField}><span>Telefon</span><input name="phone" type="tel" /></label>
-            <label className={ui.formField}><span>Kullanıcı adı</span><input name="username" required minLength={3} pattern="[a-zA-Z0-9._-]+" autoComplete="username" /></label>
-            <label className={ui.formField}><span>E-posta</span><input name="email" type="email" required /></label>
+            <label className={ui.formField}><span>Kullanıcı adı</span><input name="username" required minLength={3} pattern="[a-zA-Z0-9._-]+" autoComplete="off" /></label>
+            <label className={ui.formField}><span>E-posta</span><input name="email" autoComplete="off" type="email" required /></label>
             <label className={ui.formField}><span>Şifre</span><input name="password" type="password" minLength={10} required autoComplete="new-password" /><small className={ui.helpText}>En az 10 karakter olmalıdır.</small></label>
           </div>
         </section>

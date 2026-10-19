@@ -202,7 +202,7 @@ export default async function CompanyDetailPage(props: {
               <>
                 <label className={styles.field}>
                   <span>Admin Mail</span>
-                  <input name="adminEmail" type="email" defaultValue={companyAdmin?.email ?? ""} required />
+                  <input name="adminEmail" autoComplete="off" type="email" defaultValue={companyAdmin?.email ?? ""} required />
                 </label>
 
                 <label className={styles.field}>
@@ -218,7 +218,7 @@ export default async function CompanyDetailPage(props: {
 
                 <label className={styles.field}>
                   <span>Admin Sifre</span>
-                  <input name="adminPassword" type="password" placeholder="Degistirmek istemiyorsan bos birak" />
+                  <input name="adminPassword" type="password" autoComplete="new-password" placeholder="Degistirmek istemiyorsan bos birak" />
                 </label>
 
                 <div className={`${styles.fullWidth} ${styles.helperText}`}>Firma admininin modül lisansları ve deneme süresi <Link href={companyAdmin ? `/dashboard/users/${companyAdmin.id}` : "/dashboard/users"} className={styles.inlineAction}>Kullanıcı Tanımları</Link> ekranından yönetilir.</div>

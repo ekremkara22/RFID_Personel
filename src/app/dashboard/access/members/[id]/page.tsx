@@ -75,8 +75,8 @@ export default async function MembershipDetailPage(props: { params: Promise<{ id
               <label className={ui.formField}><span>Ad</span><input name="firstName" defaultValue={membership.user.firstName ?? ""} required /></label>
               <label className={ui.formField}><span>Soyad</span><input name="lastName" defaultValue={membership.user.lastName ?? ""} required /></label>
               <label className={ui.formField}><span>Telefon</span><input name="phone" type="tel" defaultValue={membership.user.phone ?? ""} /></label>
-              <label className={ui.formField}><span>Kullanıcı adı</span><input name="username" defaultValue={membership.user.username ?? ""} minLength={3} pattern="[a-zA-Z0-9._-]+" placeholder="İsteğe bağlı" /><small className={ui.helpText}>Girilecekse boşluk içermemelidir.</small></label>
-              <label className={ui.formField}><span>E-posta</span><input name="email" type="email" defaultValue={membership.user.email} required /></label>
+              <label className={ui.formField}><span>Kullanıcı adı</span><input name="username" autoComplete="off" defaultValue={membership.user.username ?? ""} minLength={3} pattern="[a-zA-Z0-9._-]+" placeholder="İsteğe bağlı" /><small className={ui.helpText}>Girilecekse boşluk içermemelidir.</small></label>
+              <label className={ui.formField}><span>E-posta</span><input name="email" autoComplete="off" type="email" defaultValue={membership.user.email} required /></label>
               <label className={ui.formField}><span>Yeni şifre</span><input name="password" type="password" minLength={10} autoComplete="new-password" placeholder="Değişmeyecekse boş bırakın" /><small className={ui.helpText}>Yeni şifre en az 10 karakter olmalıdır.</small></label>
             </div>
           </section>

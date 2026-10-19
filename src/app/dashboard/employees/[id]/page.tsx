@@ -57,8 +57,8 @@ export default async function EmployeeDetailPage(props: { params: Promise<{ id: 
             <label className={ui.formField}><span>Ad</span><input name="firstName" defaultValue={employee.firstName} required /></label>
             <label className={ui.formField}><span>Soyad</span><input name="lastName" defaultValue={employee.lastName} required /></label>
             <label className={ui.formField}><span>Yaş</span><input name="age" type="number" defaultValue={employee.age} min="16" max="90" required /></label>
-            <label className={ui.formField}><span>E-posta</span><input name="email" type="email" defaultValue={employee.email ?? ""} /></label>
-            <label className={ui.formField}><span>Yeni şifre</span><input name="password" type="password" placeholder="Değişmeyecekse boş bırakın" /></label>
+            <label className={ui.formField}><span>E-posta</span><input name="email" autoComplete="off" type="email" defaultValue={employee.email ?? ""} /></label>
+            <label className={ui.formField}><span>Yeni şifre</span><input name="password" type="password" autoComplete="new-password" placeholder="Değişmeyecekse boş bırakın" /></label>
             <label className={ui.formField}><span>Sicil numarası</span><input name="registrationNumber" defaultValue={employee.registrationNumber ?? ""} /></label>
           </div>
         </section>

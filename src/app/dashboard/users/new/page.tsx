@@ -31,10 +31,10 @@ export default async function NewUserPage() {
         <ActionForm action={createDashboardUserAction} className={styles.formGrid}>
           <label className={styles.field}><span>Ad</span><input name="firstName" required /></label>
           <label className={styles.field}><span>Soyad</span><input name="lastName" required /></label>
-          <label className={styles.field}><span>Kullanıcı Adı</span><input name="username" minLength={3} pattern="[a-zA-Z0-9._-]+" required /></label>
-          <label className={styles.field}><span>E-posta</span><input name="email" type="email" required /></label>
+          <label className={styles.field}><span>Kullanıcı Adı</span><input name="username" autoComplete="off" minLength={3} pattern="[a-zA-Z0-9._-]+" required /></label>
+          <label className={styles.field}><span>E-posta</span><input name="email" autoComplete="off" type="email" required /></label>
           <label className={styles.field}><span>Telefon</span><input name="phone" type="tel" /></label>
-          <label className={styles.field}><span>Sifre</span><input name="password" type="password" minLength={10} required /></label>
+          <label className={styles.field}><span>Sifre</span><input name="password" type="password" autoComplete="new-password" minLength={10} required /></label>
           <input type="hidden" name="role" value="COMPANY_ADMIN" />
           <label className={styles.field}><span>Rol</span><input value="Firma Admin" readOnly /><small>Firma kaydı kullanıcı tarafından ilk girişten sonra oluşturulur.</small></label>
           <fieldset className={`${styles.scopeFieldset} ${styles.fullWidth}`}><legend>Modül Lisansları</legend><p className={styles.scopeHint}>Firma admini, kendi firmasını oluşturduğunda ve alt kullanıcılarını tanımladığında yalnız burada açılan modülleri kullanabilir.</p><div className={styles.permissionCheckGrid}>{moduleCatalog.map((module)=><label key={module.key} className={styles.checkField}><input type="checkbox" name="moduleKeys" value={module.key}/><span className={styles.moduleCheckCopy}><strong>{module.name}</strong><small>{module.description}</small></span></label>)}</div></fieldset>

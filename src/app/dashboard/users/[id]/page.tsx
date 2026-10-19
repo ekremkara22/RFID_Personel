@@ -156,10 +156,10 @@ export default async function UserDetailPage(props: {
             <input type="hidden" name="userId" value={record.id} />
             <label className={styles.field}><span>Ad</span><input name="firstName" defaultValue={record.firstName ?? ""} required /></label>
             <label className={styles.field}><span>Soyad</span><input name="lastName" defaultValue={record.lastName ?? ""} required /></label>
-            <label className={styles.field}><span>Kullanıcı Adı</span><input name="username" defaultValue={record.username ?? ""} minLength={3} placeholder="İsteğe bağlı" /><small>Boş bırakılırsa kullanıcı e-posta adresiyle giriş yapmaya devam eder.</small></label>
-            <label className={styles.field}><span>E-posta</span><input name="email" type="email" defaultValue={record.email} required /></label>
+            <label className={styles.field}><span>Kullanıcı Adı</span><input name="username" autoComplete="off" defaultValue={record.username ?? ""} minLength={3} placeholder="İsteğe bağlı" /><small>Boş bırakılırsa kullanıcı e-posta adresiyle giriş yapmaya devam eder.</small></label>
+            <label className={styles.field}><span>E-posta</span><input name="email" autoComplete="off" type="email" defaultValue={record.email} required /></label>
             <label className={styles.field}><span>Telefon</span><input name="phone" type="tel" defaultValue={record.phone ?? ""} /></label>
-            <label className={styles.field}><span>Yeni Sifre</span><input name="password" type="password" placeholder="Degistirmek istemiyorsan bos birak" /></label>
+            <label className={styles.field}><span>Yeni Sifre</span><input name="password" type="password" autoComplete="new-password" placeholder="Degistirmek istemiyorsan bos birak" /></label>
             <label className={styles.field}>
               <span>Rol</span>
               <select name="role" defaultValue={record.role}>
