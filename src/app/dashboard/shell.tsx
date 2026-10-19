@@ -91,16 +91,15 @@ const navigationIcons: Record<NavigationIconKey, LucideIcon> = {
 export function DashboardShell({ children, user, authorization, memberships, moduleCatalog, showStoreLink = false, licenseNotice = null }: DashboardShellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [definitionsOpen, setDefinitionsOpen] = useState(
-    pathname.startsWith("/dashboard/settings") || pathname.startsWith("/dashboard/access") || pathname.startsWith("/dashboard/companies"),
-  );
-  const [hrOpen, setHrOpen] = useState(!pathname.startsWith("/dashboard/production") && !pathname.startsWith("/dashboard/accounting") && !pathname.startsWith("/dashboard/sales"));
-  const [productionOpen, setProductionOpen] = useState(pathname.startsWith("/dashboard/production"));
-  const [productionDefinitionsOpen, setProductionDefinitionsOpen] = useState(pathname.startsWith("/dashboard/production/definitions"));
-  const [accountingOpen, setAccountingOpen] = useState(pathname.startsWith("/dashboard/accounting"));
-  const [accountingDefinitionsOpen, setAccountingDefinitionsOpen] = useState(pathname.startsWith("/dashboard/accounting/definitions"));
-  const [reportsOpen, setReportsOpen] = useState(pathname.startsWith("/dashboard/reports"));
-  const [calendarOpen, setCalendarOpen] = useState(pathname.startsWith("/dashboard/calendar"));
+  // Menü grupları her girişte kapalı başlar; kullanıcı açtıkça açık kalır.
+  const [definitionsOpen, setDefinitionsOpen] = useState(false);
+  const [hrOpen, setHrOpen] = useState(false);
+  const [productionOpen, setProductionOpen] = useState(false);
+  const [productionDefinitionsOpen, setProductionDefinitionsOpen] = useState(false);
+  const [accountingOpen, setAccountingOpen] = useState(false);
+  const [accountingDefinitionsOpen, setAccountingDefinitionsOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const hasModule = (moduleKey: string) => authorization.isPlatformAdmin || (!!authorization.companyId && authorization.modules.includes(moduleKey));
   const hasHr = hasModule(MODULES.HR);
   const hasProduction = hasModule(MODULES.PRODUCTION_PLANNING);
