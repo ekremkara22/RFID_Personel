@@ -40,16 +40,16 @@ export default async function Home() {
         <h1 className={site.visuallyHidden}>Flodeska: RFID personel takibi, maaş hesaplama ve bütçe raporu</h1>
         <ModuleSlider slides={[
           {
-            id: "hr", tab: "İK & RFID Personel Takip", title: hr.title,
-            text: "RFID okuyucudan gelen giriş, çıkış ve mola kayıtları; izin, çalışma takvimi ve puantajla birlikte.",
-            visual: <Image src="/images/marketing/flodeska-tanitim-yatay-v1.png" alt="Flodeska RFID kart okuyucu cihazı ve personel takip yönetim paneli" width={1680} height={945} preload unoptimized sizes="100vw" />,
-            actions: <ModuleActions module={hr} />,
+            id: "accounting", tab: "Maaş Hesaplama", title: "Maaş Hesaplama",
+            text: "Netten brüte maaş hesabından yıllık işveren maliyetine; bütçe senaryoları, departman analizi ve PDF rapor.",
+            visual: <Image src="/images/marketing/flodeska-maas-butce-slider-v2.png" alt="Flodeska Muhasebe bütçe raporu ekranı: personel sayısı, yıllık işveren maliyeti, bütçe kalan ve departman analizi (örnek veriler)" width={1672} height={941} preload unoptimized sizes="100vw" />,
+            actions: <ModuleActions module={accounting} />,
           },
           {
-            id: "accounting", tab: "Muhasebe · Bütçe Raporu", title: accounting.title,
-            text: "Netten brüte maaş hesabından yıllık işveren maliyetine; bütçe senaryoları, departman analizi ve PDF rapor.",
-            visual: <Image src="/images/marketing/flodeska-maas-butce-slider-v2.png" alt="Flodeska Muhasebe bütçe raporu ekranı: personel sayısı, yıllık işveren maliyeti, bütçe kalan ve departman analizi (örnek veriler)" width={1672} height={941} unoptimized sizes="100vw" />,
-            actions: <ModuleActions module={accounting} />,
+            id: "hr", tab: "İK & RFID Personel Takip", title: hr.title,
+            text: "RFID okuyucudan gelen giriş, çıkış ve mola kayıtları; izin, çalışma takvimi ve puantajla birlikte.",
+            visual: <Image src="/images/marketing/flodeska-tanitim-yatay-v1.png" alt="Flodeska RFID kart okuyucu cihazı ve personel takip yönetim paneli" width={1680} height={945} unoptimized sizes="100vw" />,
+            actions: <ModuleActions module={hr} />,
           },
         ]} />
       </section>
