@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { BudgetReportPreview } from "@/components/marketing/budget-report-preview";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { ModuleActions } from "@/components/marketing/module-actions";
 import { ModuleCard } from "@/components/marketing/module-card";
@@ -36,24 +35,24 @@ export default async function Home() {
     <MarketingShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
 
-      <section className={site.hero}><div className="container">
+      <section className={site.hero}>
         {/* The slider opens the page right under the header; the page heading stays for screen readers and search engines. */}
         <h1 className={site.visuallyHidden}>Flodeska: RFID personel takibi, maaş hesaplama ve bütçe raporu</h1>
         <ModuleSlider slides={[
           {
             id: "hr", tab: "İK & RFID Personel Takip", title: hr.title,
             text: "RFID okuyucudan gelen giriş, çıkış ve mola kayıtları; izin, çalışma takvimi ve puantajla birlikte.",
-            visual: <Image src="/images/marketing/flodeska-tanitim-yatay-v1.png" alt="Flodeska RFID kart okuyucu cihazı ve personel takip yönetim paneli" width={1680} height={945} preload unoptimized sizes="(max-width: 1200px) 100vw, 1200px" />,
+            visual: <Image src="/images/marketing/flodeska-tanitim-yatay-v1.png" alt="Flodeska RFID kart okuyucu cihazı ve personel takip yönetim paneli" width={1680} height={945} preload unoptimized sizes="100vw" />,
             actions: <ModuleActions module={hr} />,
           },
           {
             id: "accounting", tab: "Muhasebe · Bütçe Raporu", title: accounting.title,
-            text: "24 kişilik örnek firmanın 2026 bütçesi: işveren maliyeti, departman payları ve aylık maliyet dağılımı.",
-            visual: <BudgetReportPreview />,
+            text: "Netten brüte maaş hesabından yıllık işveren maliyetine; bütçe senaryoları, departman analizi ve PDF rapor.",
+            visual: <Image src="/images/marketing/flodeska-maas-butce-slider-v2.png" alt="Flodeska Muhasebe bütçe raporu ekranı: personel sayısı, yıllık işveren maliyeti, bütçe kalan ve departman analizi (örnek veriler)" width={1672} height={941} unoptimized sizes="100vw" />,
             actions: <ModuleActions module={accounting} />,
           },
         ]} />
-      </div></section>
+      </section>
 
       <section className={`${styles.section} ${styles.softSection}`} id="moduller"><div className="container">
         <div className={styles.sectionHead}>

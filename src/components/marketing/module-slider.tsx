@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import styles from "./site.module.css";
 
@@ -8,11 +7,12 @@ export type HeroSlide = { id: string; tab: string; title: string; text: string; 
 
 const INTERVAL_MS = 8000;
 
+/** Full-width visuals under the header; tabs and the active slide's caption sit below in the page container. */
 export function ModuleSlider({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  // Once the visitor picks a slide or presses pause, the carousel stops rotating on its own.
+  // Once the visitor picks a slide, the carousel stops rotating on its own.
   const [stopped, setStopped] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -35,7 +35,7 @@ export function ModuleSlider({ slides }: { slides: HeroSlide[] }) {
 
   const go = (index: number) => {
     setStopped(true);
-    setActive((index + slides.length) % slides.length);
+    setActive(index);
   };
 
   return (
@@ -48,23 +48,6 @@ export function ModuleSlider({ slides }: { slides: HeroSlide[] }) {
       onFocus={() => setFocused(true)}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}
     >
-      <div className={styles.sliderTabs}>
-        {slides.map((slide, index) => (
-          <button key={slide.id} type="button" className={index === active ? styles.sliderTabActive : styles.sliderTab} aria-current={index === active} onClick={() => go(index)}>
-            <span>{String(index + 1).padStart(2, "0")}</span>{slide.tab}
-            {index === active && running && !paused ? <i key={`${slide.id}-${active}`} className={styles.sliderProgress} style={{ animationDuration: `${INTERVAL_MS}ms` }} aria-hidden="true" /> : null}
-          </button>
-        ))}
-        <div className={styles.sliderArrows}>
-          {!reducedMotion && slides.length > 1 ? (
-            <button type="button" className={styles.sliderPause} onClick={() => setStopped((value) => !value)} aria-label={stopped ? "Otomatik geçişi başlat" : "Otomatik geçişi durdur"}>
-              {stopped ? <Play size={16} /> : <Pause size={16} />}
-            </button>
-          ) : null}
-          <button type="button" onClick={() => go(active - 1)} aria-label="Önceki modül"><ChevronLeft size={18} /></button>
-          <button type="button" onClick={() => go(active + 1)} aria-label="Sonraki modül"><ChevronRight size={18} /></button>
-        </div>
-      </div>
       <div className={styles.slides} aria-live={running ? "off" : "polite"}>
         {slides.map((slide, index) => (
           <div
@@ -77,15 +60,25 @@ export function ModuleSlider({ slides }: { slides: HeroSlide[] }) {
             inert={index !== active}
           >
             <div className={styles.slideVisual}>{slide.visual}</div>
-            <div className={styles.slideCaption}>
-              <div>
-                <h2>{slide.title}</h2>
-                <p>{slide.text}</p>
-              </div>
-              {slide.actions}
-            </div>
           </div>
         ))}
+      </div>
+      <div className="container">
+        <div className={styles.sliderTabs}>
+          {slides.map((slide, index) => (
+            <button key={slide.id} type="button" className={index === active ? styles.sliderTabActive : styles.sliderTab} aria-current={index === active} onClick={() => go(index)}>
+              <span>{String(index + 1).padStart(2, "0")}</span>{slide.tab}
+              {index === active && running && !paused ? <i key={`${slide.id}-${active}`} className={styles.sliderProgress} style={{ animationDuration: `${INTERVAL_MS}ms` }} aria-hidden="true" /> : null}
+            </button>
+          ))}
+        </div>
+        <div className={styles.slideCaption}>
+          <div>
+            <h2>{slides[active].title}</h2>
+            <p>{slides[active].text}</p>
+          </div>
+          {slides[active].actions}
+        </div>
       </div>
     </section>
   );

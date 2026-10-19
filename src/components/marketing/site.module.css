@@ -26,29 +26,25 @@
 .primaryButton, .secondaryButton { min-height: 44px; padding: 0 20px; font-size: 15px; }
 
 /* Hero */
-.hero { padding: 24px 0 40px; border-bottom: 1px solid #e3e8ee; background: #fff; }
+.hero { padding: 0 0 32px; border-bottom: 1px solid #e3e8ee; background: #fff; }
 .visuallyHidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 
 /* Slider */
-.slider { display: grid; gap: 14px; }
-.sliderTabs { display: flex; align-items: stretch; gap: 8px; border-bottom: 1px solid #e3e7ec; }
+.slider { display: grid; }
+.sliderTabs { display: flex; align-items: stretch; gap: 8px; margin-top: 16px; border-bottom: 1px solid #e3e7ec; }
 .sliderTab, .sliderTabActive { position: relative; min-height: 44px; display: inline-flex; align-items: center; gap: 10px; padding: 0 4px; margin-right: 18px; color: #6b7682; font-size: 14px; font-weight: 500; }
 .sliderTab span, .sliderTabActive span { color: #9aa4ae; font-size: 12px; font-variant-numeric: tabular-nums; }
 .sliderTab:hover { color: #14202e; }
 .sliderTabActive { color: #14202e; font-weight: 600; box-shadow: inset 0 -2px 0 #d5dbe2; }
 .sliderProgress { position: absolute; left: 0; bottom: 0; width: 100%; height: 2px; background: #1f5fae; transform-origin: left; animation-name: sliderProgress; animation-timing-function: linear; animation-fill-mode: forwards; }
 @keyframes sliderProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.sliderArrows { display: flex; gap: 6px; margin-left: auto; padding-bottom: 6px; }
-.sliderArrows button { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid #dde2e8; border-radius: 8px; background: #fff; color: #3d4955; }
-.sliderArrows button:hover { border-color: #9aa6b3; }
-.sliderPause { color: #5b6876; }
 .slides { display: grid; }
-.slide, .slideActive { grid-area: 1 / 1; display: grid; gap: 18px; align-content: start; transition: opacity .35s ease; }
+.slide, .slideActive { grid-area: 1 / 1; transition: opacity .35s ease; }
 .slide { opacity: 0; visibility: hidden; }
 .slideActive { opacity: 1; visibility: visible; }
-.slideVisual { position: relative; overflow: hidden; border: 1px solid #dfe4ea; border-radius: 14px; background: #eef2f6; }
+.slideVisual { position: relative; overflow: hidden; background: #0b1f3d; }
 .slideVisual img { display: block; width: 100%; height: auto; }
-.slideCaption { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.slideCaption { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 18px; }
 .slideCaption h2 { color: #14202e; font-size: 18px; font-weight: 600; }
 .slideCaption p { max-width: 640px; margin-top: 4px; color: #5b6876; font-size: 14px; line-height: 1.6; }
 
@@ -119,7 +115,6 @@
   .primaryButton, .secondaryButton { width: 100%; }
   .sliderTab, .sliderTabActive { margin-right: 8px; font-size: 13px; }
   .sliderTab span, .sliderTabActive span { display: none; }
-  .sliderArrows button:not(.sliderPause) { display: none; }
   .slideCaption .moduleActions { width: 100%; }
   .slideCaption .buyButton, .slideCaption .ghostButton { flex: 1 1 0; }
   .moduleCard { padding: 22px; }
