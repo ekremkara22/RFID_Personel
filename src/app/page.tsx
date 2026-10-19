@@ -27,7 +27,7 @@ export default async function Home() {
   const accounting = modules.find((module) => module.key === MODULES.ACCOUNTING)!;
   const organizationJsonLd = {
     "@context": "https://schema.org", "@type": "Organization", name: "Flodeska", url: "https://flodeska.com",
-    email: "ekremkara22@gmail.com", telephone: "+905078368320",
+    email: "info@flodeska.com", telephone: "+905078368320",
     address: { "@type": "PostalAddress", addressLocality: "Şişli", addressRegion: "İstanbul", addressCountry: "TR" },
   };
 
