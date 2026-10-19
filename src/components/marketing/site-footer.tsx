@@ -34,7 +34,7 @@ export function SiteFooter() {
             <address className={styles.contactList}>
               <span><MapPin size={16} /> Şişli / İstanbul</span>
               <a href="tel:+905078368320"><Phone size={16} /> +90 507 836 83 20</a>
-              <a href="mailto:ekremkara22@gmail.com"><Mail size={16} /> ekremkara22@gmail.com</a>
+              <a href="mailto:info@flodeska.com"><Mail size={16} /> info@flodeska.com</a>
             </address>
           </div>
         </div>
