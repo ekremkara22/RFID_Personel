@@ -55,7 +55,7 @@ export async function sendVerificationEmail(user: MailUser, now = new Date()) {
   const token = await issueToken(user, UserEmailTokenPurpose.VERIFY_EMAIL, EMAIL_VERIFICATION_TTL_MS, now);
   if (!token) return;
   const link = accountLink(requiredEnvironmentValue("APP_URL"), "/verify-email", token);
-  await sendSystemMail({ to: user.email, ...buildVerificationEmail(displayName(user), link) });
+  await sendSystemMail({ to: user.email, ...buildVerificationEmail(displayName(user), link) }, "account");
 }
 
 /** Silent when the address is unknown or already verified, so the response never reveals accounts. */
@@ -83,7 +83,7 @@ export async function requestPasswordReset(email: string) {
   const token = await issueToken(user, UserEmailTokenPurpose.RESET_PASSWORD, PASSWORD_RESET_TTL_MS, new Date());
   if (!token) return;
   const link = accountLink(requiredEnvironmentValue("APP_URL"), "/reset-password", token);
-  await sendSystemMail({ to: user.email, ...buildPasswordResetEmail(displayName(user), link) });
+  await sendSystemMail({ to: user.email, ...buildPasswordResetEmail(displayName(user), link) }, "account");
 }
 
 export async function resetPasswordWithToken(rawToken: string, newPassword: string, now = new Date()) {

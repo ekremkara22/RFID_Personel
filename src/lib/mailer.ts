@@ -22,23 +22,40 @@ export function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
-/** Sends an automated system e-mail with the SMTP account configured in the environment. */
-export async function sendSystemMail(mail: SystemMail) {
+/**
+ * "report": in-app reports and internal notifications (SMTP_USER / MAIL_FROM_ADDRESS).
+ * "account": customer-facing mail such as verification, password reset and announcements
+ * (ACCOUNT_SMTP_USER / ACCOUNT_SMTP_PASSWORD / ACCOUNT_MAIL_FROM_ADDRESS, same SMTP host).
+ */
+export type MailSender = "report" | "account";
+
+function senderCredentials(sender: MailSender) {
+  const prefix = sender === "account" ? "ACCOUNT_" : "";
+  return {
+    user: requiredEnvironmentValue(`${prefix}SMTP_USER`),
+    pass: requiredEnvironmentValue(`${prefix}SMTP_PASSWORD`),
+    from: requiredEnvironmentValue(`${prefix}MAIL_FROM_ADDRESS`),
+  };
+}
+
+/** Sends an automated system e-mail with the SMTP account configured for the given sender. */
+export async function sendSystemMail(mail: SystemMail, sender: MailSender = "report") {
   const port = Number(requiredEnvironmentValue("SMTP_PORT"));
   if (!Number.isInteger(port) || port <= 0) throw new Error("Geçersiz e-posta yapılandırması: SMTP_PORT");
+  const credentials = senderCredentials(sender);
 
   const transporter = nodemailer.createTransport({
     host: requiredEnvironmentValue("SMTP_HOST"),
     port,
     secure: process.env.SMTP_SECURE?.trim().toLowerCase() === "true",
-    auth: { user: requiredEnvironmentValue("SMTP_USER"), pass: requiredEnvironmentValue("SMTP_PASSWORD") },
+    auth: { user: credentials.user, pass: credentials.pass },
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 20_000,
   });
 
   await transporter.sendMail({
-    from: { name: process.env.MAIL_FROM_NAME?.trim() || "Flodeska", address: requiredEnvironmentValue("MAIL_FROM_ADDRESS") },
+    from: { name: process.env.MAIL_FROM_NAME?.trim() || "Flodeska", address: credentials.from },
     to: mail.to,
     subject: mail.subject,
     text: mail.text,

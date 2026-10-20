@@ -28,6 +28,7 @@
 - Davet token'ları hash'lenerek saklanır, süreleri dolar.
 - Parolalar bcrypt ile saklanır; hiçbir yanıtta parola veya hash dönmez.
 - Kendi kaydolan kullanıcı (`selfRegistered`) e-postasını doğrulamadan (`emailVerifiedAt`) giriş yapamaz; bekleyen Shopier lisansları yalnız doğrulamadan sonra talep edilir. Doğrulama ve şifre sıfırlama bağlantıları tek kullanımlıktır, yalnız SHA-256 hash'i saklanır, süreleri 24 saat / 1 saattir.
+- Hesap e-postaları `info@` hesabından (`sendSystemMail(..., "account")`, `ACCOUNT_*` env), uygulama içi raporlar `report@` hesabından gider.
 - Şifremi unuttum ve doğrulama tekrar gönderme yanıtları hesabın var olup olmadığını belli etmez.
 
 ## Bağımlılıklar
