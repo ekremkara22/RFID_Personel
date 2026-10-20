@@ -2,6 +2,16 @@
 
 RFID kart tabanli personel takip paneli. Bu repo web paneli, veritabani modeli ve ESP32/RFID cihaz entegrasyonu icin kullanilir; eski mobil uygulama kodlari devre disi birakilmistir.
 
+## Birden fazla bilgisayarda çalışma
+
+Her klonda bir kez çalıştırın:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Bundan sonra `git pull` ile `package-lock.json` değişirse `npm ci`, yalnız `prisma/schema.prisma` değişirse `npx prisma generate` otomatik çalışır. Veritabanı migration'ları otomatik uygulanmaz. Sunucularda bu ayar yapılmaz; deploy betikleri kurulumu zaten kendisi yapar.
+
 ## Getting Started
 
 First, run the development server:

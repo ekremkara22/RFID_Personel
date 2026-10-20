@@ -1,0 +1,4 @@
+#!/bin/sh
+# Runs after `git pull --rebase`; amend is ignored because it never changes dependencies.
+[ "$1" = "rebase" ] || exit 0
+exec sh "$(git rev-parse --show-toplevel)/.githooks/sync-deps.sh" ORIG_HEAD HEAD

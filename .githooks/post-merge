@@ -1,0 +1,3 @@
+#!/bin/sh
+# Runs after `git pull` (merge or fast-forward).
+exec sh "$(git rev-parse --show-toplevel)/.githooks/sync-deps.sh" ORIG_HEAD HEAD
