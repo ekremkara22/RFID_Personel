@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, ArrowLeft, BarChart3, Database, Lock, Mail, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowLeft, BarChart3, CheckCircle2, Database, Lock, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
@@ -31,11 +31,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError("");
+    setNotice("");
+    setNeedsVerification(false);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -47,6 +52,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.code === "EMAIL_NOT_VERIFIED") setNeedsVerification(true);
         throw new Error(data.error || "Giriş başarısız oldu.");
       }
 
@@ -62,8 +68,27 @@ export default function LoginPage() {
     }
   };
 
-  return (
-    <main className={styles.container}>
+  const resendVerification = async () => {
+    setResending(true);
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: identifier }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Doğrulama e-postası gönderilemedi.");
+      setError("");
+      setNeedsVerification(false);
+      setNotice(data.message);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Doğrulama e-postası gönderilemedi.");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (    <main className={styles.container}>
       <motion.section
         className={styles.loginShell}
         initial={{ opacity: 0, y: 16 }}
@@ -72,7 +97,7 @@ export default function LoginPage() {
       >
         <div className={styles.formPanel}>
           <div className={styles.header}>
-            <p className={styles.eyebrow}>RFID Personel Takip</p>
+            <p className={styles.eyebrow}>Flodeska</p>
             <h1>Yönetim Paneli Girişi</h1>
             <p className={styles.subtitle}>
               Admin ve firma kullanıcıları için yoğun veri yönetimi, kayıt inceleme ve raporlama paneli.
@@ -90,12 +115,26 @@ export default function LoginPage() {
             </motion.div>
           ) : null}
 
+          {needsVerification ? (
+            <button type="button" className={styles.secondaryBtn} onClick={resendVerification} disabled={resending}>
+              {resending ? "Gönderiliyor..." : "Doğrulama e-postasını tekrar gönder"}
+            </button>
+          ) : null}
+
+          {notice ? (
+            <div className={styles.successBox} role="status">
+              <CheckCircle2 size={18} />
+              <span>{notice}</span>
+            </div>
+          ) : null}
+
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Kullanıcı Adı veya E-posta</label>
+              <label className={styles.label} htmlFor="identifier">Kullanıcı Adı veya E-posta</label>
               <div className={styles.inputWrapper}>
                 <Mail className={styles.inputIcon} size={18} />
                 <input
+                  id="identifier"
                   type="text"
                   className={styles.input}
                   placeholder="kullanici.adi veya admin@firma.com"
@@ -107,10 +146,14 @@ export default function LoginPage() {
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label}>Şifre</label>
+              <div className={styles.labelRow}>
+                <label className={styles.label} htmlFor="password">Şifre</label>
+                <Link href="/forgot-password" className={styles.inlineLink}>Şifremi unuttum</Link>
+              </div>
               <div className={styles.inputWrapper}>
                 <Lock className={styles.inputIcon} size={18} />
                 <input
+                  id="password"
                   type="password"
                   className={styles.input}
                   placeholder="••••••••"

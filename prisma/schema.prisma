@@ -298,6 +298,8 @@ model User {
   company                     Company?                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   selfRegistered              Boolean                      @default(false)
   trialEndsAt                 DateTime?
+  emailVerifiedAt             DateTime?
+  emailTokens                 UserEmailToken[]
   companyAccess               UserCompanyAccess[]
   deviceAccess                UserDeviceAccess[]
   attendanceAudits            AttendanceMovementAudit[]
@@ -317,6 +319,25 @@ model User {
   fulfilledShopierOrders      ShopierOrder[]               @relation("ShopierOrderFulfilledBy")
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
+}
+
+enum UserEmailTokenPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+/// Single-use e-mail links (verification, password reset); only the SHA-256 hash is stored.
+model UserEmailToken {
+  id        Int                     @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int                     @db.UnsignedInt
+  user      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   UserEmailTokenPurpose
+  tokenHash String                  @unique @db.Char(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime                @default(now())
+
+  @@index([userId, purpose])
 }
 
 model UserModuleEntitlement {

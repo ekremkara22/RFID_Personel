@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { escapeHtml, requiredEnvironmentValue, sendSystemMail } from "@/lib/mailer";
 
 export type RegistrationNotificationUser = {
   id: number;
@@ -15,21 +15,6 @@ const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
   dateStyle: "long",
   timeStyle: "medium",
 });
-
-function requiredEnvironmentValue(key: string) {
-  const value = process.env[key]?.trim();
-  if (!value) throw new Error(`Eksik e-posta yapılandırması: ${key}`);
-  return value;
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 export function buildRegistrationNotification(user: RegistrationNotificationUser) {
   const fullName = `${user.firstName} ${user.lastName}`.trim();
@@ -65,28 +50,6 @@ export function buildRegistrationNotification(user: RegistrationNotificationUser
 }
 
 export async function sendRegistrationNotification(user: RegistrationNotificationUser) {
-  const port = Number(requiredEnvironmentValue("SMTP_PORT"));
-  if (!Number.isInteger(port) || port <= 0) throw new Error("Geçersiz e-posta yapılandırması: SMTP_PORT");
-
-  const smtpUser = requiredEnvironmentValue("SMTP_USER");
-  const fromAddress = requiredEnvironmentValue("MAIL_FROM_ADDRESS");
   const recipient = requiredEnvironmentValue("REGISTRATION_NOTIFICATION_TO");
-  const message = buildRegistrationNotification(user);
-  const transporter = nodemailer.createTransport({
-    host: requiredEnvironmentValue("SMTP_HOST"),
-    port,
-    secure: process.env.SMTP_SECURE?.trim().toLowerCase() === "true",
-    auth: { user: smtpUser, pass: requiredEnvironmentValue("SMTP_PASSWORD") },
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 20_000,
-  });
-
-  await transporter.sendMail({
-    from: { name: process.env.MAIL_FROM_NAME?.trim() || "Flodeska", address: fromAddress },
-    to: recipient,
-    subject: message.subject,
-    text: message.text,
-    html: message.html,
-  });
+  await sendSystemMail({ to: recipient, ...buildRegistrationNotification(user) });
 }

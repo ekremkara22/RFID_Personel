@@ -12,10 +12,11 @@
 
 ## Kapsam
 - Ekranlar: `src/app/dashboard/access/**` (members, roles, teams, invite, audit), `src/app/dashboard/users/**`, `src/app/login` (davet linki 2026-10-15'te kaldırıldı: firma adminleri kullanıcıyı doğrudan "Kullanıcı Tanımla" ile açar; `CompanyInvitation` tablosu yalnız geçmiş kayıt olarak durur)
-- API: `src/app/api/auth/login`
+- API: `src/app/api/auth/login`, `forgot-password`, `reset-password`, `resend-verification`
+- Hesap e-postaları: `src/app/{verify-email,forgot-password,reset-password}`, `src/modules/auth/email-tokens.ts`, `src/lib/account-emails.ts`, `src/lib/mailer.ts`, `src/lib/ip-rate-limit.ts`
 - İş mantığı: `src/modules/access/`, `src/modules/users/`, `src/modules/auth/`, `src/lib/auth.ts`, `session.ts`, `api-session.ts`, `access.ts`, `authorization.ts`, `authorization-scope.ts`, `company-scope.ts`, `company-role-policy.ts`, `permission-catalog.ts`, `role-editor-options.ts`
 - Script'ler: `scripts/migrate-company-rbac.ts`, `scripts/seed-rbac-staging-demo.ts`
-- Veri: `User`, `CompanyRole`, `CompanyRoleModule`, `CompanyRolePermission`, `CompanyMembership`, `Membership*Scope`, `MembershipModule`, `CompanyTeam`, `CompanyTeamEmployee`, `CompanyInvitation`, `CompanyAccessAudit`, `UserCompanyAccess`
+- Veri: `User`, `CompanyRole`, `CompanyRoleModule`, `CompanyRolePermission`, `CompanyMembership`, `Membership*Scope`, `MembershipModule`, `CompanyTeam`, `CompanyTeamEmployee`, `CompanyInvitation`, `CompanyAccessAudit`, `UserCompanyAccess`, `UserEmailToken`
 - Testler: `authorization.test.ts`, `company-scope.test.ts`, `company-role-policy.test.ts`, `role-module-sync.test.ts`, `user-identity.test.ts`
 
 ## Değişmez kurallar
@@ -26,6 +27,8 @@
 - Üyelik, rol ve kapsam değişiklikleri `CompanyAccessAudit` ile kaydedilir.
 - Davet token'ları hash'lenerek saklanır, süreleri dolar.
 - Parolalar bcrypt ile saklanır; hiçbir yanıtta parola veya hash dönmez.
+- Kendi kaydolan kullanıcı (`selfRegistered`) e-postasını doğrulamadan (`emailVerifiedAt`) giriş yapamaz; bekleyen Shopier lisansları yalnız doğrulamadan sonra talep edilir. Doğrulama ve şifre sıfırlama bağlantıları tek kullanımlıktır, yalnız SHA-256 hash'i saklanır, süreleri 24 saat / 1 saattir.
+- Şifremi unuttum ve doğrulama tekrar gönderme yanıtları hesabın var olup olmadığını belli etmez.
 
 ## Bağımlılıklar
 - Kullandıkları: platform (firma, lisans), personel (çalışan bağlı üyelik).

@@ -55,6 +55,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (user.selfRegistered && !user.emailVerifiedAt) {
+      return NextResponse.json(
+        { error: "E-posta adresiniz henüz doğrulanmadı. Gelen kutunuzdaki doğrulama bağlantısına tıklayın.", code: "EMAIL_NOT_VERIFIED" },
+        { status: 403 },
+      );
+    }
+
     // Self-registered owners always reach their license page, even after the trial ends,
     // so they can purchase a module instead of being locked out of the panel.
     const canCreateFirstCompany = user.role === "COMPANY_ADMIN" && (user.moduleEntitlements.length > 0 || user.selfRegistered);

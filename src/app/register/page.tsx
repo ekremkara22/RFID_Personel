@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, ArrowLeft, BadgeCheck, Boxes, Lock, Mail, Phone, ShoppingCart, User } from "lucide-react";
+import { AlertCircle, ArrowLeft, BadgeCheck, Boxes, Lock, Mail, MailCheck, Phone, ShoppingCart, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import styles from "../login/page.module.css";
 
 const steps = [
@@ -13,10 +12,10 @@ const steps = [
 ];
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", password: "", passwordConfirm: "", website: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const update = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +34,8 @@ export default function RegisterPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Kayıt tamamlanamadı.");
-      router.push(data.redirectTo || "/dashboard/store");
+      setRegisteredEmail(data.email || form.email);
+      setLoading(false);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Kayıt sırasında bir hata oluştu.");
       setLoading(false);
@@ -46,81 +46,99 @@ export default function RegisterPage() {
     <main className={styles.container}>
       <section className={styles.loginShell}>
         <div className={styles.formPanel}>
-          <div className={styles.header}>
-            <p className={styles.eyebrow}>RFID Personel Takip</p>
-            <h1>Hesap oluşturun</h1>
-            <p className={styles.subtitle}>Firmanız için hesap açın, 14 günlük ücretsiz deneme hemen başlasın.</p>
-          </div>
+          {registeredEmail ? (
+            <>
+              <div className={styles.header}>
+                <p className={styles.eyebrow}>Flodeska</p>
+                <h1>E-postanızı doğrulayın</h1>
+                <p className={styles.subtitle}>Hesabınız oluşturuldu. Girişten önce e-posta adresinizi doğrulamanız gerekiyor.</p>
+              </div>
+              <div className={styles.successBox} role="status">
+                <MailCheck size={18} />
+                <span><strong>{registeredEmail}</strong> adresine bir doğrulama bağlantısı gönderdik. Bağlantı 24 saat geçerlidir; e-postayı göremiyorsanız istenmeyen klasörünü kontrol edin.</span>
+              </div>
+              <Link href="/login" className={styles.submitBtn}>Giriş sayfasına git</Link>
+            </>
+          ) : (
+            <>
+              <div className={styles.header}>
+                <p className={styles.eyebrow}>Flodeska</p>
+                <h1>Hesap oluşturun</h1>
+                <p className={styles.subtitle}>Firmanız için hesap açın, 14 günlük ücretsiz deneme hemen başlasın.</p>
+              </div>
 
-          {error ? (
-            <div className={styles.errorBox} role="alert">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-          ) : null}
-
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="firstName">Ad</label>
-                <div className={styles.inputWrapper}>
-                  <User className={styles.inputIcon} size={18} />
-                  <input id="firstName" className={styles.input} value={form.firstName} onChange={update("firstName")} autoComplete="given-name" maxLength={100} required />
+              {error ? (
+                <div className={styles.errorBox} role="alert">
+                  <AlertCircle size={18} />
+                  <span>{error}</span>
                 </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="lastName">Soyad</label>
-                <div className={styles.inputWrapper}>
-                  <User className={styles.inputIcon} size={18} />
-                  <input id="lastName" className={styles.input} value={form.lastName} onChange={update("lastName")} autoComplete="family-name" maxLength={100} required />
+              ) : null}
+
+              <form onSubmit={handleSubmit} className={styles.form}>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="firstName">Ad</label>
+                    <div className={styles.inputWrapper}>
+                      <User className={styles.inputIcon} size={18} />
+                      <input id="firstName" className={styles.input} value={form.firstName} onChange={update("firstName")} autoComplete="given-name" maxLength={100} required />
+                    </div>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="lastName">Soyad</label>
+                    <div className={styles.inputWrapper}>
+                      <User className={styles.inputIcon} size={18} />
+                      <input id="lastName" className={styles.input} value={form.lastName} onChange={update("lastName")} autoComplete="family-name" maxLength={100} required />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="email">E-posta</label>
-              <div className={styles.inputWrapper}>
-                <Mail className={styles.inputIcon} size={18} />
-                <input id="email" type="email" className={styles.input} placeholder="ad.soyad@firma.com" value={form.email} onChange={update("email")} autoComplete="email" required />
-              </div>
-              <small className={styles.hint}>Giriş için ve Shopier siparişinizi hesabınızla eşleştirmek için kullanılır.</small>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="phone">Telefon <span className={styles.optional}>(isteğe bağlı)</span></label>
-              <div className={styles.inputWrapper}>
-                <Phone className={styles.inputIcon} size={18} />
-                <input id="phone" type="tel" className={styles.input} placeholder="05xx xxx xx xx" value={form.phone} onChange={update("phone")} autoComplete="tel" />
-              </div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="password">Şifre</label>
-                <div className={styles.inputWrapper}>
-                  <Lock className={styles.inputIcon} size={18} />
-                  <input id="password" type="password" className={styles.input} value={form.password} onChange={update("password")} autoComplete="new-password" minLength={10} maxLength={128} required />
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="email">E-posta</label>
+                  <div className={styles.inputWrapper}>
+                    <Mail className={styles.inputIcon} size={18} />
+                    <input id="email" type="email" className={styles.input} placeholder="ad.soyad@firma.com" value={form.email} onChange={update("email")} autoComplete="email" required />
+                  </div>
+                  <small className={styles.hint}>Giriş için ve Shopier siparişinizi hesabınızla eşleştirmek için kullanılır.</small>
                 </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="passwordConfirm">Şifre tekrar</label>
-                <div className={styles.inputWrapper}>
-                  <Lock className={styles.inputIcon} size={18} />
-                  <input id="passwordConfirm" type="password" className={styles.input} value={form.passwordConfirm} onChange={update("passwordConfirm")} autoComplete="new-password" minLength={10} maxLength={128} required />
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="phone">Telefon <span className={styles.optional}>(isteğe bağlı)</span></label>
+                  <div className={styles.inputWrapper}>
+                    <Phone className={styles.inputIcon} size={18} />
+                    <input id="phone" type="tel" className={styles.input} placeholder="05xx xxx xx xx" value={form.phone} onChange={update("phone")} autoComplete="tel" />
+                  </div>
                 </div>
-              </div>
-            </div>
-            <small className={styles.hint}>Şifreniz en az 10 karakter olmalıdır.</small>
 
-            <div className={styles.honeypot} aria-hidden="true">
-              <label htmlFor="website">Web sitesi</label>
-              <input id="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={update("website")} />
-            </div>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="password">Şifre</label>
+                    <div className={styles.inputWrapper}>
+                      <Lock className={styles.inputIcon} size={18} />
+                      <input id="password" type="password" className={styles.input} value={form.password} onChange={update("password")} autoComplete="new-password" minLength={10} maxLength={128} required />
+                    </div>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="passwordConfirm">Şifre tekrar</label>
+                    <div className={styles.inputWrapper}>
+                      <Lock className={styles.inputIcon} size={18} />
+                      <input id="passwordConfirm" type="password" className={styles.input} value={form.passwordConfirm} onChange={update("passwordConfirm")} autoComplete="new-password" minLength={10} maxLength={128} required />
+                    </div>
+                  </div>
+                </div>
+                <small className={styles.hint}>Şifreniz en az 10 karakter olmalıdır.</small>
 
-            <button type="submit" className={styles.submitBtn} disabled={loading}>
-              {loading ? "Hesap oluşturuluyor..." : "Kayıt ol ve denemeyi başlat"}
-            </button>
-          </form>
+                <div className={styles.honeypot} aria-hidden="true">
+                  <label htmlFor="website">Web sitesi</label>
+                  <input id="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={update("website")} />
+                </div>
+
+                <button type="submit" className={styles.submitBtn} disabled={loading}>
+                  {loading ? "Hesap oluşturuluyor..." : "Kayıt ol ve denemeyi başlat"}
+                </button>
+              </form>
+
+            </>
+          )}
 
           <p className={styles.switchText}>Zaten hesabınız var mı? <Link href="/login">Giriş yapın</Link></p>
 

@@ -126,7 +126,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ""}`}>
         <div className={styles.brand}>
           <div>
-            <p className={styles.brandEyebrow}>RFID Personel Takip</p>
+            <p className={styles.brandEyebrow}>Flodeska</p>
             <h2 className={styles.brandTitle}>Veri Yönetim Paneli</h2>
           </div>
           <button

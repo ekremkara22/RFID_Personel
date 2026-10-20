@@ -262,3 +262,72 @@
     padding: 1.25rem;
   }
 }
+
+.singleShell {
+  width: min(100%, 480px);
+  grid-template-columns: 1fr;
+}
+
+a.submitBtn {
+  display: block;
+  text-align: center;
+}
+
+.successBox {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.successBox svg,
+.errorBox svg {
+  flex-shrink: 0;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.inlineLink {
+  color: #0369a1;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.inlineLink:hover,
+.inlineLink:focus-visible {
+  text-decoration: underline;
+}
+
+.secondaryBtn {
+  width: 100%;
+  min-height: 2.5rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: background 0.18s ease;
+}
+
+.secondaryBtn:hover {
+  background: #f1f5f9;
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

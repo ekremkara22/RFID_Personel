@@ -25,7 +25,7 @@ Yeni müşterinin kendi kendine kaydolup 14 günlük deneme ile başlaması, lis
 - Süper admin her modülü lisans seçimi olmadan görür.
 - Firma silme tüm bağlı veriyi siler; yalnız süper admin yapar ve onay ister.
 - Cihazın firmaya atanması yalnız süper admin yetkisindedir.
-- `UserModuleEntitlement` tablosuna platform dışında yalnız `src/modules/commerce/license-activation.ts` yazar; kayıt akışı (`src/app/api/auth/register`) bekleyen Shopier lisanslarını talep eder.
+- `UserModuleEntitlement` tablosuna platform dışında yalnız `src/modules/commerce/license-activation.ts` yazar; e-posta doğrulaması (`src/modules/auth/email-tokens.ts`) bekleyen Shopier lisanslarını talep eder; kayıt akışı yalnız doğrulama e-postası gönderir.
 
 ## Bağımlılıklar
 - Kullandıkları: erişim (kullanıcı, oturum).
