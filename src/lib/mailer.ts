@@ -30,7 +30,8 @@ export function escapeHtml(value: string) {
 export type MailSender = "report" | "account";
 
 function senderCredentials(sender: MailSender) {
-  const prefix = sender === "account" ? "ACCOUNT_" : "";
+  // Until the account mailbox is configured, customer mail falls back to the report account.
+  const prefix = sender === "account" && process.env.ACCOUNT_SMTP_USER?.trim() ? "ACCOUNT_" : "";
   return {
     user: requiredEnvironmentValue(`${prefix}SMTP_USER`),
     pass: requiredEnvironmentValue(`${prefix}SMTP_PASSWORD`),
