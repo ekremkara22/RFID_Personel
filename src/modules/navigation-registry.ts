@@ -1,7 +1,7 @@
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { MODULES, type ModuleKey } from "@/modules/registry";
 
-export type NavigationIconKey = "building" | "calculator" | "calendar" | "clipboard" | "clock" | "download" | "file-chart" | "history" | "health" | "list" | "lock" | "timer" | "dashboard" | "device" | "plane" | "shield" | "server" | "settings" | "tags" | "users" | "key";
+export type NavigationIconKey = "building" | "calculator" | "calendar" | "clipboard" | "clock" | "download" | "file-chart" | "history" | "health" | "home" | "list" | "lock" | "timer" | "dashboard" | "device" | "plane" | "shield" | "server" | "settings" | "tags" | "users" | "key";
 export type NavigationGroup = "platform" | "hr-main" | "hr-calendar" | "hr-reports" | "production" | "production-definitions" | "accounting" | "accounting-definitions" | "definitions";
 export type NavigationAudience = "platform" | "company" | "all";
 
@@ -18,6 +18,8 @@ export type NavigationDefinition = {
 
 export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/server-health", label: "Sunucu Durumu", icon: "server", group: "platform", audience: "platform" },
+  // Personal smart-home data is additionally owner-scoped on every page/action/API query.
+  { href: "/dashboard/smart-home", label: "Akıllı Ev", icon: "home", group: "platform", audience: "platform" },
   // Satış & Pazarlama (commerce): super-admin only, not a licensed product module; sub-pages use in-page tabs.
   { href: "/dashboard/sales", label: "Satış & Pazarlama", icon: "tags", group: "platform", audience: "platform" },
   { href: "/dashboard", label: "Operasyon Özeti", icon: "dashboard", group: "hr-main", audience: "all", module: MODULES.HR },

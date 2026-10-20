@@ -14,6 +14,7 @@ import {
   FileBarChart,
   History,
   HeartPulse,
+  House,
   ListChecks,
   FileLock2,
   Timer,
@@ -74,6 +75,7 @@ const navigationIcons: Record<NavigationIconKey, LucideIcon> = {
   "file-chart": FileBarChart,
   history: History,
   health: HeartPulse,
+  home: House,
   list: ListChecks,
   lock: FileLock2,
   timer: Timer,
@@ -173,7 +175,7 @@ export function DashboardShell({ children, user, authorization, memberships, mod
             );
           })}
           {hasHr ? <div className={styles.navGroup}>
-            <button type="button" className={`${styles.navItem} ${!productionActive && !accountingActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") && !pathname.startsWith("/dashboard/store") && !pathname.startsWith("/dashboard/sales") && !pathname.startsWith("/dashboard/server-health") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
+            <button type="button" className={`${styles.navItem} ${!productionActive && !accountingActive && !pathname.startsWith("/dashboard/access") && !pathname.startsWith("/dashboard/settings") && !pathname.startsWith("/dashboard/companies") && !pathname.startsWith("/dashboard/store") && !pathname.startsWith("/dashboard/sales") && !pathname.startsWith("/dashboard/server-health") && !pathname.startsWith("/dashboard/smart-home") ? styles.navItemActive : ""}`} onClick={() => setHrOpen((value) => !value)}><Users size={18}/><span>{moduleName(MODULES.HR)}</span><ChevronDown size={16} className={`${styles.navChevron} ${hrOpen ? styles.navChevronOpen : ""}`}/></button>
             {hrOpen ? <div className={styles.subNav}>
           {items.map((item) => {
             const Icon = item.icon;

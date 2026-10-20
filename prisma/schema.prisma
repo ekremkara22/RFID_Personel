@@ -317,6 +317,8 @@ model User {
   shopierLicenses             ShopierOrderLicense[]        @relation("ShopierLicenseHolder")
   activatedShopierLicenses    ShopierOrderLicense[]        @relation("ShopierLicenseActivatedBy")
   fulfilledShopierOrders      ShopierOrder[]               @relation("ShopierOrderFulfilledBy")
+  smartHomeGateways           SmartHomeGateway[]           @relation("SmartHomeGatewayOwner")
+  smartHomeCommands           SmartHomeCommand[]           @relation("SmartHomeCommandRequester")
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
 }
@@ -865,6 +867,95 @@ model UserDeviceAccess {
   createdAt DateTime @default(now())
 
   @@unique([userId, deviceId])
+}
+
+enum SmartHomeNodeKind {
+  SWITCH
+  LIGHT
+  SENSOR
+  CLIMATE
+  SECURITY
+  OTHER
+}
+
+enum SmartHomeCommandStatus {
+  PENDING
+  SENT
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// Raspberry Pi agent that bridges the private smart-home network to Flodeska.
+/// The raw API key is shown once; only its SHA-256 hash is persisted.
+model SmartHomeGateway {
+  id            Int                @id @default(autoincrement()) @db.UnsignedInt
+  ownerId       Int                @db.UnsignedInt
+  owner         User               @relation("SmartHomeGatewayOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  name          String             @db.VarChar(100)
+  apiKeyHash    String             @unique @db.Char(64)
+  apiKeyLast4   String             @db.VarChar(4)
+  lastSeenAt    DateTime?
+  ipAddress     String?            @db.VarChar(64)
+  agentVersion  String?            @db.VarChar(32)
+  systemVersion String?            @db.VarChar(120)
+  nodes         SmartHomeNode[]
+  commands      SmartHomeCommand[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([ownerId, lastSeenAt])
+}
+
+/// An ESP32-C3 (or a future compatible endpoint) discovered through a gateway.
+model SmartHomeNode {
+  id               Int               @id @default(autoincrement()) @db.UnsignedInt
+  gatewayId        Int               @db.UnsignedInt
+  gateway          SmartHomeGateway  @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  hardwareId       String            @db.VarChar(64)
+  name             String            @db.VarChar(100)
+  room             String?           @db.VarChar(100)
+  kind             SmartHomeNodeKind @default(OTHER)
+  capabilitiesJson String?           @db.Text
+  stateJson        String?           @db.Text
+  telemetryJson    String?           @db.Text
+  firmwareVersion  String?           @db.VarChar(32)
+  rssi             Int?
+  meshLayer        Int?              @db.UnsignedTinyInt
+  isActive         Boolean           @default(true)
+  lastSeenAt       DateTime?
+  commands         SmartHomeCommand[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([gatewayId, hardwareId])
+  @@index([gatewayId, lastSeenAt])
+}
+
+/// Commands are queued by the panel and acknowledged by the Raspberry Pi agent.
+model SmartHomeCommand {
+  id            Int                    @id @default(autoincrement()) @db.UnsignedInt
+  gatewayId     Int                    @db.UnsignedInt
+  gateway       SmartHomeGateway       @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  nodeId        Int?                   @db.UnsignedInt
+  node          SmartHomeNode?         @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  requestedById Int                    @db.UnsignedInt
+  requestedBy   User                   @relation("SmartHomeCommandRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  command       String                 @db.VarChar(64)
+  payloadJson   String?                @db.Text
+  status        SmartHomeCommandStatus @default(PENDING)
+  attemptCount  Int                    @default(0) @db.UnsignedSmallInt
+  requestedAt   DateTime               @default(now())
+  sentAt        DateTime?
+  completedAt   DateTime?
+  expiresAt     DateTime?
+  error         String?                @db.VarChar(500)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([gatewayId, status, requestedAt])
+  @@index([nodeId, requestedAt])
+  @@index([requestedById])
 }
 
 model AttendanceLog {
