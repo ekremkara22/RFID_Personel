@@ -97,6 +97,6 @@ export default async function SmartHomePage() {
       </section>;
     })}
 
-    <section className={styles.architectureNote}><Radio size={19} /><div><strong>Önerilen ağ yapısı</strong><p>Raspberry Pi internete Wi‑Fi ile bağlanır ve Flodeska ajanını çalıştırır. ESP-WIFI-MESH kullanılacaksa bir ESP32-C3 kök düğüm Pi’nin yerel ağına geçit olur; diğer ESP32-C3’ler bu kök düğüme mesh üzerinden bağlanır.</p></div></section>
+    <section className={styles.architectureNote}><Radio size={19} /><div><strong>Önerilen ağ yapısı</strong><p>Raspberry Pi yalnız internete bağlanır ve Flodeska ajanını çalıştırır. Pi’ye USB ile bağlı kök ESP32, ESP32-C3 düğümleriyle modemden bağımsız ESP-WIFI-MESH ağı kurar; komutlar Pi üzerinden bu kök düğüme iletilir.</p></div></section>
   </div>;
 }

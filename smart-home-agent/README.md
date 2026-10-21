@@ -1,81 +1,73 @@
-# Raspberry Pi Zero 2 W kurulumu
+# Raspberry Pi Zero 2 W ajan kurulumu
 
-Bu ajan, Pi üzerindeki yerel Mosquitto MQTT broker ile Flodeska Akıllı Ev API'si arasında güvenli bir köprü kurar. ESP32-C3 düğümleri internete doğrudan açılmaz.
+Ajan, USB'ye bağlı kök ESP32 ile Flodeska Akıllı Ev API'si arasında köprü kurar. Pi yalnız internete (ev Wi-Fi'ı) bağlanır; ESP32 düğümleri modeme bağlanmaz, kök ESP32 üzerinden ESP-WIFI-MESH ile haberleşir. Topoloji ve mesaj biçimi: [PROTOCOL.md](PROTOCOL.md).
 
-## Ağ topolojisi
+Ajan Flodeska'ya 5 saniyede bir dışarıya doğru HTTPS isteği atar; modemde port açılmaz.
 
-```text
-Flodeska (HTTPS) <--Wi-Fi/İnternet--> Raspberry Pi + Mosquitto
-                                           |
-                                      yerel MQTT
-                                           |
-                               ESP32-C3 root/geçit
-                                           |
-                                   ESP-WIFI-MESH
-                                           |
-                                  ESP32-C3 düğümleri
-```
+## 1. Pi'yi hazırlama
 
-ESP-WIFI-MESH'in root düğümü ESP32 olmalıdır. Raspberry Pi, root ESP32'nin bağlandığı IP ağı ve uygulama geçididir. Tek oda ve güçlü Wi-Fi kapsaması için ilk aşamada mesh yerine her ESP32-C3'ü Pi'nin MQTT broker'ına normal Wi-Fi ile bağlamak daha basittir; panel/API sözleşmesi iki topolojide de değişmez.
-
-## Pi kurulumu
-
-1. Raspberry Pi Imager ile **Raspberry Pi OS Lite (64-bit)** yazın; cihaz adını, Wi-Fi ve SSH anahtarını Imager içinden ayarlayın.
-2. Pi'ye SSH ile bağlanıp güncelleyin:
+1. Raspberry Pi Imager ile **Raspberry Pi OS Lite (64-bit)** yazın. Ayarlarda cihaz adını (ör. `flodeska-ev`), kullanıcıyı, Wi-Fi'ı ve SSH'ı (tercihen anahtar ile) açın.
+2. Pi açıldıktan sonra bağlanıp güncelleyin:
 
    ```bash
+   ssh <kullanıcı>@flodeska-ev.local
    sudo apt update && sudo apt full-upgrade -y
-   sudo apt install -y mosquitto mosquitto-clients python3-venv
+   sudo apt install -y python3-venv
    ```
 
-3. Panelde **Akıllı Ev > Raspberry Pi geçidi ekle** alanından geçidi oluşturun ve tek sefer gösterilen anahtarı kopyalayın.
-4. Bu klasörü Pi'de `/opt/flodeska-smart-home` altına kopyalayın ve servisi kurun:
+## 2. Geçidi panelde oluşturma
 
-   ```bash
-   sudo useradd --system --home /nonexistent --shell /usr/sbin/nologin flodeska
-   sudo python3 -m venv /opt/flodeska-smart-home/venv
-   sudo /opt/flodeska-smart-home/venv/bin/pip install -r /opt/flodeska-smart-home/requirements.txt
-   sudo cp /opt/flodeska-smart-home/flodeska-smart-home.env.example /etc/flodeska-smart-home.env
-   sudo chmod 600 /etc/flodeska-smart-home.env
-   sudo nano /etc/flodeska-smart-home.env
-   sudo cp /opt/flodeska-smart-home/flodeska-smart-home.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now mosquitto flodeska-smart-home
-   ```
+Flodeska'da **Akıllı Ev > Raspberry Pi geçidi ekle** ile geçidi oluşturun. Anahtar (`shg_...`) yalnız bir kez gösterilir; kopyalayın.
 
-5. Durumu kontrol edin. API anahtarı loglarda yazdırılmaz:
+## 3. Ajanı kurma
 
-   ```bash
-   systemctl status flodeska-smart-home --no-pager
-   journalctl -u flodeska-smart-home -n 50 --no-pager
-   ```
+Bilgisayardan klasörü Pi'ye kopyalayın (repo kökünde):
 
-## ESP32 MQTT sözleşmesi
-
-Düğüm durumunu QoS 1 ile `flodeska/nodes/<hardware-id>/state` konusuna JSON olarak yayınlar:
-
-```json
-{
-  "name": "Masa lambası",
-  "room": "Çalışma odası",
-  "kind": "LIGHT",
-  "capabilities": { "power": true },
-  "state": { "power": false },
-  "telemetry": { "temperature": 23.4, "humidity": 46 },
-  "firmwareVersion": "0.1.0",
-  "rssi": -58,
-  "meshLayer": 1
-}
+```bash
+scp -r smart-home-agent <kullanıcı>@flodeska-ev.local:/tmp/
 ```
 
-Komutlar `flodeska/nodes/<hardware-id>/command` konusunda gelir. Düğüm komutu uyguladıktan sonra aynı kimliği `flodeska/nodes/<hardware-id>/ack` konusunda onaylar:
+Pi'de:
 
-```json
-{ "id": 42, "ok": true }
+```bash
+sudo mkdir -p /opt/flodeska-smart-home
+sudo cp /tmp/smart-home-agent/* /opt/flodeska-smart-home/
+sudo useradd --system --home /nonexistent --shell /usr/sbin/nologin --groups dialout flodeska
+sudo python3 -m venv /opt/flodeska-smart-home/venv
+sudo /opt/flodeska-smart-home/venv/bin/pip install -r /opt/flodeska-smart-home/requirements.txt
+sudo cp /opt/flodeska-smart-home/flodeska-smart-home.env.example /etc/flodeska-smart-home.env
+sudo chmod 600 /etc/flodeska-smart-home.env
+sudo nano /etc/flodeska-smart-home.env   # URL ve anahtarı yazın
+sudo cp /opt/flodeska-smart-home/flodeska-smart-home.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now flodeska-smart-home
 ```
 
-Komutlar tekrar teslim edilebilir. ESP32 firmware'i son uygulanan komut kimliklerini kısa süreli saklamalı ve aynı kimliği ikinci kez fiziksel çıkışa uygulamadan yeniden onaylamalıdır.
+## 4. ESP32 olmadan deneme (simülasyon)
 
-## Güvenlik notu
+Örnek ayar dosyasında `FLODESKA_SERIAL_PORT=simulate` gelir. Bu modda ajan sahte bir "Simülasyon ışığı" düğümü bildirir; panelden **Aç/Kapat** komutu Pi'ye gider, simülasyon uygular ve onaylar. Böylece Flodeska ↔ Pi yolu donanım gelmeden doğrulanır.
 
-Mosquitto ilk kurulumdan sonra yalnız yerel ağdan erişilebilir, parola korumalı ve tercihen TLS olacak şekilde sertleştirilmelidir. İnternet yönlendiricisinde 1883 portu açılmaz. Geçit anahtarı sızarsa panelde **Anahtarı yenile** işlemi yapılır ve Pi'deki `/etc/flodeska-smart-home.env` güncellenir.
+```bash
+systemctl status flodeska-smart-home --no-pager
+journalctl -u flodeska-smart-home -f
+```
+
+Beklenen loglar: `Simülasyon modu...`, `Flodeska bağlantısı kuruldu.` Panelde geçit ve düğüm çevrimiçi görünür. Komutun sonucunu görmek için sayfayı yenileyin. API anahtarı loglara yazılmaz.
+
+## 5. Kök ESP32'yi bağlama
+
+- Pi Zero 2 W'de iki micro-USB vardır: **PWR** yalnız güç, **USB** veri portudur. Kök ESP32'yi **USB** portuna, veri destekli bir kablo veya OTG adaptörüyle takın.
+- Port adını bulun ve ayar dosyasına kalıcı yolu yazın:
+
+  ```bash
+  ls -l /dev/serial/by-id/
+  sudo nano /etc/flodeska-smart-home.env   # FLODESKA_SERIAL_PORT=/dev/serial/by-id/usb-...
+  sudo systemctl restart flodeska-smart-home
+  ```
+
+Kablo çıkarılırsa ajan 5 saniye arayla yeniden bağlanmayı dener; Flodeska ile senkron devam eder.
+
+## Güvenlik
+
+- Geçit anahtarı sızarsa panelde **Anahtarı yenile** yapılır ve `/etc/flodeska-smart-home.env` güncellenir.
+- Ajan ayrı, girişsiz `flodeska` sistem kullanıcısıyla ve salt okunur dosya sistemiyle çalışır; seri port için yalnız `dialout` grubuna üyedir.

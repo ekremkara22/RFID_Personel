@@ -3,3 +3,6 @@
 
 # Git hooks run under sh; CRLF would break them on Windows checkouts.
 .githooks/* text eol=lf
+
+# Copied to the Raspberry Pi as-is; CRLF breaks systemd/env files there.
+smart-home-agent/* text eol=lf

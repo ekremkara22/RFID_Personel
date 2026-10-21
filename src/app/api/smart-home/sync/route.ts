@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     });
 
     for (const node of payload.nodes) {
+      const nodeLastSeenAt = new Date(now.getTime() - node.lastSeenSecondsAgo * 1_000);
       await tx.smartHomeNode.upsert({
         where: { gatewayId_hardwareId: { gatewayId: gateway.id, hardwareId: node.hardwareId } },
         create: {
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
           firmwareVersion: node.firmwareVersion,
           rssi: node.rssi,
           meshLayer: node.meshLayer,
-          lastSeenAt: now,
+          lastSeenAt: nodeLastSeenAt,
         },
         update: {
           name: node.name,
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
           rssi: node.rssi,
           meshLayer: node.meshLayer,
           isActive: true,
-          lastSeenAt: now,
+          lastSeenAt: nodeLastSeenAt,
         },
       });
     }
@@ -125,6 +126,7 @@ export async function POST(request: Request) {
     ok: true,
     serverTime: now.toISOString(),
     nextPollSeconds: 5,
+    rejected: payload.rejected,
     commands: commands.map((command) => ({
       id: command.id,
       hardwareId: command.node?.hardwareId ?? null,

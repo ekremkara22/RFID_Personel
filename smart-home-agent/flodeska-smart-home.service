@@ -1,12 +1,13 @@
 [Unit]
 Description=Flodeska Smart Home Raspberry Pi Agent
-After=network-online.target mosquitto.service
-Wants=network-online.target mosquitto.service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=flodeska
 Group=flodeska
+SupplementaryGroups=dialout
 EnvironmentFile=/etc/flodeska-smart-home.env
 ExecStart=/opt/flodeska-smart-home/venv/bin/python /opt/flodeska-smart-home/flodeska_agent.py
 Restart=always

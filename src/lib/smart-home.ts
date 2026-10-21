@@ -9,9 +9,15 @@ export type SmartHomeSyncPayload = {
     hardwareId: string; name: string; room: string | null; kind: SmartHomeNodeKindValue;
     capabilitiesJson: string | null; stateJson: string | null; telemetryJson: string | null;
     firmwareVersion: string | null; rssi: number | null; meshLayer: number | null;
+    lastSeenSecondsAgo: number;
   }>;
   acknowledgements: Array<{ id: number; status: "COMPLETED" | "FAILED"; error: string | null }>;
+  /** Invalid items are skipped instead of failing the whole sync, so one bad node cannot block the gateway. */
+  rejected: string[];
 };
+
+/** Nodes the agent has not heard from for longer than this are not reported. */
+export const SMART_HOME_NODE_MAX_AGE_SECONDS = 600;
 
 export function generateSmartHomeApiKey() {
   return `shg_${randomBytes(32).toString("base64url")}`;
@@ -56,7 +62,19 @@ export function parseSmartHomeSyncPayload(input: unknown): SmartHomeSyncPayload 
   if (!Array.isArray(nodesValue) || nodesValue.length > 100) throw new Error("nodes en fazla 100 öğe içeren bir dizi olmalıdır.");
   if (!Array.isArray(acknowledgementsValue) || acknowledgementsValue.length > 100) throw new Error("acknowledgements en fazla 100 öğe içeren bir dizi olmalıdır.");
 
-  const nodes = nodesValue.map((value, index) => {
+  const rejected: string[] = [];
+  function collect<T>(values: unknown[], parse: (value: unknown, index: number) => T) {
+    return values.flatMap((value, index) => {
+      try {
+        return [parse(value, index)];
+      } catch (error) {
+        rejected.push(error instanceof Error ? error.message : String(error));
+        return [];
+      }
+    });
+  }
+
+  const nodes = collect(nodesValue, (value, index) => {
     const node = asObject(value, `nodes[${index}]`);
     const hardwareId = optionalString(node.hardwareId, 64, `nodes[${index}].hardwareId`);
     if (!hardwareId || !/^[A-Za-z0-9:._-]+$/.test(hardwareId)) throw new Error(`nodes[${index}].hardwareId geçersiz.`);
@@ -73,10 +91,11 @@ export function parseSmartHomeSyncPayload(input: unknown): SmartHomeSyncPayload 
       firmwareVersion: optionalString(node.firmwareVersion, 32, `nodes[${index}].firmwareVersion`),
       rssi: optionalInteger(node.rssi, -127, 0, `nodes[${index}].rssi`),
       meshLayer: optionalInteger(node.meshLayer, 0, 25, `nodes[${index}].meshLayer`),
+      lastSeenSecondsAgo: optionalInteger(node.lastSeenSecondsAgo, 0, SMART_HOME_NODE_MAX_AGE_SECONDS, `nodes[${index}].lastSeenSecondsAgo`) ?? 0,
     };
   });
 
-  const acknowledgements = acknowledgementsValue.map((value, index) => {
+  const acknowledgements = collect(acknowledgementsValue, (value, index) => {
     const acknowledgement = asObject(value, `acknowledgements[${index}]`);
     const id = optionalInteger(acknowledgement.id, 1, Number.MAX_SAFE_INTEGER, `acknowledgements[${index}].id`);
     if (id === null) throw new Error(`acknowledgements[${index}].id zorunludur.`);
@@ -93,6 +112,7 @@ export function parseSmartHomeSyncPayload(input: unknown): SmartHomeSyncPayload 
     },
     nodes,
     acknowledgements,
+    rejected,
   };
 }
 
