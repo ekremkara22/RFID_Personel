@@ -6,6 +6,7 @@
 - `rfid_personel_device_ota_live_test_update/rfid_personel_device_ota_live_test_update.ino`: eski canlı OTA test sürümü (`1.0.1-live-test`), değiştirilmeden saklanır.
 - `rfid_personel_device_ota_v1_1_0/rfid_personel_device_ota_v1_1_0.ino`: kalıcı kuyruklu güncel canlı sürüm (`1.1.0`).
 - `rfid_personel_device_ota_v1_2_0/rfid_personel_device_ota_v1_2_0.ino`: cihaz sağlık telemetrili sürüm (`1.2.0`); bekleyen kayıt, en eski kayıt, saat senkronizasyonu ve son gönderim hatasını heartbeat ile bildirir.
+- `rfid_personel_device_ota_v1_2_1/rfid_personel_device_ota_v1_2_1.ino`: kararlılık sürümü (`1.2.1`); RC522 okuyucuyu dakikada bir kontrol edip yanıt vermiyorsa RST pininden yeniden başlatır, ana döngü 120 saniye takılırsa watchdog ile yeniden başlar, bekleyen kayıt yoksa her gece 03:00'te planlı yeniden başlar. OTA ile gelen sürüm 90 saniye kararlı çalışmadan geçerli sayılmaz; bu sürede çökerse önceki sürüme geri döner.
 - `rfid_personel_device_ota_test/rfid_personel_device_ota_test.ino`: eski staging temel sürümü (`0.1.0-test`), değiştirilmeden saklanır.
 - `rfid_personel_device_ota_test_update/rfid_personel_device_ota_test_update.ino`: eski staging güncellemesi (`0.1.1-test`), değiştirilmeden saklanır.
 - `rfid_personel_device_ota_test_v0_2_0/rfid_personel_device_ota_test_v0_2_0.ino`: kuyruklu staging temel sürümü (`0.2.0-test`).
