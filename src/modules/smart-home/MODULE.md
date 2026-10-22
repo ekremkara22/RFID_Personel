@@ -21,6 +21,7 @@ Raspberry Pi Zero 2 W yalnız internete bağlanır ve Flodeska ajanını çalı�
 ## Değişmez kurallar (ürün sahibi kararı)
 - Raspberry Pi yalnız internete bağlanır; ESP32 düğümleri ev modemine bağlanmaz. Pi ↔ kök ESP32 bağlantısı USB seridir.
 - Düğümler kök ESP32'ye ESP-WIFI-MESH ile bağlanır; kök sabittir ve Pi'ye USB ile bağlı ESP32'dir. Pi mesh düğümü gibi modellenmez.
+- Pi'nin kendisinin sunduğu sanal düğümler (ör. Wake-on-LAN ile açılan bilgisayar, `wol-<MAC>`) aynı düğüm/komut modelini kullanır; `capabilities.wake` ile ayrılır ve yalnız açılabilir.
 - Yönetim kanalları: Flodeska paneli, ardından mobil uygulama ve Apple Home. Yeni kanal mevcut geçit/düğüm/komut modelini kullanır, ayrı bir cihaz modeli üretmez.
 - Ham geçit API anahtarı veritabanına veya loglara yazılmaz; yalnız SHA-256 özeti saklanır ve ham değer oluşturulurken bir kez gösterilir.
 - Her panel sorgusu/aksiyonu geçit sahibini oturumdaki kullanıcı kimliğiyle sınırlar.

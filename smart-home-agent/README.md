@@ -67,6 +67,24 @@ Beklenen loglar: `Simülasyon modu...`, `Flodeska bağlantısı kuruldu.` Paneld
 
 Kablo çıkarılırsa ajan 5 saniye arayla yeniden bağlanmayı dener; Flodeska ile senkron devam eder.
 
+## Bilgisayarı uzaktan açma (Wake-on-LAN)
+
+Pi, ev ağındaki bir bilgisayarı panelden açabilir. Bilgisayar panelde "Bilgisayarı aç" butonlu bir düğüm olarak görünür. Açık/kapalı durumunu Pi 15 saniyede bir kontrol eder (RDP 3389, SMB 445 veya ping).
+
+1. Bilgisayar modeme **kabloyla** bağlı olmalı.
+2. BIOS: "Wake on LAN" / "Power On by PCI-E" açık, "ErP" / "Deep Sleep" kapalı.
+3. Windows Aygıt Yöneticisi > Ethernet kartı: Güç Yönetimi sekmesinde "Bu aygıtın bilgisayarı uyandırmasına izin ver" ve "Yalnızca sihirli paket"; Gelişmiş sekmesinde "Wake on Magic Packet: Etkin".
+4. Denetim Masası > Güç Seçenekleri > Güç düğmelerinin yapacaklarını seçin: "Hızlı başlatmayı aç" kapalı.
+5. `ipconfig /all` ile Ethernet kartının Fiziksel Adresini (MAC) alın; modemden bilgisayara sabit IP verin.
+6. Pi'de ayarı yazıp servisi yeniden başlatın:
+
+   ```bash
+   sudo nano /etc/flodeska-smart-home.env   # FLODESKA_WOL_TARGETS=Masaüstü|AA:BB:CC:DD:EE:FF|192.168.1.50
+   sudo systemctl restart flodeska-smart-home
+   ```
+
+İlk denemeyi bilgisayar uyku modundayken, sonra tamamen kapalıyken yapın. Paket gönderilince komut "Tamamlandı" olur; bilgisayarın açıldığı en geç 15 saniye sonra durumda görünür. ESP32 henüz yoksa ve simülasyon ışığını görmek istemiyorsanız `FLODESKA_SERIAL_PORT=none` yazın.
+
 ## Güvenlik
 
 - Geçit anahtarı sızarsa panelde **Anahtarı yenile** yapılır ve `/etc/flodeska-smart-home.env` güncellenir.

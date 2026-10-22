@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { Activity, Box, CirclePower, Cpu, House, Radio, Router, Thermometer, Wifi, WifiOff } from "lucide-react";
+import { Activity, Box, CirclePower, Cpu, House, Monitor, Radio, Router, Thermometer, Wifi, WifiOff } from "lucide-react";
 
 import { ActionForm } from "@/app/dashboard/action-form";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -74,18 +74,25 @@ export default async function SmartHomePage() {
             const state = parseSmartHomeJson(node.stateJson);
             const telemetry = parseSmartHomeJson(node.telemetryJson);
             const power = typeof state.power === "boolean" ? state.power : null;
+            // Pi-hosted Wake-on-LAN target: can only be switched on; power comes from a reachability check.
+            const wakeOnly = parseSmartHomeJson(node.capabilitiesJson).wake === true;
             const controllable = node.kind === "SWITCH" || node.kind === "LIGHT" || power !== null;
             const online = isOnline(node.lastSeenAt, 45);
             return <article className={styles.nodeCard} key={node.id}>
-              <div className={styles.nodeHeader}><span className={styles.nodeIcon}>{node.kind === "CLIMATE" ? <Thermometer size={18} /> : node.kind === "SENSOR" ? <Activity size={18} /> : <CirclePower size={18} />}</span><span className={online ? styles.onlineDot : styles.offlineDot} aria-label={online ? "Çevrimiçi" : "Çevrimdışı"} /></div>
+              <div className={styles.nodeHeader}><span className={styles.nodeIcon}>{wakeOnly ? <Monitor size={18} /> : node.kind === "CLIMATE" ? <Thermometer size={18} /> : node.kind === "SENSOR" ? <Activity size={18} /> : <CirclePower size={18} />}</span><span className={online ? styles.onlineDot : styles.offlineDot} aria-label={online ? "Çevrimiçi" : "Çevrimdışı"} /></div>
               <div><h3>{node.name}</h3><p>{node.room ?? "Oda belirtilmedi"} · {node.hardwareId}</p></div>
               <dl className={styles.nodeStats}>
                 <div><dt>Durum</dt><dd>{power === null ? (online ? "Bağlı" : "Çevrimdışı") : power ? "Açık" : "Kapalı"}</dd></div>
-                <div><dt>Sinyal</dt><dd>{valueLabel(node.rssi, " dBm")}</dd></div>
-                <div><dt>Sıcaklık</dt><dd>{valueLabel(telemetry.temperature, " °C")}</dd></div>
-                <div><dt>Nem</dt><dd>{valueLabel(telemetry.humidity, "%")}</dd></div>
+                {wakeOnly ? <div><dt>IP</dt><dd>{valueLabel(telemetry.ip)}</dd></div> : <>
+                  <div><dt>Sinyal</dt><dd>{valueLabel(node.rssi, " dBm")}</dd></div>
+                  <div><dt>Sıcaklık</dt><dd>{valueLabel(telemetry.temperature, " °C")}</dd></div>
+                  <div><dt>Nem</dt><dd>{valueLabel(telemetry.humidity, "%")}</dd></div>
+                </>}
               </dl>
-              {controllable ? <ActionForm action={queueSmartHomePowerAction} className={styles.nodeAction}>
+              {wakeOnly ? (power ? <p className={styles.sensorNote}>Bilgisayar açık.</p> : <ActionForm action={queueSmartHomePowerAction} className={styles.nodeAction}>
+                <input type="hidden" name="nodeId" value={node.id} /><input type="hidden" name="power" value="on" />
+                <SubmitButton idleLabel="Bilgisayarı aç" pendingLabel="Gönderiliyor..." className={ui.primaryAction} disabled={!online} />
+              </ActionForm>) : controllable ? <ActionForm action={queueSmartHomePowerAction} className={styles.nodeAction}>
                 <input type="hidden" name="nodeId" value={node.id} /><input type="hidden" name="power" value={power ? "off" : "on"} />
                 <SubmitButton idleLabel={power ? "Kapat" : "Aç"} pendingLabel="Gönderiliyor..." className={power ? ui.secondaryAction : ui.primaryAction} disabled={!online} />
               </ActionForm> : <p className={styles.sensorNote}>Bu düğüm yalnız telemetri bildiriyor.</p>}

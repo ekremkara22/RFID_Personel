@@ -9,19 +9,23 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import socket
 import ssl
+import subprocess
 import threading
 import time
 import urllib.error
 import urllib.request
 from typing import Any
 
-AGENT_VERSION = "0.2.0"
+AGENT_VERSION = "0.3.0"
 API_URL = os.environ.get("FLODESKA_SMART_HOME_URL", "").strip().rstrip("/")
 API_KEY = os.environ.get("FLODESKA_SMART_HOME_API_KEY", "").strip()
 SERIAL_PORT = os.environ.get("FLODESKA_SERIAL_PORT", "/dev/ttyACM0").strip()
 SERIAL_BAUD = int(os.environ.get("FLODESKA_SERIAL_BAUD", "115200"))
+# "Ad|MAC|IP" entries separated by ";", e.g. "Masaüstü|AA:BB:CC:DD:EE:FF|192.168.1.50"
+WOL_TARGETS = os.environ.get("FLODESKA_WOL_TARGETS", "").strip()
 
 NODE_MAX_AGE_SECONDS = 600  # Same limit as SMART_HOME_NODE_MAX_AGE_SECONDS on the server.
 MAX_LINE_BYTES = 4096
@@ -188,6 +192,70 @@ class SimulatedLink:
         return True
 
 
+class WakeOnLan:
+    """Computers on the home LAN, shown as Pi-hosted nodes that can be woken with a magic packet."""
+
+    def __init__(self, config: str) -> None:
+        self.targets: dict[str, dict[str, Any]] = {}
+        for entry in filter(None, (item.strip() for item in config.split(";"))):
+            parts = [part.strip() for part in entry.split("|")]
+            mac = parts[1].upper().replace("-", ":") if len(parts) > 1 else ""
+            if len(parts) != 3 or not parts[0] or not re.fullmatch(r"([0-9A-F]{2}:){5}[0-9A-F]{2}", mac):
+                raise SystemExit(f"FLODESKA_WOL_TARGETS girdisi geçersiz: {entry} (beklenen: Ad|AA:BB:CC:DD:EE:FF|192.168.1.50)")
+            hardware_id = "wol-" + mac.replace(":", "")
+            self.targets[hardware_id] = {"name": parts[0][:100], "mac": mac, "ip": parts[2]}
+        if self.targets:
+            log(f"Wake-on-LAN hedefleri: {', '.join(target['name'] for target in self.targets.values())}")
+            threading.Thread(target=self._watch, daemon=True).start()
+
+    @staticmethod
+    def _is_up(ip: str) -> bool:
+        # Windows firewall usually drops ping, so a TCP answer (even "refused") on RDP/SMB also counts as on.
+        for port in (3389, 445):
+            try:
+                with socket.create_connection((ip, port), timeout=1):
+                    return True
+            except ConnectionRefusedError:
+                return True
+            except OSError:
+                pass
+        try:
+            return subprocess.run(["ping", "-c", "1", "-W", "1", ip], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False).returncode == 0
+        except OSError:
+            return False
+
+    def _watch(self) -> None:
+        while True:
+            for hardware_id, target in self.targets.items():
+                handle_message({
+                    "type": "state", "hardwareId": hardware_id, "name": target["name"], "kind": "OTHER",
+                    "capabilities": {"wake": True}, "state": {"power": self._is_up(target["ip"])},
+                    "telemetry": {"ip": target["ip"]},
+                })
+            time.sleep(15)
+
+    def send(self, message: dict[str, Any]) -> bool:
+        target = self.targets.get(message.get("hardwareId", ""))
+        if target is None or not isinstance(message.get("id"), int):
+            return False
+        payload = message.get("payload") or {}
+        error = None
+        if message.get("command") != "SET_POWER" or payload.get("power") is not True:
+            error = "Bilgisayar yalnız uzaktan açılabilir; kapatma desteklenmiyor."
+        else:
+            packet = b"\xff" * 6 + bytes.fromhex(target["mac"].replace(":", "")) * 16
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sender:
+                    sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                    for _ in range(3):
+                        sender.sendto(packet, ("255.255.255.255", 9))
+                log(f"Wake-on-LAN paketi gönderildi: {target['name']}")
+            except OSError as send_error:
+                error = f"Wake-on-LAN paketi gönderilemedi: {type(send_error).__name__}"
+        handle_message({"type": "ack", "hardwareId": message["hardwareId"], "id": message["id"], "ok": error is None, "error": error})
+        return True
+
+
 def local_ip() -> str | None:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
@@ -197,7 +265,7 @@ def local_ip() -> str | None:
         return None
 
 
-def sync(link: SerialLink | SimulatedLink) -> int:
+def sync(link: SerialLink | SimulatedLink | None, wake_on_lan: WakeOnLan) -> int:
     now = time.monotonic()
     with lock:
         for hardware_id in [key for key, (_, seen) in nodes.items() if now - seen > NODE_MAX_AGE_SECONDS]:
@@ -228,7 +296,12 @@ def sync(link: SerialLink | SimulatedLink) -> int:
     for reason in result.get("rejected", [])[:5]:
         log(f"Sunucu bir kaydı reddetti: {reason}")
     for command in result.get("commands", []):
-        if command.get("hardwareId") and not link.send({"type": "command", **command}):
+        hardware_id = command.get("hardwareId")
+        if not hardware_id:
+            continue
+        if hardware_id in wake_on_lan.targets:
+            wake_on_lan.send(command)
+        elif link is None or not link.send({"type": "command", **command}):
             log("Komut kök ESP32'ye iletilemedi; sunucu kısa süre sonra tekrar gönderecek.")
     return max(2, min(60, int(result.get("nextPollSeconds", 5))))
 
@@ -236,13 +309,18 @@ def sync(link: SerialLink | SimulatedLink) -> int:
 def main() -> None:
     if not API_URL.startswith("https://") or not API_KEY.startswith("shg_"):
         raise SystemExit("FLODESKA_SMART_HOME_URL (https) ve FLODESKA_SMART_HOME_API_KEY ayarlanmalıdır.")
-    link: SerialLink | SimulatedLink = SimulatedLink() if SERIAL_PORT == "simulate" else SerialLink(SERIAL_PORT, SERIAL_BAUD)
     log(f"Flodeska akıllı ev ajanı {AGENT_VERSION} başladı: {API_URL}")
+    wake_on_lan = WakeOnLan(WOL_TARGETS)
+    link: SerialLink | SimulatedLink | None = None
+    if SERIAL_PORT == "simulate":
+        link = SimulatedLink()
+    elif SERIAL_PORT != "none":
+        link = SerialLink(SERIAL_PORT, SERIAL_BAUD)
     delay = 2
     connected = False
     while True:
         try:
-            delay = sync(link)
+            delay = sync(link, wake_on_lan)
             if not connected:
                 log("Flodeska bağlantısı kuruldu.")
                 connected = True
