@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Flodeska Profil Resmi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1080px; overflow: hidden; }
+  .canvas { position: relative; width: 1080px; height: 1080px; }
+  .canvas.light { background: #fff; }
+  .canvas.navy { background: #14202e; }
+  .canvas.brand { background: linear-gradient(135deg, #1d5be8, #0a9fa6); }
+  /* Logodaki simge: orijinalde x 165-605, y 170-550 piksel; 1,27 kat büyütülüp ortalanır. */
+  .mark { position: absolute; left: 261px; top: 299px; width: 559px; height: 483px; overflow: hidden; }
+  .mark img { position: absolute; left: -210px; top: -216px; width: 2758px; }
+  .navy .mark img, .brand .mark img { filter: brightness(0) invert(1); }
+</style>
+</head>
+<body>
+<div class="canvas" id="canvas"><div class="mark"><img src="../../../public/brand/flodeska-logo.png" alt="Flodeska"></div></div>
+<script>
+  // ?v=light | navy | brand
+  document.getElementById("canvas").classList.add(new URLSearchParams(location.search).get("v") || "light");
+</script>
+</body>
+</html>
