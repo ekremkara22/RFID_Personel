@@ -22,6 +22,7 @@ Firmanın "kim ne zaman geldi, ne kadar çalıştı" sorusuna doğru yanıt verm
 - Kısa aralıktaki tekrar okumalar (`DUPLICATE_SCAN_WINDOW_MS`) tek hareket sayılır; gecikmeli yüklenen cihaz kayıtları işaretlenir.
 - Manuel ekleme, düzeltme ve silme `AttendanceMovementAudit` ile iz bırakır; iz silinmez.
 - Onaylanmış veya kilitli puantaj dönemindeki hareketler değiştirilemez; önce dönem yeniden açılmalıdır (yetki gerekir).
+- Demo kart okutma (`simulateDemoCardScanAction`, Operasyon Özeti başlangıç listesi) yalnız firma lisans sahibinin deneme süresi açıkken çalışır; hareket türünü gerçek çift yönlü cihazla aynı kuralla (`src/lib/attendance-type-inference.ts`) belirler, cihazsız kaydedilir ve "Deneme süresinde demo kart okutma" gerekçesiyle audit izi bırakır.
 - Tüm gün/saat hesapları `src/lib/app-time.ts` ile uygulama saat diliminde yapılır.
 
 ## Bağımlılıklar

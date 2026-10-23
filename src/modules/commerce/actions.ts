@@ -28,6 +28,7 @@ import {
   makePrimaryImage,
   publishProduct,
   removeProductImage,
+  setDeviceOffer,
   unpublishProduct,
   updateProduct,
 } from "./product-catalog";
@@ -365,6 +366,19 @@ export async function unpublishProductAction(formData: FormData) {
     await unpublishProduct(id);
     revalidateProducts(id);
     return "Ürün Shopier'den kaldırıldı ve arşivlendi.";
+  });
+}
+
+export async function setDeviceOfferAction(formData: FormData) {
+  return runCommerceAction(async () => {
+    await assertSuperadminUser();
+    const id = getId(formData, "id");
+    const enabled = getString(formData, "enabled") === "1";
+    await setDeviceOffer(id, enabled);
+    revalidateProducts(id);
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/devices");
+    return enabled ? "Ürün panelde RFID okuyucu olarak öneriliyor." : "Ürün artık panelde önerilmiyor.";
   });
 }
 

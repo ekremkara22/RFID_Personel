@@ -4,6 +4,7 @@ export type RegistrationNotificationUser = {
   id: number;
   firstName: string;
   lastName: string;
+  companyName?: string;
   email: string;
   phone: string | null;
   createdAt: Date;
@@ -25,6 +26,7 @@ export function buildRegistrationNotification(user: RegistrationNotificationUser
   const rows = [
     ["Kullanıcı numarası", String(user.id)],
     ["Ad soyad", fullName],
+    ["Firma", user.companyName || "Belirtilmedi"],
     ["E-posta", user.email],
     ["Telefon", phone],
     ["Hesap türü", "Firma yöneticisi"],

@@ -156,6 +156,15 @@ export async function unpublishProduct(id: number) {
   await prisma.commerceProduct.update({ where: { id }, data: { status: CommerceProductStatus.ARCHIVED, shopierProductId: null, shopierUrl: null, publishError: null } });
 }
 
+/** Marks the product customers see as the RFID reader in the panel; only one product holds the flag. */
+export async function setDeviceOffer(id: number, enabled: boolean) {
+  await findProductOrThrow(id);
+  await prisma.$transaction([
+    ...(enabled ? [prisma.commerceProduct.updateMany({ where: { isDeviceOffer: true, NOT: { id } }, data: { isDeviceOffer: false } })] : []),
+    prisma.commerceProduct.update({ where: { id }, data: { isDeviceOffer: enabled } }),
+  ]);
+}
+
 /** Local delete; a product still on sale must be removed from Shopier first. */
 export async function deleteProduct(id: number) {
   const product = await findProductOrThrow(id);

@@ -7,6 +7,7 @@ test("yeni kayıt bildirimi temel kullanıcı bilgilerini Türkiye saatiyle içe
     id: 42,
     firstName: "Ayşe",
     lastName: "Yılmaz",
+    companyName: "Yılmaz Tekstil",
     email: "ayse@example.com",
     phone: "+90 555 000 00 00",
     createdAt: new Date("2026-10-19T18:30:00.000Z"),
@@ -16,6 +17,7 @@ test("yeni kayıt bildirimi temel kullanıcı bilgilerini Türkiye saatiyle içe
   assert.equal(message.subject, "Yeni Flodeska kaydı: Ayşe Yılmaz");
   assert.match(message.text, /Kullanıcı numarası: 42/);
   assert.match(message.text, /E-posta: ayse@example\.com/);
+  assert.match(message.text, /Firma: Yılmaz Tekstil/);
   assert.match(message.text, /19 Ekim 2026 21:30:00/);
   assert.match(message.text, /2 Kasım 2026 21:30:00/);
 });

@@ -10,7 +10,7 @@
 Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla eşleşiyorsa insan müdahalesi olmadan lisansa dönüşür; eşleşmeyen sipariş kaybolmaz, kuyrukta görünür.
 
 ## Kullanıcılar ve yetkiler
-- Yalnız süper admin (platform yöneticisi). Firma kullanıcıları bu modülün ekranlarını görmez; müşteriye satılan bir ürün modülü değildir, `registry.ts` içinde lisanslı modül olarak yer almaz.
+- Yalnız süper admin (platform yöneticisi). Firma kullanıcıları bu modülün ekranlarını görmez (istisna: panelde önerilen RFID okuyucunun satın alma bağlantısı); müşteriye satılan bir ürün modülü değildir, `registry.ts` içinde lisanslı modül olarak yer almaz.
 - Shopier webhook uç noktası kimlik doğrulamasızdır; güven yalnız `Shopier-Signature` HMAC doğrulamasından gelir.
 
 ## Kapsam
@@ -36,6 +36,10 @@ Başarı ölçütü: ödenen dijital sipariş, alıcı e-postası bir hesapla e�
 - `product-media.ts` (görsel kaydet/oku/sil; JPG/PNG sihirli bayt kontrolü, 2 MB) ve `src/app/api/integrations/shopier/product-images/[file]/route.ts`.
 - `product-catalog.ts` (ürün oluştur/güncelle, görsel sırası, Shopier'de yayınla/güncelle/kaldır, tek yönlü içe aktarma, siparişi gönderildi işaretleme).
 - Ekranlar: `src/app/dashboard/sales/products/**` (liste, yeni, düzenle + galeri) ve `src/app/dashboard/sales/orders/[id]` (sipariş detayı, adres, kargo formu).
+
+### Panelde RFID okuyucu önerisi
+- `CommerceProduct.isDeviceOffer`: süper admin ürün detayında bir fiziksel ürünü "Panelde öner" ile işaretler (en fazla bir ürün, `setDeviceOffer`).
+- `getPanelDeviceOffer()` yayındaki işaretli ürünün başlık, fiyat ve Shopier adresini döndürür; firma kullanıcılarının gördüğü tek commerce okuması budur (Operasyon Özeti başlangıç listesi ve RFID Cihazları ekranındaki "Okuyucu satın al"). İşaretli ürün yoksa bu ekranlar iletişim sayfasına yönlendirir.
 
 ### Uygulama notları
 - Faz 2 ürün kararları (2026-10-15): panel asıl kaynaktır (Shopier'deki mevcut ürünler bir kez içe aktarılır, sonraki içe aktarmalar mevcut kaydı ezmez); varyant yok; kargo panelden "gönderildi" işaretlenir (`PUT /orders/{id}` `fulfillments`) ve takip no Shopier'e gider.

@@ -35,6 +35,10 @@ import ui from "./management.module.css";
 import { redirect } from "next/navigation";
 import { canAccessModule } from "@/lib/authorization";
 import { MODULES } from "@/lib/module-catalog";
+import { isTrialActive } from "@/lib/module-license-policy";
+import { getSessionLicense } from "@/modules/licensing/repository";
+import { getPanelDeviceOffer } from "@/modules/commerce/repository";
+import { OnboardingChecklist, onboardingComplete, type DeviceOffer, type OnboardingProgress } from "./onboarding-checklist";
 
 function getRoleLabel(role: string) {
   return role === "SUPERADMIN" ? "Super Admin" : "Firma Admin";
@@ -98,6 +102,31 @@ function operationReportHref(params: {
   return `/api/reports/operation-summary?${query.toString()}`;
 }
 
+/** First-run progress of the owner's company; null once every onboarding step is done. */
+async function loadOnboarding(userId: number, companyId: number): Promise<{ progress: OnboardingProgress; trialActive: boolean; demoEmployees: { id: number; name: string }[]; deviceOffer: DeviceOffer } | null> {
+  const activeEmployees = { companyId, isActive: true };
+  const [employeeCount, cardCount, calendarAssignmentCount, firstMovement, deviceCount] = await Promise.all([
+    queryRepository.employee.count({ where: activeEmployees }),
+    queryRepository.employee.count({ where: { ...activeEmployees, rfidCardId: { not: null } } }),
+    queryRepository.calendarAssignment.count({ where: { companyId } }),
+    queryRepository.attendanceLog.findFirst({ where: { employee: { companyId } }, select: { id: true } }),
+    queryRepository.device.count({ where: { companyId } }),
+  ]);
+  const progress = { employeeCount, cardCount, calendarAssignmentCount, hasMovement: !!firstMovement, deviceCount };
+  if (onboardingComplete(progress)) return null;
+  const [license, employees, deviceOffer] = await Promise.all([
+    getSessionLicense(userId, companyId),
+    queryRepository.employee.findMany({ where: activeEmployees, select: { id: true, firstName: true, lastName: true }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }], take: 100 }),
+    getPanelDeviceOffer(),
+  ]);
+  return {
+    progress,
+    trialActive: !!license && isTrialActive(license.holder),
+    demoEmployees: employees.map((employee) => ({ id: employee.id, name: `${employee.firstName} ${employee.lastName}`.trim() })),
+    deviceOffer,
+  };
+}
+
 export default async function DashboardPage(props: { searchParams?: Promise<{ date?: string; companyId?: string; branch?: string; department?: string }> }) {
   const { user, authorization } = await requireSessionUser();
   const isLicenseOwner = user.role === "COMPANY_ADMIN" && (authorization.roleKey === "OWNER" || authorization.roleKey === "PENDING_COMPANY_OWNER");
@@ -127,6 +156,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
     );
   }
   const searchParams = (await props.searchParams) ?? {};
+  const onboarding = isLicenseOwner && authorization.companyId ? await loadOnboarding(user.id, authorization.companyId) : null;
 
   const currentDayRange = getAppDayRange(new Date());
   const today = currentDayRange.dateOnly;
@@ -590,6 +620,16 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
             ))}
           </div> : null}
         </header>
+      ) : null}
+
+      {onboarding ? (
+        <OnboardingChecklist
+          progress={onboarding.progress}
+          trialActive={onboarding.trialActive}
+          canCreateMovement={can(authorization, PERMISSIONS.MOVEMENT_CREATE)}
+          demoEmployees={onboarding.demoEmployees}
+          deviceOffer={onboarding.deviceOffer}
+        />
       ) : null}
 
       {isSuperadmin ? (

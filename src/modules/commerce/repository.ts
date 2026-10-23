@@ -187,6 +187,15 @@ export function listCommerceProducts() {
   });
 }
 
+/** RFID reader offer shown to company users (onboarding and devices page); null until one is published and marked. */
+export async function getPanelDeviceOffer() {
+  const product = await prisma.commerceProduct.findFirst({
+    where: { isDeviceOffer: true, status: "PUBLISHED", shopierUrl: { not: null } },
+    select: { title: true, price: true, currency: true, shopierUrl: true },
+  });
+  return product?.shopierUrl ? { title: product.title, price: product.price.toString(), currency: product.currency, url: product.shopierUrl } : null;
+}
+
 export function getCommerceProduct(id: number) {
   return prisma.commerceProduct.findUnique({ where: { id }, include: { images: { orderBy: { placement: "asc" } } } });
 }

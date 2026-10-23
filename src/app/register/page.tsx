@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, ArrowLeft, BadgeCheck, Boxes, Lock, Mail, MailCheck, Phone, ShoppingCart, User } from "lucide-react";
+import { AlertCircle, ArrowLeft, BadgeCheck, Boxes, Building2, Lock, Mail, MailCheck, Phone, ShoppingCart, User } from "lucide-react";
 import Link from "next/link";
 import styles from "../login/page.module.css";
 
@@ -12,7 +12,7 @@ const steps = [
 ];
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", password: "", passwordConfirm: "", website: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", companyName: "", email: "", phone: "", password: "", passwordConfirm: "", website: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [registeredEmail, setRegisteredEmail] = useState("");
@@ -30,7 +30,7 @@ export default function RegisterPage() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName, email: form.email, phone: form.phone, password: form.password, website: form.website }),
+        body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName, companyName: form.companyName, email: form.email, phone: form.phone, password: form.password, website: form.website }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Kayıt tamamlanamadı.");
@@ -90,6 +90,15 @@ export default function RegisterPage() {
                       <input id="lastName" className={styles.input} value={form.lastName} onChange={update("lastName")} autoComplete="family-name" maxLength={100} required />
                     </div>
                   </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="companyName">Firma adı</label>
+                  <div className={styles.inputWrapper}>
+                    <Building2 className={styles.inputIcon} size={18} />
+                    <input id="companyName" className={styles.input} placeholder="Örnek Tekstil Ltd. Şti." value={form.companyName} onChange={update("companyName")} autoComplete="organization" maxLength={191} required />
+                  </div>
+                  <small className={styles.hint}>Firmanız kayıtla birlikte oluşturulur; bilgileri sonra Firma Tanım ekranından düzenleyebilirsiniz.</small>
                 </div>
 
                 <div className={styles.formGroup}>

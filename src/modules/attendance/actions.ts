@@ -1,7 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AttendanceType } from "@/generated/prisma/client";
+import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
+import { ActionError, type ActionResult } from "@/lib/action-error";
+import { APP_TIME_ZONE } from "@/lib/app-time";
+import { DUPLICATE_SCAN_WINDOW_MS } from "@/lib/attendance-finalization-rules";
+import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
+import { inferAttendanceType } from "@/lib/attendance-type-inference";
+import { isTrialActive } from "@/lib/module-license-policy";
+import { runFormAction } from "@/lib/run-form-action";
+import { getSessionLicense } from "@/modules/licensing/repository";
 import { assertPermission, deviceScopeWhere, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { prisma } from "@/lib/prisma";
@@ -151,6 +159,53 @@ export async function createAttendanceLogAction(formData: FormData) {
   revalidatePath("/dashboard/reports");
   revalidatePath("/dashboard/reports/payroll");
   redirectToReturnPath(formData, "/dashboard/movements");
+}
+
+const DEMO_SCAN_REASON = "Deneme süresinde demo kart okutma";
+
+/**
+ * Trial-only stand-in for an RFID reader: records "now" for the chosen employee with the same type
+ * inference as a real bidirectional device, so a company without hardware can see the whole flow.
+ * It leaves an audit trail like any manual movement and is closed once the trial ends.
+ */
+export async function simulateDemoCardScanAction(formData: FormData): Promise<ActionResult> {
+  let message = "";
+  const result = await runFormAction(async () => {
+    const { user, authorization } = await requireSessionUser();
+    assertPermission(authorization, PERMISSIONS.MOVEMENT_CREATE);
+    const license = authorization.companyId ? await getSessionLicense(user.id, authorization.companyId) : null;
+    if (!license || !isTrialActive(license.holder)) throw new ActionError("Demo kart okutma yalnız deneme süresinde kullanılabilir.");
+
+    const employee = await prisma.employee.findFirst({
+      where: { id: getId(formData, "employeeId"), isActive: true, ...employeeScopeWhere(authorization) },
+      select: { id: true, firstName: true, lastName: true, rfidCardId: true, companyId: true, company: { select: { attendanceFinalizationDelayMinutes: true } } },
+    });
+    if (!employee) throw new ActionError("Personel bulunamadı.");
+
+    const scannedAt = new Date();
+    await assertPayrollPeriodUnlocked(employee.companyId, scannedAt);
+    // Same rule as a real reader: a repeated read inside the window is the same movement.
+    const recent = await prisma.attendanceLog.findFirst({ where: { employeeId: employee.id, scannedAt: { gte: new Date(scannedAt.getTime() - DUPLICATE_SCAN_WINDOW_MS) } }, select: { id: true } });
+    if (recent) throw new ActionError("Bu personel az önce okutuldu; tekrar okutma aynı hareket sayılır. Biraz bekleyip yeniden deneyin.");
+    const type = await inferAttendanceType({
+      employeeId: employee.id,
+      devicePurpose: DevicePurpose.BIDIRECTIONAL,
+      scannedAt,
+      finalizationDelayMinutes: employee.company.attendanceFinalizationDelayMinutes,
+    });
+    await saveResolvedEmployeeWorkCalendar(employee.id, scannedAt);
+    await prisma.$transaction(async (tx) => {
+      const log = await tx.attendanceLog.create({ data: { employeeId: employee.id, type, scannedAt, receivedAt: scannedAt, rfidCardId: employee.rfidCardId } });
+      await tx.attendanceMovementAudit.create({ data: { sourceLogId: log.id, employeeId: employee.id, movementDateTime: scannedAt, newType: type, newScannedAt: scannedAt, operation: "INSERT", changedById: user.id, correctionReason: DEMO_SCAN_REASON } });
+    });
+
+    const time = new Intl.DateTimeFormat("tr-TR", { timeStyle: "short", timeZone: APP_TIME_ZONE }).format(scannedAt);
+    message = `${employee.firstName} ${employee.lastName}: ${ATTENDANCE_TYPE_LABELS[type]} kaydedildi (${time}).`;
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/movements");
+    revalidatePath("/dashboard/reports");
+  });
+  return result.ok ? { ok: true, message } : result;
 }
 
 export async function deleteAttendanceLogAction(formData: FormData) {

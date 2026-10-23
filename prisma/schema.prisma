@@ -1393,6 +1393,8 @@ model CommerceProduct {
   shopierUrl       String?                @db.VarChar(500)
   publishedAt      DateTime?
   publishError     String?                @db.VarChar(500)
+  /// The RFID reader offered to customers in the panel (onboarding and devices page); at most one product.
+  isDeviceOffer    Boolean                @default(false)
   images           CommerceProductImage[]
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt

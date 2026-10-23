@@ -13,7 +13,7 @@ PDKS verisinin tek giriş kapısı cihazlardır. Cihaz kesintisiz okuma gönderm
 ## Kapsam
 - API: `src/app/api/device/{rfid/scan,heartbeat,firmware/check,firmware/download,firmware/status}`, `src/app/api/admin/firmware`
 - Ekranlar: `src/app/dashboard/devices`, `device-health`, `firmware-updates`, `companies/[id]/devices`
-- İş mantığı: `src/modules/devices/`, `src/lib/device-scan.ts`, `device-status.ts`, `firmware-storage.ts`
+- İş mantığı: `src/modules/devices/`, `src/lib/device-scan.ts`, `attendance-type-inference.ts` (okumanın hareket türü; PDKS demo okutması da kullanır), `device-status.ts`, `firmware-storage.ts`
 - Firmware: `esp32-device/` (OTA rehberi `OTA-KURULUM.md`)
 - Veri: `Device`, `FirmwareRelease`, `FirmwareDeployment`, `UserDeviceAccess`
 - Testler: `device-scan.test.ts`, `device-status.test.ts`

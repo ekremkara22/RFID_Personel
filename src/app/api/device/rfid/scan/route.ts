@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
+import type { AttendanceType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getAppDayRange } from "@/lib/app-time";
 import { DUPLICATE_SCAN_WINDOW_MS } from "@/lib/attendance-finalization-rules";
 import { normalizeClientEventId, resolveDeviceScanTime } from "@/lib/device-scan";
-import { resolveEmployeeAttendanceCalendar } from "@/lib/work-calendar";
-import { inferBidirectionalMovement } from "@/lib/attendance-sequence";
+import { inferAttendanceType } from "@/lib/attendance-type-inference";
 import { assertPayrollPeriodUnlocked } from "@/lib/payroll-period";
 
 function normalizeCardId(cardId: string) {
@@ -27,40 +25,6 @@ function successResponse(params: {
     employee: params.employee,
     device: params.device,
   });
-}
-
-async function inferAttendanceType(params: {
-  employeeId: number;
-  devicePurpose: DevicePurpose;
-  scannedAt: Date;
-  finalizationDelayMinutes: number;
-}) {
-  const day = getAppDayRange(params.scannedAt);
-  const resolved = await resolveEmployeeAttendanceCalendar(
-    params.employeeId,
-    params.scannedAt,
-    params.finalizationDelayMinutes,
-  );
-  const todayLogs = await prisma.attendanceLog.findMany({
-    where: {
-      employeeId: params.employeeId,
-      scannedAt: resolved.bounds
-        ? { gte: resolved.bounds.collectionStart, lte: params.scannedAt }
-        : { gte: day.start, lt: day.end },
-    },
-    orderBy: { scannedAt: "asc" },
-  });
-
-  if (todayLogs.length === 0) {
-    return AttendanceType.ENTRY;
-  }
-
-  if (params.devicePurpose === DevicePurpose.ENTRY) return AttendanceType.ENTRY;
-  if (params.devicePurpose === DevicePurpose.EXIT) return AttendanceType.EXIT;
-  if (params.devicePurpose === DevicePurpose.BREAK_START) return AttendanceType.BREAK_START;
-  if (params.devicePurpose === DevicePurpose.BREAK_END) return AttendanceType.BREAK_END;
-
-  return inferBidirectionalMovement({ logs: todayLogs });
 }
 
 export async function POST(request: Request) {

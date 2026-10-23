@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Filter, MonitorSmartphone, Search } from "lucide-react";
+import { ExternalLink, Filter, MonitorSmartphone, Search, ShoppingCart } from "lucide-react";
 import { updateDeviceAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { getAccessibleCompanyIds } from "@/lib/access";
@@ -7,6 +7,8 @@ import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import { can, deviceScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
+import { getPanelDeviceOffer } from "@/modules/commerce/repository";
+import Link from "next/link";
 import styles from "../page.module.css";
 import ui from "../management.module.css";
 import { DevicesTable } from "./devices-table";
@@ -89,6 +91,10 @@ export default async function DevicesPage(props: {
   const selectedDeviceBranches = selectedDevice
     ? branches.filter((branch) => branch.companyId === selectedDevice.companyId)
     : [];
+  // Companies without any reader see where to get one; a search with no hits is not that case.
+  // Counted company-wide so a member with a narrow device scope is not offered a reader the company already has.
+  const companyHasDevice = authorization.companyId ? (await queryRepository.device.count({ where: { companyId: authorization.companyId } })) > 0 : true;
+  const deviceOffer = !query && !companyHasDevice ? await getPanelDeviceOffer() : undefined;
   const hasSelectedBranchLocation = selectedDeviceBranches.some(
     (branch) => branch.name === selectedDevice?.branchLocation,
   );
@@ -102,6 +108,20 @@ export default async function DevicesPage(props: {
           <p className={ui.pageDescription}>Firmanıza atanmış okuyucuları, bağlantı bilgilerini ve kullanım yerlerini tek ekrandan yönetin.</p>
         </div>
       </header>
+
+      {deviceOffer !== undefined ? (
+        <section className={ui.notice}>
+          <h2>Henüz firmanıza atanmış bir okuyucu yok</h2>
+          <p>Okuyucu satın aldığınızda firmanıza tanımlanır; personel kartını okuttuğunda giriş, çıkış ve mola bu panele kendiliğinden düşer. O zamana kadar hareketleri elle ekleyebilirsiniz.</p>
+          <div className={ui.toolbarActions} style={{ marginTop: 12 }}>
+            {deviceOffer ? (
+              <a href={deviceOffer.url} target="_blank" rel="noopener noreferrer" className={ui.primaryAction} aria-label={`${deviceOffer.title} satın al (Shopier, yeni sekmede açılır)`}><ShoppingCart size={16} />Okuyucu satın al<ExternalLink size={14} aria-hidden="true" /></a>
+            ) : (
+              <Link href="/iletisim" className={ui.primaryAction}><ShoppingCart size={16} />Okuyucu için iletişime geçin</Link>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <section className={ui.surface} aria-label="RFID cihaz filtreleri">
         <form className={`${ui.filterBar} ${ui.searchFilterBar}`}>

@@ -6,13 +6,14 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertPermission } from "@/lib/authorization";
-import { PERMISSIONS, READY_COMPANY_ROLES } from "@/lib/permission-catalog";
-import { ALL_MODULE_KEYS, defaultRoleModules } from "@/lib/module-catalog";
+import { PERMISSIONS } from "@/lib/permission-catalog";
+import { ALL_MODULE_KEYS } from "@/lib/module-catalog";
 import { effectiveLicenseKeys } from "@/lib/module-license-policy";
 import { prisma } from "@/lib/prisma";
 import { requireSessionUser } from "@/lib/session";
 import { isValidOptionalUsername, normalizeOptionalUsername } from "@/lib/user-identity";
 import { getString, getStringList, getId, getOptionalNumber, getReturnTo, redirectToReturnPath } from "@/modules/shared/action-helpers";
+import { createReadyCompanyRoles, provisionOwnedCompany } from "./provisioning";
 
 function getAttendanceFinalizationDelayMinutes(formData: FormData) {
   const value = getOptionalNumber(formData, "attendanceFinalizationDelayMinutes") ?? 120;
@@ -98,24 +99,11 @@ export async function createCompanyAction(formData: FormData) {
           companyId: company.id,
         },
       });
-      let ownerRoleId = 0;
-      for (const definition of READY_COMPANY_ROLES) {
-        const roleModuleKeys = defaultRoleModules(definition.key).filter((moduleKey) => moduleKeys.includes(moduleKey));
-        const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) }, modules: { create: roleModuleKeys.map((moduleKey) => ({ moduleKey })) } } });
-        if (definition.key === "OWNER") ownerRoleId = role.id;
-      }
+      const ownerRoleId = await createReadyCompanyRoles(tx, company.id, moduleKeys);
       await tx.companyMembership.create({ data: { userId: adminUser.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
       await tx.userModuleEntitlement.createMany({ data: moduleKeys.map((moduleKey) => ({ userId: adminUser.id, moduleKey })), skipDuplicates: true });
     } else {
-      let ownerRoleId = 0;
-      for (const definition of READY_COMPANY_ROLES) {
-        const roleModuleKeys = defaultRoleModules(definition.key).filter((moduleKey) => moduleKeys.includes(moduleKey));
-        const role = await tx.companyRole.create({ data: { companyId: company.id, key: definition.key, name: definition.name, description: definition.description, isSystem: true, permissions: { create: definition.permissions.map((permission) => ({ permission })) }, modules: { create: roleModuleKeys.map((moduleKey) => ({ moduleKey })) } } });
-        if (definition.key === "OWNER") ownerRoleId = role.id;
-      }
-      await tx.user.update({ where: { id: user.id }, data: { companyId: company.id } });
-      await tx.userCompanyAccess.create({ data: { userId: user.id, companyId: company.id } });
-      await tx.companyMembership.create({ data: { userId: user.id, companyId: company.id, roleId: ownerRoleId, status: "ACTIVE", scopeMode: "COMPANY", modules: { create: moduleKeys.map((moduleKey) => ({ moduleKey })) } } });
+      await provisionOwnedCompany(tx, { userId: user.id, companyId: company.id, moduleKeys });
     }
   });
 

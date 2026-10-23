@@ -1,0 +1,107 @@
+/* First-run checklist on the operation summary; buttons and form controls come from management.module.css. */
+.stepList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--ui-border);
+}
+
+.step:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.stepIcon {
+  display: inline-flex;
+  padding-top: 1px;
+  color: #98a2b3;
+}
+
+.step[data-done="true"] .stepIcon {
+  color: #12b76a;
+}
+
+.stepBody {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.stepCopy {
+  min-width: 0;
+  flex: 1 1 280px;
+  display: grid;
+  gap: 2px;
+}
+
+.stepCopy strong {
+  color: #101828;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.stepCopy span {
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.step[data-done="true"] .stepCopy strong {
+  color: var(--ui-muted);
+}
+
+.stepPanel {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-soft);
+  padding: 12px;
+}
+
+.demoForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  flex: 1 1 360px;
+}
+
+.demoForm > label {
+  flex: 1 1 220px;
+}
+
+.demoForm > div[role] {
+  flex: 1 1 100%;
+}
+
+.panelHint {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .stepBody > a,
+  .stepPanel > a,
+  .demoForm button {
+    width: 100%;
+    min-height: 40px;
+    justify-content: center;
+  }
+}

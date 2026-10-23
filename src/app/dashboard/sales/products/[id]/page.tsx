@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { ExternalLink, Star, Trash2, UploadCloud, XCircle } from "lucide-react";
+import { ExternalLink, MonitorSmartphone, Star, Trash2, UploadCloud, XCircle } from "lucide-react";
 
 import { ActionForm } from "@/app/dashboard/action-form";
 import { BackLink } from "@/app/dashboard/back-link";
 import { SubmitButton } from "@/app/dashboard/submit-button";
 import { parseRouteId } from "@/lib/ids";
-import { deleteProductAction, makePrimaryProductImageAction, publishProductAction, removeProductImageAction, unpublishProductAction } from "@/modules/commerce/actions";
+import { deleteProductAction, makePrimaryProductImageAction, publishProductAction, removeProductImageAction, setDeviceOfferAction, unpublishProductAction } from "@/modules/commerce/actions";
 import { productStatusLabel } from "@/modules/commerce/labels";
 import { productImagePath } from "@/modules/commerce/product-media";
 import { getCommerceProduct } from "@/modules/commerce/repository";
@@ -46,6 +46,21 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
           {product.shopierUrl ? <div className={ui.detailRow}><dt>Ürün sayfası</dt><dd><a href={product.shopierUrl} target="_blank" rel="noreferrer">Shopier’de aç <ExternalLink size={13} /></a></dd></div> : null}
           {product.publishError ? <div className={ui.detailRow}><dt>Son hata</dt><dd role="alert">{product.publishError}</dd></div> : null}
         </dl>
+      </section>
+
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}>
+          <div>
+            <h2>Panelde RFID okuyucu önerisi</h2>
+            <p>İşaretli ürün, müşterilerin başlangıç listesinde ve RFID Cihazları ekranında “Okuyucu satın al” bağlantısı olarak görünür. Yalnız bir ürün işaretlenebilir; bağlantı ürün Shopier’de yayındayken çalışır.</p>
+          </div>
+          {product.isDeviceOffer ? <Badge tone="success">Panelde öneriliyor</Badge> : null}
+        </div>
+        <ActionForm action={setDeviceOfferAction} className={ui.toolbarActions}>
+          <input type="hidden" name="id" value={product.id} />
+          <input type="hidden" name="enabled" value={product.isDeviceOffer ? "0" : "1"} />
+          <SubmitButton idleLabel={product.isDeviceOffer ? "Öneriyi kaldır" : "Panelde öner"} pendingLabel="Kaydediliyor..." className={ui.secondaryAction} icon={<MonitorSmartphone size={16} />} />
+        </ActionForm>
       </section>
 
       <section className={ui.surface}>
