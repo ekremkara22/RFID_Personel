@@ -20,7 +20,7 @@ const FAQ = [
   { q: "Maaşları her ay elle mi giriyorum?", a: "Hayır. Personelin aylık brüt veya net maaşını bir kez girersiniz; 12 aylık hesap kümülatif vergi matrahıyla otomatik yapılır. Planlanan bir zammın yıllık maliyete etkisini bütçe raporundaki zam senaryosuyla görebilirsiniz." },
   { q: "Yeni yılın asgari ücreti ve vergi dilimleri değişince ne olur?", a: "2026 değerleri hazır gelir. Mevzuat değiştiğinde vergi dilimlerini, SGK taban ve tavanını ve asgari ücret istisnalarını Parametreler ekranından kendiniz güncelleyebilirsiniz." },
   { q: "İK modülünü almadan kullanabilir miyim?", a: "Evet. Muhasebe modülünün departman, pozisyon, yaka tipi ve personel listesi kendine aittir. Listeyi elle girebilir veya CSV dosyasıyla içe aktarabilirsiniz." },
-  { q: "Deneme süresinde neler açık?", a: "Hesaplama, bütçe raporu ve tüm tanımlar açıktır. CSV ile içe/dışa aktarma ve PDF çıktısı ücretli lisansla açılır." },
+  { q: "Deneme süresinde neler açık?", a: "Tüm özellikler açıktır: hesaplama, bütçe raporu, tanımlar, CSV ile içe/dışa aktarma ve PDF çıktısı." },
 ];
 
 export default async function AccountingModulePage() {
@@ -85,7 +85,7 @@ export default async function AccountingModulePage() {
 
           <h2>Tanımlar ve veri aktarımı</h2>
           <p>Departman, pozisyon ve yaka tipi (beyaz yaka, mavi yaka gibi) tanımlarını kendiniz oluşturursunuz. Personel kartında maaş tipi, aylık tutar, çalışan tipi ve işe giriş tarihi tutulur. Mevcut listenizi CSV ile içe aktarabilir, sonuçları CSV veya PDF olarak dışa alabilirsiniz.</p>
-          <div className={styles.callout}><p>14 günlük denemede hesaplama ve bütçe raporu açıktır; CSV içe/dışa aktarma ve PDF çıktısı ücretli lisansla açılır.</p></div>
+          <div className={styles.callout}><p>14 günlük denemede hesaplama, bütçe raporu, CSV içe/dışa aktarma ve PDF çıktısı dahil tüm özellikler açıktır.</p></div>
 
           <h2>Sık sorulan sorular</h2>
           <div className={styles.faq}>{FAQ.map((item) => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}</div>

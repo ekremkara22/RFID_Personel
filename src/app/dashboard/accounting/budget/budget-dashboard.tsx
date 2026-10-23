@@ -5,7 +5,6 @@ import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { buildBudgetReport, UNASSIGNED_LABEL, type BudgetEntry, type BudgetGroup } from "@/lib/budget-report";
 import { SALARY_MONTHS, type SalaryParameters } from "@/lib/salary-calculation";
-import { LicenseLockedAction } from "../../license-locked-action";
 import ui from "../../management.module.css";
 import { CostAnatomy, DepartmentDonut, MonthlyStack } from "./budget-charts";
 import styles from "./budget.module.css";
@@ -44,14 +43,12 @@ function GroupTable({ title, groups }: { title: string; groups: BudgetGroup[] })
   );
 }
 
-export function BudgetDashboard({ companyName, grossEntries, netEntries, parameters, canExport, exportLocked = false }: {
+export function BudgetDashboard({ companyName, grossEntries, netEntries, parameters, canExport }: {
   companyName: string;
   grossEntries: BudgetEntry[];
   netEntries: BudgetEntry[];
   parameters: SalaryParameters;
   canExport: boolean;
-  /** Trial access only: PDF export (and printing the page) stays locked until Muhasebe is licensed. */
-  exportLocked?: boolean;
 }) {
   const [source, setSource] = useState<Source>(netEntries.length && grossEntries.length ? "all" : grossEntries.length ? "gross-to-net" : "net-to-gross");
   const [budgetLimit, setBudgetLimit] = useState(0);
@@ -114,16 +111,14 @@ export function BudgetDashboard({ companyName, grossEntries, netEntries, paramet
   if (budgetLimit > 0) kpis.push({ label: remaining >= 0 ? "Bütçe kalan" : "Bütçe aşımı", value: f2(Math.abs(remaining)), hint: `Kullanım ${pct(report.annualEmployerCost / budgetLimit)}`, tone: remaining >= 0 ? "good" : "bad" });
 
   return (
-    <div className={`${ui.managementPage} ${styles.report}${exportLocked ? ` ${styles.printLocked}` : ""}`}>
+    <div className={`${ui.managementPage} ${styles.report}`}>
       <header className={`${ui.pageHeader} ${styles.screenOnly}`}>
         <div className={ui.headerCopy}>
           <p className={ui.kicker}>Muhasebe · Bütçe</p>
           <h1 className={ui.pageTitle}>Bütçe Raporu</h1>
           <p className={ui.pageDescription}>Maaş hesaplama listelerinden yıllık işveren maliyetini, dağılımları ve bütçe kullanımını değerlendirin; yöneticilere PDF olarak sunun.</p>
         </div>
-        {canExport ? <div className={ui.headerActions}>{exportLocked
-          ? <LicenseLockedAction moduleName="Muhasebe" variant="primary"><FileDown size={16} />PDF olarak kaydet</LicenseLockedAction>
-          : <button type="button" className={ui.primaryAction} onClick={() => window.print()} disabled={!report.headcount}><FileDown size={16} />PDF olarak kaydet</button>}</div> : null}
+        {canExport ? <div className={ui.headerActions}><button type="button" className={ui.primaryAction} onClick={() => window.print()} disabled={!report.headcount}><FileDown size={16} />PDF olarak kaydet</button></div> : null}
       </header>
 
       <section className={`${ui.surface} ${styles.screenOnly}`} aria-label="Rapor ayarları">

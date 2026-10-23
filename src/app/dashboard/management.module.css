@@ -781,22 +781,6 @@
 .rowAction:disabled,
 .primaryAction:disabled,
 .secondaryAction:disabled { opacity: 0.55; cursor: not-allowed; }
-/* Paid-only action during trial: looks disabled but stays focusable so its explanation is reachable. */
-.lockedActionWrap { position: relative; display: inline-flex; }
-.lockedAction,
-.lockedAction:hover { opacity: 0.55; cursor: not-allowed; border-color: #d0d5dd; background: #fff; color: #344054; }
-.lockedTooltip { position: absolute; top: 100%; right: 0; z-index: 30; display: none; width: min(300px, calc(100vw - 32px)); margin-top: 6px; border: 1px solid var(--ui-border, #e4e7ec); border-radius: 10px; padding: 10px 12px; background: #fff; box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12); color: #344054; font-size: 13px; font-weight: 500; line-height: 1.5; white-space: normal; text-align: left; }
-.lockedTooltip::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
-.lockedActionWrap:hover .lockedTooltip,
-.lockedActionWrap:focus-within .lockedTooltip,
-.lockedActionWrap[data-open] .lockedTooltip { display: block; }
-.lockedTooltipLink { display: inline-flex; align-items: center; min-height: 32px; margin-top: 4px; color: var(--ui-primary, #1570ef); font-weight: 650; }
-.lockedTooltipLink:focus-visible { outline: 3px solid rgba(21, 112, 239, 0.18); outline-offset: 1px; }
-@media (max-width: 760px) {
-  .lockedActionWrap { flex: 1 1 auto; }
-  .lockedActionWrap .lockedAction { width: 100%; }
-  .lockedTooltip { left: 0; right: auto; }
-}
 @media (max-width: 720px) {
   .definitionCreate { grid-template-columns: 1fr; }
   .definitionRow { flex-direction: column; align-items: stretch; }

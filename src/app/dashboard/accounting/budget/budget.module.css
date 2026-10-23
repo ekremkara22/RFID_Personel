@@ -579,17 +579,3 @@
     overflow: visible;
   }
 }
-
-/* Trial access: the browser's own print/PDF shows only the license notice, not the report. */
-@media print {
-  .printLocked > * {
-    display: none !important;
-  }
-
-  .printLocked::before {
-    content: "PDF dışa aktarma lisanslı kullanıcılara açıktır. Muhasebe modülü lisansını alarak etkinleştirebilirsiniz.";
-    display: block;
-    padding: 24px 0;
-    font-size: 14px;
-  }
-}

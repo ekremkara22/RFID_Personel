@@ -2,12 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CirclePlus, Filter, Search } from "lucide-react";
 import { can } from "@/lib/authorization";
-import { MODULES } from "@/lib/module-catalog";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { SALARY_BASIS_LABELS, SALARY_INSURANCE_TYPE_LABELS } from "@/lib/personnel-profile";
 import { requireSessionUser } from "@/lib/session";
 import { listAccountingPersonnel } from "@/modules/accounting/repository";
-import { hasPaidLicenseFor } from "@/modules/licensing/repository";
 import { AccountingPersonnelImport } from "./personnel-import";
 import ui from "../../../management.module.css";
 import styles from "../../accounting.module.css";
@@ -22,7 +20,6 @@ export default async function AccountingPersonnelPage(props: { searchParams: Pro
   const status = searchParams.status === "passive" ? "passive" : searchParams.status === "all" ? undefined : "active";
   const personnel = await listAccountingPersonnel(authorization.companyId, { q: query || undefined, status });
   const canEdit = can(authorization, PERMISSIONS.ACCOUNTING_SALARY_CALCULATE);
-  const importLocked = canEdit && !(await hasPaidLicenseFor(authorization, MODULES.ACCOUNTING));
 
   return (
     <div className={ui.managementPage}>
@@ -34,7 +31,7 @@ export default async function AccountingPersonnelPage(props: { searchParams: Pro
         </div>
         {canEdit ? (
           <div className={ui.headerActions}>
-            <AccountingPersonnelImport locked={importLocked} />
+            <AccountingPersonnelImport />
             <Link href="/dashboard/accounting/definitions/personnel/new" className={ui.primaryAction}><CirclePlus size={16} />Yeni Personel</Link>
           </div>
         ) : null}

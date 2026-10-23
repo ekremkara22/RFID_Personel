@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ActionError, type ActionResult } from "@/lib/action-error";
 import { assertPermission } from "@/lib/authorization";
-import { MODULES } from "@/lib/module-catalog";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { parseImportDate, parseMoney, SALARY_BASES, SALARY_INSURANCE_TYPES, type SalaryBasisCode, type SalaryInsuranceTypeCode } from "@/lib/personnel-profile";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +12,6 @@ import { validateSalaryParameters } from "@/lib/salary-calculation";
 import type { SalarySheetCsvRow } from "@/lib/salary-sheet-csv";
 import { requireSessionUser } from "@/lib/session";
 import { WORKSHEET_MODE, type AccountingDefinitionKind, type WorksheetModeKey, type WorksheetRowData } from "@/modules/accounting/repository";
-import { hasPaidLicenseFor } from "@/modules/licensing/repository";
 import { getId, getString } from "@/modules/shared/action-helpers";
 
 // Muhasebe writes only its own tables; İK personnel and departments are never touched here.
@@ -26,14 +24,6 @@ async function companyFor(permission: (typeof PERMISSIONS)[keyof typeof PERMISSI
   assertPermission(authorization, permission);
   if (!authorization.companyId) throw new ActionError("Aktif firma seçilmedi.");
   return authorization.companyId;
-}
-
-/** CSV/PDF transfer is for paying customers; the 14-day trial alone does not unlock it. */
-async function assertPaidAccountingLicense() {
-  const { authorization } = await requireSessionUser();
-  if (!(await hasPaidLicenseFor(authorization, MODULES.ACCOUNTING))) {
-    throw new ActionError("CSV ile içe aktarma lisanslı kullanıcılara açıktır. Muhasebe modülü lisansını alarak etkinleştirebilirsiniz.");
-  }
 }
 
 function text(value: unknown, max = 191) {
@@ -254,7 +244,6 @@ function splitName(fullName: string) {
 export async function importAccountingPersonnelAction(rows: SalarySheetCsvRow[], defaultBasis: SalaryBasisCode = "GROSS"): Promise<ActionResult> {
   return runFormAction(async () => {
     const companyId = await companyFor(PERMISSIONS.ACCOUNTING_SALARY_CALCULATE);
-    await assertPaidAccountingLicense();
     if (!Array.isArray(rows) || !rows.length) throw new ActionError("Dosyada personel satırı bulunamadı.");
     if (rows.length > MAX_ROWS) throw new ActionError(`Bir dosyada en fazla ${MAX_ROWS} personel aktarılabilir.`);
     const clean = rows.map((row) => ({

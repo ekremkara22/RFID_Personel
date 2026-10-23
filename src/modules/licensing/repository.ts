@@ -2,8 +2,7 @@ import "server-only";
 
 import { findCompanyLicensePrincipal } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
-import type { AuthorizationContext } from "@/lib/authorization-scope";
-import { hasPaidModuleLicense, type LicenseHolder } from "@/lib/module-license-policy";
+import type { LicenseHolder } from "@/lib/module-license-policy";
 
 export type SessionLicense = {
   holderUserId: number;
@@ -34,14 +33,4 @@ export async function getSessionLicense(userId: number, companyId: number | null
     selfRegistered: holder.selfRegistered,
     holder: { trialEndsAt: holder.trialEndsAt, moduleEntitlements: holder.moduleEntitlements },
   };
-}
-
-/**
- * Whether the company's license holder has bought the module, not merely trialled it.
- * Platform admins are never limited. Locks paid-only features such as Muhasebe CSV/PDF transfer.
- */
-export async function hasPaidLicenseFor(authorization: Pick<AuthorizationContext, "isPlatformAdmin" | "userId" | "companyId">, moduleKey: string) {
-  if (authorization.isPlatformAdmin) return true;
-  const license = await getSessionLicense(authorization.userId, authorization.companyId);
-  return !!license && hasPaidModuleLicense(license.holder, moduleKey);
 }

@@ -8,7 +8,6 @@ import { parseSalarySheetCsv, salarySheetCsvTemplate } from "@/lib/salary-sheet-
 import { calculateGrossToNet, calculateNetToGross, SALARY_MONTHS, type SalaryCalculationResult, type SalaryParameters } from "@/lib/salary-calculation";
 import { saveSalaryWorksheetAction } from "@/modules/accounting/actions";
 import type { WorksheetModeKey, WorksheetRowData } from "@/modules/accounting/repository";
-import { LicenseLockedAction } from "../../license-locked-action";
 import ui from "../../management.module.css";
 import styles from "../accounting.module.css";
 
@@ -66,12 +65,10 @@ function DefinitionSelect({ value, options, label, disabled, onChange }: { value
   );
 }
 
-export function SalaryCalculator({ mode, canCalculate, canExport, fileTransferLocked = false, initialRows, parameters, definitions, employees = [] }: {
+export function SalaryCalculator({ mode, canCalculate, canExport, initialRows, parameters, definitions, employees = [] }: {
   mode: WorksheetModeKey;
   canCalculate: boolean;
   canExport: boolean;
-  /** Trial access only: CSV import and export stay passive until Muhasebe is licensed. */
-  fileTransferLocked?: boolean;
   initialRows: WorksheetRowData[];
   parameters: SalaryParameters;
   definitions: { departments: string[]; positions: string[]; collarTypes: string[] };
@@ -274,14 +271,10 @@ export function SalaryCalculator({ mode, canCalculate, canExport, fileTransferLo
           <div className={styles.sheetActions}>
             {editable ? <button type="button" className={ui.secondaryAction} onClick={addRow}><Plus size={16} />Personel ekle</button> : null}
             {editable ? <button type="button" className={ui.secondaryAction} onClick={loadEmployees} disabled={!employees.length} title={employees.length ? `${employees.length} personel · ${mode === "gross-to-net" ? "brüt" : "net"} maaş tanımlı` : `Personel Tanımları ekranında maaş tipi ${mode === "gross-to-net" ? "Brüt" : "Net"} olan personel yok`}><UserPlus size={16} />Personel tanımlarından aktar{employees.length ? ` (${employees.length})` : ""}</button> : null}
-            {editable ? fileTransferLocked
-              ? <LicenseLockedAction moduleName="Muhasebe"><FileUp size={16} />CSV&apos;den personel yükle</LicenseLockedAction>
-              : <button type="button" className={ui.secondaryAction} onClick={() => fileInput.current?.click()}><FileUp size={16} />CSV&apos;den personel yükle</button> : null}
+            {editable ? <button type="button" className={ui.secondaryAction} onClick={() => fileInput.current?.click()}><FileUp size={16} />CSV&apos;den personel yükle</button> : null}
             <input ref={fileInput} type="file" accept=".csv,.txt,text/csv" hidden onChange={(event) => { void importCsv(event.target.files?.[0]); event.target.value = ""; }} />
             <button type="button" className={ui.secondaryAction} onClick={() => download("Personel-Sablon.csv", salarySheetCsvTemplate(amountLabel))}><FileDown size={16} />CSV şablonu indir</button>
-            {canExport ? fileTransferLocked
-              ? <LicenseLockedAction moduleName="Muhasebe"><Download size={16} />Sonuçları CSV indir</LicenseLockedAction>
-              : <button type="button" className={ui.secondaryAction} onClick={exportCsv} disabled={!calculated.length}><Download size={16} />Sonuçları CSV indir</button> : null}
+            {canExport ? <button type="button" className={ui.secondaryAction} onClick={exportCsv} disabled={!calculated.length}><Download size={16} />Sonuçları CSV indir</button> : null}
             {editable ? <button type="button" className={ui.dangerAction} onClick={clearAll} disabled={!rows.length}><X size={16} />Tümünü temizle</button> : null}
           </div>
           <span className={styles.saveState} data-status={saveState.status} role="status">
