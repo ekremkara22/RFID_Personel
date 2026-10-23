@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flodeska Instagram Gönderileri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Marka: lacivert #14202e, mavi #1f5fae, logo geçişi #1d5be8 → #0a9fa6 */
+  :root {
+    --navy: #14202e; --blue: #1f5fae; --brand: #1d5be8; --teal: #0a9fa6;
+    --ink: #2c3844; --muted: #5b6876; --line: #dfe4ea; --soft: #f3f6f9; --paper: #fff;
+    --late: #e5484d; --break: #f59e0b; --ok: #22a06b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, "Segoe UI", system-ui, sans-serif; background: #e9edf2; color: var(--navy); -webkit-font-smoothing: antialiased; }
+  .gallery { display: flex; flex-wrap: wrap; gap: 32px; padding: 32px; align-items: flex-start; }
+  .frame { display: flex; flex-direction: column; gap: 8px; }
+  .frame > b { font-size: 14px; color: var(--muted); font-weight: 600; }
+  .scaler { overflow: hidden; border-radius: 12px; box-shadow: 0 1px 3px rgba(20,32,46,.12); }
+  .scaler .post { transform: scale(.36); transform-origin: top left; }
+  body.single { background: var(--paper); }
+  body.single .gallery { padding: 0; gap: 0; }
+  body.single .frame > b { display: none; }
+  body.single .scaler { border-radius: 0; box-shadow: none; }
+  body.single .scaler .post { transform: none; }
+
+  .post { position: relative; width: 1080px; height: 1350px; padding: 88px 88px 80px; display: flex; flex-direction: column; background: var(--paper); overflow: hidden; }
+  .post.square { height: 1080px; }
+  .post.story { height: 1920px; padding: 120px 96px 140px; }
+  .post.dark { background: var(--navy); color: #fff; }
+  .post.soft { background: var(--soft); }
+
+  .logo { height: 54px; width: auto; display: block; }
+  .dark .logo { filter: brightness(0) invert(1); }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .tag { font-size: 24px; font-weight: 600; color: var(--blue); letter-spacing: .08em; text-transform: uppercase; }
+  .dark .tag { color: #7fd3d7; }
+  h1 { font-size: 84px; line-height: 1.06; font-weight: 800; letter-spacing: -.03em; }
+  h1 em { font-style: normal; color: var(--blue); }
+  .dark h1 em { color: #7fd3d7; }
+  .lead { font-size: 34px; line-height: 1.45; color: var(--muted); font-weight: 500; }
+  .dark .lead { color: #b6c2cf; }
+  .grow { flex: 1; }
+  .foot { display: flex; justify-content: space-between; align-items: center; padding-top: 36px; border-top: 2px solid var(--line); font-size: 28px; font-weight: 600; color: var(--muted); }
+  .dark .foot { border-color: rgba(255,255,255,.14); color: #b6c2cf; }
+  .foot strong { color: var(--navy); }
+  .dark .foot strong { color: #fff; }
+  .pill { display: inline-flex; align-items: center; gap: 14px; padding: 18px 30px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 28px; font-weight: 700; }
+  .note { font-size: 22px; color: var(--muted); line-height: 1.5; }
+  .dark .note { color: #8fa0b2; }
+  .badge { display: inline-block; padding: 8px 16px; border-radius: 8px; background: #e8f1fb; color: var(--blue); font-size: 22px; font-weight: 700; letter-spacing: .04em; }
+
+  /* 1 */
+  .modules { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .mod { padding: 36px; border: 2px solid var(--line); border-radius: 24px; background: #fff; color: var(--navy); }
+  .mod .ico { width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center; background: #e8f1fb; color: var(--blue); font-size: 34px; font-weight: 800; margin-bottom: 22px; }
+  .mod.teal .ico { background: #e1f5f5; color: var(--teal); }
+  .mod h3 { font-size: 34px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 10px; }
+  .mod p { font-size: 25px; line-height: 1.45; color: var(--muted); }
+
+  /* 2 */
+  .scene { position: relative; height: 760px; border-radius: 36px; background: linear-gradient(160deg, #1b2c40, #0f1a27); display: grid; place-items: center; }
+  .reader { position: relative; width: 300px; height: 440px; border-radius: 40px; background: #f5f7fa; box-shadow: inset 0 -8px 0 #d5dbe2; display: flex; flex-direction: column; align-items: center; padding-top: 70px; gap: 40px; }
+  .reader .led { width: 30px; height: 30px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 14px rgba(34,160,107,.25), 0 0 40px 10px rgba(34,160,107,.6); }
+  .reader .waves { width: 150px; height: 150px; border-radius: 50%; border: 8px solid #c7d0da; box-shadow: 0 0 0 26px #f5f7fa, 0 0 0 34px #dbe1e8; }
+  .card { position: absolute; right: 150px; top: 190px; width: 260px; height: 165px; border-radius: 20px; background: linear-gradient(120deg, var(--brand), var(--teal)); transform: rotate(-14deg); box-shadow: 0 30px 60px rgba(0,0,0,.35); padding: 26px; color: #fff; font-size: 24px; font-weight: 700; }
+  .card i { display: block; width: 56px; height: 40px; border-radius: 8px; background: rgba(255,255,255,.35); margin-top: 52px; }
+  .toast { position: absolute; left: 80px; bottom: 70px; padding: 24px 30px; border-radius: 20px; background: #fff; color: var(--navy); font-size: 26px; font-weight: 600; box-shadow: 0 20px 50px rgba(0,0,0,.3); display: flex; gap: 18px; align-items: center; }
+  .toast .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--ok); }
+  .toast small { display: block; font-size: 21px; color: var(--muted); font-weight: 500; margin-top: 4px; }
+  .steps { display: grid; gap: 22px; }
+  .step { display: flex; align-items: center; gap: 28px; font-size: 36px; font-weight: 600; }
+  .step span { flex: 0 0 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: rgba(127,211,215,.16); color: #7fd3d7; font-size: 32px; font-weight: 800; }
+
+  /* 3 */
+  .costs { display: grid; gap: 22px; }
+  .cost { display: flex; gap: 30px; align-items: flex-start; padding: 32px 36px; border-radius: 22px; background: #fff; border: 2px solid var(--line); }
+  .cost b { flex: 0 0 auto; font-size: 46px; font-weight: 800; color: var(--late); line-height: 1; width: 52px; }
+  .cost h3 { font-size: 34px; font-weight: 700; margin-bottom: 8px; }
+  .cost p { font-size: 25px; color: var(--muted); line-height: 1.45; }
+  .answer { padding: 34px 36px; border-radius: 22px; background: var(--navy); color: #fff; font-size: 30px; font-weight: 600; line-height: 1.4; }
+  .answer em { font-style: normal; color: #7fd3d7; }
+
+  /* 4-5 */
+  .flow { display: grid; gap: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; padding: 34px 40px; border-radius: 24px; background: #fff; border: 2px solid var(--line); }
+  .row span { font-size: 30px; font-weight: 600; color: var(--muted); }
+  .row strong { font-size: 56px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .row.hero { flex-direction: column; align-items: flex-start; gap: 14px; background: var(--blue); border-color: var(--blue); padding: 40px; }
+  .row.hero span { color: #d4e3f5; }
+  .row.hero strong { color: #fff; font-size: 76px; }
+  .row small { display: block; font-size: 22px; font-weight: 500; color: var(--muted); margin-top: 6px; }
+  .row.hero small { color: #d4e3f5; }
+  .arrow { text-align: center; font-size: 40px; color: var(--teal); line-height: 1; }
+
+  /* 6 */
+  .chart { display: flex; align-items: flex-end; gap: 14px; height: 370px; padding: 0 8px; border-bottom: 3px solid var(--line); }
+  .bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 10px; height: 100%; }
+  .bar i { display: block; width: 100%; border-radius: 10px 10px 0 0; background: #c9daf0; }
+  .bar.edge i { background: var(--blue); }
+  .months { display: flex; gap: 14px; padding: 14px 8px 0; }
+  .months span { flex: 1; text-align: center; font-size: 21px; color: var(--muted); font-weight: 600; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .pair div { padding: 30px 34px; border-radius: 22px; background: #fff; border: 2px solid var(--line); }
+  .pair span { font-size: 25px; color: var(--muted); font-weight: 600; }
+  .pair strong { display: block; font-size: 48px; font-weight: 800; letter-spacing: -.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .pair .up strong { color: var(--blue); }
+
+  /* 7 */
+  .shot { border-radius: 28px; overflow: hidden; border: 3px solid rgba(255,255,255,.18); height: 728px; background: #eef2f6; position: relative; }
+  .shot img { width: 1063px; display: block; margin-left: -175px; }
+  .shot .sample { position: absolute; right: 24px; bottom: 24px; padding: 10px 18px; border-radius: 10px; background: rgba(20,32,46,.85); color: #fff; font-size: 22px; font-weight: 700; }
+  .ticks { display: grid; gap: 20px; }
+  .ticks div { display: flex; gap: 22px; align-items: center; font-size: 34px; font-weight: 600; }
+  .ticks div::before { content: ""; flex: 0 0 22px; height: 22px; border-radius: 50%; background: #7fd3d7; }
+
+  /* 8 */
+  .ship { display: grid; gap: 24px; }
+  .ship div { display: flex; gap: 30px; align-items: center; padding: 34px 38px; border-radius: 24px; background: #fff; border: 2px solid var(--line); }
+  .ship b { flex: 0 0 84px; height: 84px; border-radius: 22px; display: grid; place-items: center; background: linear-gradient(135deg, var(--brand), var(--teal)); color: #fff; font-size: 38px; font-weight: 800; }
+  .ship h3 { font-size: 36px; font-weight: 700; margin-bottom: 6px; }
+  .ship p { font-size: 25px; color: var(--muted); line-height: 1.4; }
+
+  /* 9 */
+  .offer { display: grid; gap: 24px; }
+  .offer .mod { display: flex; gap: 30px; align-items: flex-start; }
+  .offer .mod .ico { flex: 0 0 64px; margin: 0; }
+  .offer ul { list-style: none; display: grid; gap: 8px; margin-top: 14px; }
+  .offer li { font-size: 25px; color: var(--ink); }
+  .offer li::before { content: "✓  "; color: var(--teal); font-weight: 800; }
+</style>
+</head>
+<body>
+<main class="gallery">
+
+<!-- 1 · Tanışma · 1080x1080 -->
+<section class="frame" data-post="1" data-w="1080" data-h="1080"><b>1 · Tanışma (kare)</b><div class="scaler" style="width:389px;height:389px"><div class="post square">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="tag">Merhaba</span></div>
+  <div class="grow"></div>
+  <h1>Küçük işletmeler için <em>personel takibi</em> ve <em>maaş hesabı.</em></h1>
+  <div style="height:56px"></div>
+  <div class="modules">
+    <div class="mod"><div class="ico">İK</div><h3>İK & RFID</h3><p>Kartla giriş-çıkış, mola, izin ve puantaj</p></div>
+    <div class="mod teal"><div class="ico">₺</div><h3>Muhasebe</h3><p>Brütten nete, netten brüte, yıllık bütçe</p></div>
+  </div>
+  <div class="grow"></div>
+  <div class="foot"><span><strong>flodeska.com</strong></span><span>14 gün ücretsiz deneyin</span></div>
+</div></div></section>
+
+<!-- 2 · Reels kapağı · 1080x1920 -->
+<section class="frame" data-post="2" data-w="1080" data-h="1920"><b>2 · Reels kapağı: kart okut (dikey)</b><div class="scaler" style="width:389px;height:691px"><div class="post story dark">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="tag">İK & RFID</span></div>
+  <div style="height:90px"></div>
+  <h1>Kartı okut.<br><em>Giriş panele düşsün.</em></h1>
+  <div style="height:70px"></div>
+  <div class="scene">
+    <div class="reader"><div class="led"></div><div class="waves"></div></div>
+    <div class="card">Personel kartı<i></i></div>
+    <div class="toast"><span class="dot"></span><div>Ayşe K. · Giriş 08:57<small>Kayıt panele işlendi</small></div></div>
+  </div>
+  <div style="height:80px"></div>
+  <div class="steps">
+    <div class="step"><span>1</span>Personel kartını okutur</div>
+    <div class="step"><span>2</span>Hareket anında panelde</div>
+    <div class="step"><span>3</span>Ay sonu puantaj hazır</div>
+  </div>
+  <div class="grow"></div>
+  <div class="foot"><span><strong>flodeska.com</strong></span><span>14 gün ücretsiz</span></div>
+</div></div></section>
+
+<!-- 3 · Sorun · 1080x1350 -->
+<section class="frame" data-post="3" data-w="1080" data-h="1350"><b>3 · Kâğıt puantajın maliyeti (4:5)</b><div class="scaler" style="width:389px;height:486px"><div class="post soft">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="tag">KOBİ notları</span></div>
+  <div style="height:56px"></div>
+  <h1 style="font-size:74px">Kâğıt puantajın<br>4 gizli maliyeti</h1>
+  <div style="height:44px"></div>
+  <div class="costs">
+    <div class="cost"><b>1</b><div><h3>Ay sonu saatler gider</h3><p>Kâğıtlar tek tek toplanır, hesaplanır, kontrol edilir.</p></div></div>
+    <div class="cost"><b>2</b><div><h3>Geç kalmalar kaybolur</h3><p>Kimin kaç dakika geç geldiği net değildir.</p></div></div>
+    <div class="cost"><b>3</b><div><h3>Mola süresi bilinmez</h3><p>Uzayan molalar fark edilmez.</p></div></div>
+    <div class="cost"><b>4</b><div><h3>Anlaşmazlıkta kanıt yok</h3><p>“Ben zamanında geldim” sözüne karşı kayıt yoktur.</p></div></div>
+  </div>
+  <div class="grow"></div>
+  <div class="answer">Flodeska'da her hareket <em>kart okutulduğu anda</em> kayda geçer.</div>
+</div></div></section>
+
+<!-- 4 · Asgari ücret · 1080x1350 -->
+<section class="frame" data-post="4" data-w="1080" data-h="1350"><b>4 · Asgari ücret 2026 (4:5)</b><div class="scaler" style="width:389px;height:486px"><div class="post">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="badge">2026</span></div>
+  <div style="height:56px"></div>
+  <span class="tag">Maaş hesaplama</span>
+  <div style="height:18px"></div>
+  <h1 style="font-size:76px">Asgari ücretin<br>işverene <em>yıllık</em> maliyeti</h1>
+  <div style="height:50px"></div>
+  <div class="flow">
+    <div class="row"><span>Aylık brüt</span><strong>33.030 TL</strong></div>
+    <div class="arrow">↓</div>
+    <div class="row"><span>Çalışanın eline geçen</span><strong>28.075,50 TL</strong></div>
+    <div class="arrow">↓</div>
+    <div class="row hero"><div><span>İşverene 12 aylık maliyet</span><small>5 puanlık SGK teşviki ile</small></div><strong>470.677,56 TL</strong></div>
+  </div>
+  <div class="grow"></div>
+  <p class="note">Teşviksiz: 486.531,96 TL. 2026 bordro parametreleriyle Flodeska Maaş Hesaplama'da hesaplanmıştır.</p>
+  <div style="height:28px"></div>
+  <div class="foot"><span><strong>flodeska.com</strong></span><span>Kendi rakamınızı hesaplayın</span></div>
+</div></div></section>
+
+<!-- 5 · Net 40.000 · 1080x1350 -->
+<section class="frame" data-post="5" data-w="1080" data-h="1350"><b>5 · Net 40.000 TL maliyeti (4:5)</b><div class="scaler" style="width:389px;height:486px"><div class="post soft">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="badge">2026</span></div>
+  <div style="height:56px"></div>
+  <span class="tag">Netten brüte</span>
+  <div style="height:18px"></div>
+  <h1 style="font-size:76px">Net <em>40.000 TL</em> maaş<br>işverene kaça mal olur?</h1>
+  <div style="height:50px"></div>
+  <div class="flow">
+    <div class="row"><span>Aylık net (12 ay sabit)</span><strong>40.000 TL</strong></div>
+    <div class="row"><span>Yıllık toplam brüt</span><strong>622.620,60 TL</strong></div>
+    <div class="row hero"><div><span>İşverene yıllık maliyet</span><small>5 puanlık SGK teşviki ile</small></div><strong>739.361,94 TL</strong></div>
+    <div class="row"><span>Aylık ortalama maliyet</span><strong>61.613,50 TL</strong></div>
+  </div>
+  <div class="grow"></div>
+  <p class="note">Teşviksiz yıllık maliyet: 764.266,77 TL. 2026 bordro parametreleriyle Flodeska Maaş Hesaplama'da hesaplanmıştır.</p>
+  <div style="height:28px"></div>
+  <div class="foot"><span><strong>flodeska.com</strong></span><span>Ekibinizin bütçesini çıkarın</span></div>
+</div></div></section>
+
+<!-- 6 · Brüt neden artıyor · 1080x1350 -->
+<section class="frame" data-post="6" data-w="1080" data-h="1350"><b>6 · Net sabit, brüt artıyor (4:5)</b><div class="scaler" style="width:389px;height:486px"><div class="post">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="tag">Bordro bilgisi</span></div>
+  <div style="height:56px"></div>
+  <h1 style="font-size:74px">Net maaş aynı,<br><em>brüt neden artıyor?</em></h1>
+  <div style="height:24px"></div>
+  <p class="lead" style="font-size:30px">Vergi matrahı yıl içinde birikip üst dilime geçer, asgari ücret istisnası da aya göre değişir. Aynı net için brüt her ay yeniden hesaplanır.</p>
+  <div style="height:44px"></div>
+  <div class="chart" id="gross-chart"></div>
+  <div class="months"><span>Oca</span><span>Şub</span><span>Mar</span><span>Nis</span><span>May</span><span>Haz</span><span>Tem</span><span>Ağu</span><span>Eyl</span><span>Eki</span><span>Kas</span><span>Ara</span></div>
+  <div style="height:40px"></div>
+  <div class="pair">
+    <div><span>Ocak brüt</span><strong>49.709,72 TL</strong></div>
+    <div class="up"><span>Aralık brüt</span><strong>55.692,02 TL</strong></div>
+  </div>
+  <div class="grow"></div>
+  <p class="note">Örnek: 12 ay boyunca net 40.000 TL. 2026 parametreleriyle Flodeska Maaş Hesaplama'da hesaplanmıştır.</p>
+</div></div></section>
+
+<!-- 7 · Reels kapağı: rapor · 1080x1920 -->
+<section class="frame" data-post="7" data-w="1080" data-h="1920"><b>7 · Reels kapağı: operasyon özeti (dikey)</b><div class="scaler" style="width:389px;height:691px"><div class="post story dark">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="tag">İK & RFID</span></div>
+  <div style="height:90px"></div>
+  <h1>Kim geç kaldı?<br><em>Tek ekranda.</em></h1>
+  <div style="height:36px"></div>
+  <p class="lead">Geç kalanlar, ortalama gecikme ve mola süreleri her sabah hazır.</p>
+  <div style="height:64px"></div>
+  <div class="shot"><img src="../../../public/images/marketing/flodeska-operasyon-ozeti-demo.png" alt="Flodeska operasyon özeti ekranı"><span class="sample">Örnek veri</span></div>
+  <div style="height:72px"></div>
+  <div class="ticks"><div>Günlük geç kalma raporu</div><div>Mola limitini aşanlar</div><div>Excel ve PDF'e aktarım</div></div>
+  <div class="grow"></div>
+  <div class="foot"><span><strong>flodeska.com</strong></span><span>14 gün ücretsiz</span></div>
+</div></div></section>
+
+<!-- 8 · Cihaz · 1080x1350 -->
+<section class="frame" data-post="8" data-w="1080" data-h="1350"><b>8 · Cihaz siparişi (4:5)</b><div class="scaler" style="width:389px;height:486px"><div class="post soft">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="tag">RFID cihazı</span></div>
+  <div style="height:56px"></div>
+  <h1 style="font-size:76px">Cihaz kapınıza gelir,<br><em>panelle konuşur.</em></h1>
+  <div style="height:56px"></div>
+  <div class="ship">
+    <div><b>1</b><section><h3>Sipariş verin</h3><p>RFID okuyucu ve kartlar Shopier güvenli ödeme ile</p></section></div>
+    <div><b>2</b><section><h3>Kargoyla teslim</h3><p>Cihaz hesabınıza tanımlı olarak gönderilir</p></section></div>
+    <div><b>3</b><section><h3>Wi-Fi'ye bağlayın</h3><p>Okutulan kartlar panele düşer, cihazın bağlantı durumu panelde görünür</p></section></div>
+  </div>
+  <div class="grow"></div>
+  <div class="foot"><span><strong>flodeska.com</strong></span><span>Cihaz ve yazılım tek yerden</span></div>
+</div></div></section>
+
+<!-- 9 · Teklif · 1080x1350 -->
+<section class="frame" data-post="9" data-w="1080" data-h="1350"><b>9 · Modüller ve deneme (4:5)</b><div class="scaler" style="width:389px;height:486px"><div class="post dark">
+  <div class="top"><img class="logo" src="../../../public/brand/flodeska-logo.png" alt="Flodeska"><span class="tag">Yıllık lisans</span></div>
+  <div style="height:56px"></div>
+  <h1 style="font-size:78px">İhtiyacınız olanı alın,<br><em>gerisini sonra ekleyin.</em></h1>
+  <div style="height:56px"></div>
+  <div class="offer">
+    <div class="mod"><div class="ico">İK</div><div><h3>İK & RFID Personel Takip</h3><ul><li>Kartla giriş, çıkış ve mola</li><li>İzin, takvim ve puantaj onayı</li><li>Geç kalma ve departman raporları</li></ul></div></div>
+    <div class="mod teal"><div class="ico">₺</div><div><h3>Muhasebe: Maaş ve Bütçe</h3><ul><li>Brütten nete, netten brüte</li><li>Güncel 2026 bordro parametreleri</li><li>Departman ve yıllık bütçe raporu</li></ul></div></div>
+  </div>
+  <div class="grow"></div>
+  <div class="foot"><span class="pill">14 gün ücretsiz deneyin</span><span><strong>flodeska.com</strong></span></div>
+</div></div></section>
+
+</main>
+<script>
+  // Net 40.000 TL için aylık brüt (src/lib/salary-calculation.ts, 2026 parametreleri, teşvikli).
+  const gross = [49709.72, 49709.72, 49709.72, 49709.71, 51291.07, 52851.64, 52366.19, 50763.97, 50763.98, 54360.85, 55692.01, 55692.02];
+  const min = 40000, max = Math.max(...gross);
+  document.getElementById("gross-chart").innerHTML = gross.map((value, index) =>
+    `<div class="bar${index === 0 || index === 11 ? " edge" : ""}"><i style="height:${((value - min) / (max - min)) * 88 + 12}%"></i></div>`).join("");
+
+  // ?p=N yalnız o gönderiyi gerçek boyutunda gösterir (PNG çıktısı için).
+  const only = new URLSearchParams(location.search).get("p");
+  if (only) {
+    document.body.classList.add("single");
+    document.querySelectorAll(".frame").forEach((frame) => {
+      if (frame.dataset.post !== only) frame.remove();
+      else { const s = frame.querySelector(".scaler"); s.style.width = frame.dataset.w + "px"; s.style.height = frame.dataset.h + "px"; }
+    });
+  }
+</script>
+</body>
+</html>
