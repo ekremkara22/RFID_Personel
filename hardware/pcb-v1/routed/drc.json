@@ -1,0 +1,129 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-10-23T15:52:20",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.99.0",
+    "schematic_parity": [],
+    "source": "rfid_carrier_v01.kicad_pcb",
+    "unconnected_items": [],
+    "violations": [
+        {
+            "description": "Bölgeye termal rölyef bağlantısı eksik (katman F.Cu; bölge bağlantı kolu sayısı 2; gerçek 1)",
+            "items": [
+                {
+                    "description": "Bölge 'GND pour F.Cu' [GND] F.Cu üzerinde, öncelik 0",
+                    "pos": {
+                        "x": 4.5,
+                        "y": 39.5
+                    },
+                    "uuid": "a2179371-f6b3-4382-bf6b-ef97c880487a"
+                },
+                {
+                    "description": "2'in Delik İçi Kaplamalı Geçit pedi [GND] J6",
+                    "pos": {
+                        "x": 14.76,
+                        "y": 42.3
+                    },
+                    "uuid": "55066cb2-731d-4fe5-bcee-8e4afbce532c"
+                }
+            ],
+            "severity": "error",
+            "type": "starved_thermal"
+        },
+        {
+            "description": "Bölgeye termal rölyef bağlantısı eksik (katman F.Cu; izole adaya bağlı 4 bağlantı kolu)",
+            "items": [
+                {
+                    "description": "Bölge 'GND pour F.Cu' [GND] F.Cu üzerinde, öncelik 0",
+                    "pos": {
+                        "x": 4.5,
+                        "y": 39.5
+                    },
+                    "uuid": "a2179371-f6b3-4382-bf6b-ef97c880487a"
+                },
+                {
+                    "description": "10'in Delik İçi Kaplamalı Geçit pedi [GND] U1",
+                    "pos": {
+                        "x": 87.0,
+                        "y": 77.86
+                    },
+                    "uuid": "f510b6ab-763f-4593-a6ee-c65bf04aca4f"
+                }
+            ],
+            "severity": "error",
+            "type": "starved_thermal"
+        },
+        {
+            "description": "Bölgeye termal rölyef bağlantısı eksik (katman B.Cu; bölge bağlantı kolu sayısı 2; gerçek 1)",
+            "items": [
+                {
+                    "description": "Bölge 'GND pour B.Cu' [GND] B.Cu üzerinde, öncelik 0",
+                    "pos": {
+                        "x": 4.5,
+                        "y": 39.5
+                    },
+                    "uuid": "a04dfa19-9790-413b-9d90-3432e4cf70ee"
+                },
+                {
+                    "description": "19'in Delik İçi Kaplamalı Geçit pedi [GND] U1",
+                    "pos": {
+                        "x": 94.62,
+                        "y": 57.54
+                    },
+                    "uuid": "bb98b9cd-a711-4616-9101-664ac54a53b0"
+                }
+            ],
+            "severity": "error",
+            "type": "starved_thermal"
+        },
+        {
+            "description": "Bölgeye termal rölyef bağlantısı eksik (katman B.Cu; izole adaya bağlı 4 bağlantı kolu)",
+            "items": [
+                {
+                    "description": "Bölge 'GND pour B.Cu' [GND] B.Cu üzerinde, öncelik 0",
+                    "pos": {
+                        "x": 4.5,
+                        "y": 39.5
+                    },
+                    "uuid": "a04dfa19-9790-413b-9d90-3432e4cf70ee"
+                },
+                {
+                    "description": "2'in Delik İçi Kaplamalı Geçit pedi [GND] C2",
+                    "pos": {
+                        "x": 119.54,
+                        "y": 75.0
+                    },
+                    "uuid": "6dd100bb-f349-43da-a9c3-f43e156160a6"
+                }
+            ],
+            "severity": "error",
+            "type": "starved_thermal"
+        }
+    ]
+}

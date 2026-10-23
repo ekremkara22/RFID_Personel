@@ -5,21 +5,23 @@ Bu klasör V0.1 yerleşim taslağının bakır yolları çizilmiş prototip revi
 bağlantıları, V4 kart sınırı ve sekiz vida deliği korunur.
 
 **Fiziksel prototip henüz üretilmedi veya çalıştırılmadı.** Dijital kontrollerin
-sonuçları `validation.json`, `drc.json` ve `erc.json` içindedir. Siparişten önce
+sonuçları `drc.json` ve `erc.json` içindedir. Siparişten önce
 aşağıdaki üç fiziksel kontrol yapılmalıdır; bu dosyalar ölçülmemiş parçaların
 mekanik uyumunu garanti etmez.
 
 ## Açılacak dosyalar
 
 - `rfid_carrier_v01.kicad_pro`: proje; dosya adı şema/PCB referanslarını korumak için sabit kaldı, revizyon V0.2'dir.
-- `rfid_carrier_v01.kicad_pcb`: iki katmanlı bakır yolları ve GND dolguları.
+- `rfid_carrier_v01.kicad_pcb`: iki katmanlı bakır yolları, iki yüzde GND dolgusu ve
+  serigrafi montaj işaretleri (pin-1 noktaları, elektrolitik `+`, D1 katot çizgisi, Q1 C/B/E).
 - `rfid_carrier_v01.kicad_sch`: elektrik şeması; global hat adları PCB ile aynıdır.
-- `pcb_routed.png`: gerçek PCB geometrisinden üretilen üst/alt bakır görünümü.
-- `mechanical_1to1.svg`: fiziksel parçalarla kontrol için %100 boyutta baskı şablonu.
-- `gerber/`: iki bakır, iki maske, iki baskı katmanı, kart sınırı ve ayrı PTH/NPTH delik dosyaları.
+- `pcb_routed.png`: gerçek PCB dosyasından KiCad ile üretilen üst yüz görünümü.
+- `mechanical_1to1.svg`: kart sınırı, pedler, serigrafi ve parça zarfları; %100 baskı şablonu.
+- `gerber/`: iki bakır, iki maske, iki baskı katmanı, kart sınırı, ayrı PTH/NPTH
+  Excellon delik dosyaları, delik haritaları (PDF) ve `.gbrjob`.
+- `drc.json`: Gerber'in üretildiği kartın KiCad DRC raporu.
 - `connections.csv`, `bom.csv`: bağlantılar ve taşıyıcı kartın parça listesi.
 - `native.net`: KiCad'in gerçek şemadan dışa aktardığı netlist.
-- `validation.json`: şema–PCB–kaynak bağlantı karşılaştırması, hat uzunlukları ve PCB SHA-256 özeti.
 - `RFID_Carrier.pretty/`, `RFID_Carrier.kicad_sym`, `*-lib-table`: proje ile taşınan yerel kütüphaneler.
 
 Bir üst klasördeki V0.1 dosyaları ve eski inceleme PDF'si arşiv taslağıdır;
@@ -47,13 +49,19 @@ kaynakları şemada PWR_FLAG ile belirtildi. Kontroller için ihlal istisnası
 eklenmedi. NPTH deliklerin koruma bölgesinde bulunabilmesi için bu bölgelerde
 pad yasağı kullanılmaz; gerçek bileşen bakır pedleri ayrıca denetlenir.
 
+## DRC durumu
+
+DRC: 0 bağlantısız öğe, 0 şema–PCB farkı, 0 hata. Kalan 4 uyarı `starved_thermal`:
+J6-2, U1-10, U1-19 ve C2-2 GND pedlerinin dolguya bağlanan termal kolu ikiden az.
+Bu pedler GND'ye ayrıca bakır yolla bağlı olduğu için bilinçli olarak bırakıldı.
+
 ## Siparişten önce üç kontrol
 
 1. **ESP32:** iki pin sırası merkezini ölçün; 25,40 mm olmalı. Üstten bakışta
    USB solda, anten sağda; J6 soldan VIN, J7 soldan 3V3 ile başlar. Kart
    etiketlerini `connections.csv` ile tek tek eşleştirin.
-2. **Kutu:** `mechanical_1to1.svg` dosyasını gerçek boyut / %100 basın; 50 mm
-   çizgiyi cetvelle doğrulayın. Sekiz vida, kart sınırı, soket yüksekliği ve USB
+2. **Kutu:** `mechanical_1to1.svg` dosyasını gerçek boyut / %100 basın; kart
+   sınırının 128 × 58 mm çıktığını cetvelle doğrulayın. Sekiz vida, kart sınırı, soket yüksekliği ve USB
    fişini V4 baskıda deneyin. PCB altı hedef Z=10 mm; mevcut USB penceresi
    yaklaşık Z=9…21 mm. Soket ESP32'yi yükselttiği için pencere değişikliği gerekebilir.
 3. **BOM:** RV1 sürgü bacağı, J1 5,08 mm terminal, BC337 C-B-E, elektrolitik
@@ -88,7 +96,7 @@ servisine yüklenmedi. Donanım güç/ısı, sinyal bütünlüğü veya RF labor
 `prepare.py` yerleşim ve şema kaynağını üretir ve **mevcut bakır yollarını siler**.
 `export_dsn.py` yönlendirme girdisini, `import_ses.py` SES'ten bakır yollarını
 oluşturur. `finish_board.py` GND bölgelerini ekler; dolgu KiCad tarafından
-yapılır. `review.py` gerçek PCB dosyasından kontrol raporu ve görsel üretir.
+yapılır. `add_silk_marks.py` dolgudan sonra serigrafi montaj işaretlerini ekler. `review.py` gerçek PCB dosyasından kontrol raporu ve görsel üretir.
 El ile düzenlenmiş PCB üzerine `prepare.py` çalıştırmayın.
 
 Şema değişikliğinde ERC, şema–PCB netlist karşılaştırması ve DRC; her PCB

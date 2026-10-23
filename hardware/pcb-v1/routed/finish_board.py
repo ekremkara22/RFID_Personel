@@ -37,7 +37,7 @@ def add():
    (name "GND pour {layer}") (hatch edge 0.5) (connect_pads (clearance 0.2)) (min_thickness 0.2)
    (filled_areas_thickness no) (fill yes (thermal_gap 0.25) (thermal_bridge_width 0.4) (island_removal_mode 0))
    (polygon (pts (xy 4.5 39.5) (xy 131.5 39.5) (xy 131.5 96.5) (xy 4.5 96.5))))''')
- for label,x,y,size in [('RFID CARRIER V0.2',28,52,1),('ESP32 DEVKIT V1 / 30 PIN',28,55,.8),('USB <',20,59,1),('ANTENNA',62.5,54,1),('NO COPPER',62.5,57,1),('5V DC ONLY',116,66,1)]:
+ for label,x,y,size in [('RFID CARRIER V0.2',28,52,1),('ESP32 DEVKIT V1 / 30 PIN',28,55,.8),('USB <',20,59,1),('ANTENNA',62.5,54,1),('NO COPPER',62.5,57,1),('5V DC ONLY',129.5,61.5,1)]:
   extra.append(f'(gr_text "{label}" (at {x} {y}) (layer "F.SilkS") (effects (font (size {size} {size}) (thickness .15))))')
  P.write_text(s.rstrip()[:-1]+'\n'+'\n'.join(extra)+'\n)\n',encoding='utf-8')
  (HERE/'work'/'before-fill.kicad_pcb').write_text(P.read_text(encoding='utf-8'),encoding='utf-8')
