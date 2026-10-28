@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildFinalizedMovementTypes,
   DEFAULT_ATTENDANCE_FINALIZATION_DELAY_MINUTES,
+  findProbableExitLogId,
   getScheduledShiftBounds,
 } from "./attendance-finalization-rules";
 
@@ -71,4 +72,25 @@ test("on saniye icindeki yinelenen okutma incelemeye gider", () => {
   const result = buildFinalizedMovementTypes([first, duplicate]);
   assert.equal(result.status, "REVIEW");
   assert.deepEqual(result.duplicateIds, [2]);
+});
+
+test("vardiya bitisine yakin son okutma muhtemel cikis olarak onerilir", () => {
+  const shiftEnd = new Date(Date.UTC(2026, 9, 8, 18 - 3, 30));
+  const logs = [
+    movement(1, "ENTRY", 8, 45),
+    movement(2, "BREAK_START", 12),
+    movement(3, "BREAK_END", 12, 30),
+    movement(4, "BREAK_START", 15),
+    movement(5, "BREAK_END", 18, 28),
+  ];
+  assert.equal(findProbableExitLogId(logs, shiftEnd), 5);
+  assert.equal(findProbableExitLogId([...logs.slice(0, 4), movement(5, "BREAK_END", 19, 10)], shiftEnd), 5);
+});
+
+test("muhtemel cikis yalniz uygun gunlerde onerilir", () => {
+  const shiftEnd = new Date(Date.UTC(2026, 9, 8, 18 - 3, 30));
+  assert.equal(findProbableExitLogId([movement(1, "ENTRY", 8), movement(2, "BREAK_START", 15)], shiftEnd), null);
+  assert.equal(findProbableExitLogId([movement(1, "ENTRY", 18, 20)], shiftEnd), null);
+  assert.equal(findProbableExitLogId([movement(1, "ENTRY", 8), movement(2, "EXIT", 18, 30), movement(3, "BREAK_START", 18, 40)], shiftEnd), null);
+  assert.equal(findProbableExitLogId([movement(1, "ENTRY", 8), movement(2, "BREAK_START", 18, 29)], null), null);
 });

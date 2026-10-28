@@ -4,6 +4,7 @@ import { timeToMinutes } from "@/lib/work-calendar-rules";
 
 export const DEFAULT_ATTENDANCE_FINALIZATION_DELAY_MINUTES = 120;
 export const DUPLICATE_SCAN_WINDOW_MS = 10_000;
+export const PROBABLE_EXIT_WINDOW_MINUTES = 60;
 const EARLY_SCAN_WINDOW_MINUTES = 6 * 60;
 
 export type ScheduledCalendar = {
@@ -59,6 +60,14 @@ export function findDuplicateScanIds(logs: FinalizationMovement[]) {
     }
   }
   return duplicateIds;
+}
+
+/** Çıkışı olmayan günde, vardiya bitişine yakın veya sonrasındaki son okutma muhtemel çıkıştır. */
+export function findProbableExitLogId(logs: FinalizationMovement[], shiftEnd: Date | null) {
+  if (!shiftEnd || logs.length < 2 || logs.some((log) => log.type === "EXIT")) return null;
+  const last = logs.reduce((latest, log) =>
+    log.scannedAt.getTime() > latest.scannedAt.getTime() || (log.scannedAt.getTime() === latest.scannedAt.getTime() && log.id > latest.id) ? log : latest);
+  return last.scannedAt.getTime() >= shiftEnd.getTime() - PROBABLE_EXIT_WINDOW_MINUTES * 60_000 ? last.id : null;
 }
 
 export function buildFinalizedMovementTypes(logs: FinalizationMovement[]) {

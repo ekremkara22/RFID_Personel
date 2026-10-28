@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Filter, PlusCircle } from "lucide-react";
-import { resolveAttendanceReviewAction } from "@/app/dashboard/actions";
+import { AlertTriangle, CheckCircle2, Filter, LogOut, PlusCircle } from "lucide-react";
+import { confirmProbableExitAction, resolveAttendanceReviewAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
+import { findProbableExitLogId, getScheduledShiftBounds } from "@/lib/attendance-finalization-rules";
 import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
 import { buildAttendanceReviewCases } from "@/lib/attendance-review";
 import { employeeScopeWhere } from "@/lib/authorization";
@@ -38,6 +39,11 @@ export default async function MovementReviewsPage(props: { searchParams: Promise
   const companyById = new Map(companies.map((company) => [company.id, company.name]));
   const resolutionByFingerprint = new Map(resolutions.map((item) => [item.fingerprint, item]));
   const cases = buildAttendanceReviewCases(logs).filter((item) => { const resolved = resolutionByFingerprint.has(item.fingerprint); return status === "all" || (status === "resolved" ? resolved : !resolved); });
+  const missingExitCases = cases.filter((item) => item.issueLabels.includes("Eksik çıkış"));
+  const calendars = missingExitCases.length > 0
+    ? await queryRepository.employeeDailyCalendar.findMany({ where: { OR: missingExitCases.map((item) => ({ employeeId: item.employee.id, workDate: item.workDate })) } })
+    : [];
+  const calendarByDay = new Map(calendars.map((calendar) => [`${calendar.employeeId}-${calendar.workDate.getTime()}`, calendar]));
   const query = new URLSearchParams({ from: fromKey, to: toKey, ...(params.companyId ? { companyId: params.companyId } : {}), ...(branch ? { branch } : {}), ...(department ? { department } : {}), status }).toString();
   const returnTo = `/dashboard/movement-reviews?${query}`;
 
@@ -61,9 +67,13 @@ export default async function MovementReviewsPage(props: { searchParams: Promise
         <div className={ui.sectionHeading}><div><h2>Kişi / gün bazlı sorunlar</h2><p>Hareket ayrıntısına girerek düzeltme veya silme yapabilirsiniz.</p></div><span className={ui.countBadge}>{cases.length} kayıt</span></div>
         {cases.length === 0 ? <p className={ui.emptyCell}>Seçilen filtrelerde kontrol gerektiren hareket bulunamadı.</p> : <div className={ui.reviewList}>{cases.map((item) => {
           const resolution = resolutionByFingerprint.get(item.fingerprint);
+          const calendar = calendarByDay.get(`${item.employee.id}-${item.workDate.getTime()}`);
+          const probableExitId = calendar ? findProbableExitLogId(item.logs, getScheduledShiftBounds(calendar)?.shiftEnd ?? null) : null;
+          const probableExit = item.logs.find((log) => log.id === probableExitId);
           return <article key={item.fingerprint} className={ui.reviewCard}>
             <div className={ui.reviewCardHeader}><div><h3>{item.employee.firstName} {item.employee.lastName}</h3><p>{companyById.get(item.employee.companyId)} · {item.employee.branch ?? "Şubesiz"} · {item.employee.department} · {item.dayKey}</p></div><div className={styles.reviewBadges}>{item.issueLabels.map((label) => <span key={label} className={styles.reportBadgeDanger}><AlertTriangle size={13} />{label}</span>)}{resolution ? <span className={styles.reportBadgeSuccess}><CheckCircle2 size={13} />İncelendi</span> : null}</div></div>
-            <div className={ui.tableViewport}><table className={ui.dataTable} style={{ minWidth: 650 }}><thead><tr><th>Saat</th><th>Hareket</th><th>Sunucuya ulaşma</th><th>Durum</th><th>İşlem</th></tr></thead><tbody>{item.logs.map((log) => { const problem = item.unmatchedLogIds.includes(log.id) || item.delayedLogIds.includes(log.id) || item.duplicateLogIds.includes(log.id); return <tr key={log.id} className={problem ? styles.reviewProblemRow : undefined}><td>{formatDate(log.scannedAt)}</td><td>{ATTENDANCE_TYPE_LABELS[log.type]}</td><td>{formatDate(log.receivedAt)}</td><td>{problem ? <span className={ui.statusDanger}><span className={ui.statusDot} />Kontrol gerekli</span> : <span className={ui.statusBadge}><span className={ui.statusDot} />Normal</span>}</td><td><Link href={`/dashboard/movements/${log.id}`} className={`${ui.rowAction} ${ui.compactAction}`}>İncele</Link></td></tr>; })}</tbody></table></div>
+            <div className={ui.tableViewport}><table className={ui.dataTable} style={{ minWidth: 650 }}><thead><tr><th>Saat</th><th>Hareket</th><th>Sunucuya ulaşma</th><th>Durum</th><th>İşlem</th></tr></thead><tbody>{item.logs.map((log) => { const problem = item.unmatchedLogIds.includes(log.id) || item.delayedLogIds.includes(log.id) || item.duplicateLogIds.includes(log.id); return <tr key={log.id} className={problem ? styles.reviewProblemRow : undefined}><td>{formatDate(log.scannedAt)}</td><td>{ATTENDANCE_TYPE_LABELS[log.type]}</td><td>{formatDate(log.receivedAt)}</td><td>{log.id === probableExitId ? <span className={ui.statusWarning}><span className={ui.statusDot} />Muhtemel çıkış</span> : problem ? <span className={ui.statusDanger}><span className={ui.statusDot} />Kontrol gerekli</span> : <span className={ui.statusBadge}><span className={ui.statusDot} />Normal</span>}</td><td><Link href={`/dashboard/movements/${log.id}`} className={`${ui.rowAction} ${ui.compactAction}`}>İncele</Link></td></tr>; })}</tbody></table></div>
+            {probableExit && calendar ? <div className={ui.reviewSuggestion}><p><strong>Muhtemel çıkış:</strong> Son okutma ({formatDate(probableExit.scannedAt)}) vardiya bitişine ({calendar.plannedEnd}) yakın. Personel büyük olasılıkla bu okutmayla çıkmış.</p><form action={confirmProbableExitAction}><input type="hidden" name="logId" value={probableExit.id} /><input type="hidden" name="returnTo" value={returnTo} /><SubmitButton idleLabel="Çıkış Olarak Onayla" icon={<LogOut size={14} />} pendingLabel="Kaydediliyor..." className={`${ui.secondaryAction} ${ui.compactAction}`} /></form></div> : null}
             <div className={ui.reviewCardFooter}><Link href={`/dashboard/movements/new?employeeId=${item.employee.id}&returnTo=${encodeURIComponent(returnTo)}`} className={`${ui.secondaryAction} ${ui.compactAction}`}><PlusCircle size={14} />Eksik hareket ekle</Link>{resolution ? <p className={ui.tableHint}><strong>{resolution.resolvedBy.name ?? resolution.resolvedBy.email}:</strong> {resolution.resolutionNote} · {formatDate(resolution.resolvedAt)}</p> : <form action={resolveAttendanceReviewAction} className={ui.reviewForm}><input type="hidden" name="employeeId" value={item.employee.id} /><input type="hidden" name="dayKey" value={item.dayKey} /><input type="hidden" name="fingerprint" value={item.fingerprint} /><input type="hidden" name="returnTo" value={returnTo} /><input name="resolutionNote" required placeholder="İnceleme sonucu / açıklama" /><SubmitButton idleLabel="İncelendi Olarak Kapat" pendingLabel="Kaydediliyor..." className={`${ui.secondaryAction} ${ui.compactAction}`} /></form>}</div>
           </article>;
         })}</div>}
