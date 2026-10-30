@@ -6,7 +6,7 @@ import ui from "../management.module.css";
 import rs from "./reports.module.css";
 import { getReportContext, listDayKeys, type ReportSearchParams } from "./report-context";
 import { attendanceRatio, dailyPresence, groupByDepartment, totals } from "./report-metrics";
-import { BarList, DailyPresenceTiles, formatDuration, formatHours, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "./report-ui";
+import { BarList, DailyPresenceTiles, formatDuration, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "./report-ui";
 
 const rate = (ratio: { attended: number; planned: number }) => (ratio.planned ? ratio.attended / ratio.planned : 0);
 
@@ -38,8 +38,8 @@ export default async function ReportsPage(props: { searchParams: Promise<ReportS
 
       <KpiGrid>
         <Kpi icon={<UserCheck size={18} />} label="Devam oranı" value={formatPercent(ratio.attended, ratio.planned)} hint={`${ratio.attended} / ${ratio.planned} planlı iş günü`} tone="success" />
-        <Kpi icon={<Clock3 size={18} />} label="Net çalışma" value={`${formatHours(sum.workedMinutes)} sa`} hint={`Planlanan ${formatHours(sum.plannedMinutes)} sa`} tone="info" />
-        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={`${formatHours(sum.overtimeMinutes + sum.holidayWorkMinutes)} sa`} hint={`Tatil çalışması ${formatHours(sum.holidayWorkMinutes)} sa`} tone="info" />
+        <Kpi icon={<Clock3 size={18} />} label="Net çalışma" value={formatDuration(sum.workedMinutes)} hint={`Planlanan ${formatDuration(sum.plannedMinutes)}`} tone="info" />
+        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={formatDuration(sum.overtimeMinutes + sum.holidayWorkMinutes)} hint={`Tatil çalışması ${formatDuration(sum.holidayWorkMinutes)}`} tone="info" />
         <Kpi icon={<Timer size={18} />} label="Geç kalma" value={`${sum.lateDays} gün`} hint={formatDuration(sum.lateMinutes)} tone="warning" />
         <Kpi icon={<AlarmClock size={18} />} label="Devamsız" value={`${sum.absentDays} gün`} hint={`${sum.leaveDays} izinli gün`} tone={sum.absentDays ? "danger" : "neutral"} />
         <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken" value={`${sum.errorDays} gün`} hint={<Link href="/dashboard/movement-reviews">Hareket incelemesine git</Link>} tone={sum.errorDays ? "danger" : "success"} />
@@ -54,7 +54,7 @@ export default async function ReportsPage(props: { searchParams: Promise<ReportS
           <BarList tone="warning" emptyText="Bu dönemde geç kalma yok." items={topLate.map((row) => ({ label: row.employee, detail: `${row.department} · ${row.lateDays} gün`, value: row.lateMinutes, display: formatDuration(row.lateMinutes) }))} />
         </Panel>
         <Panel title="En çok fazla mesai" description="Fazla mesai ve tatil çalışması toplamı.">
-          <BarList tone="info" emptyText="Bu dönemde fazla mesai yok." items={topOvertime.map((row) => ({ label: row.employee, detail: row.department, value: row.overtimeMinutes + row.holidayWorkMinutes, display: `${formatHours(row.overtimeMinutes + row.holidayWorkMinutes)} sa` }))} />
+          <BarList tone="info" emptyText="Bu dönemde fazla mesai yok." items={topOvertime.map((row) => ({ label: row.employee, detail: row.department, value: row.overtimeMinutes + row.holidayWorkMinutes, display: formatDuration(row.overtimeMinutes + row.holidayWorkMinutes) }))} />
         </Panel>
       </div>
 

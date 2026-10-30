@@ -5,15 +5,16 @@ import { PUANTAJ_DAY_CODE_LABELS, type PuantajDayCode } from "@/lib/attendance-d
 import { PAYROLL_STATUS_LABELS, type PayrollView } from "./payroll-data";
 
 const FONT_DIR = path.join(process.cwd(), "node_modules", "dejavu-fonts-ttf", "ttf");
-const hours = (minutes: number) => Math.round((minutes / 60) * 100) / 100;
+/** 615 → "10:15" (saat:dakika) */
+const clock = (minutes: number) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
 
 const TOTAL_COLUMNS = [
   ["Çalışılan gün", (row: PayrollView["summaryRows"][number]) => row.attendedDays],
-  ["Planlanan (sa)", (row: PayrollView["summaryRows"][number]) => hours(row.plannedMinutes)],
-  ["Net çalışma (sa)", (row: PayrollView["summaryRows"][number]) => hours(row.workedMinutes)],
-  ["Fazla mesai (sa)", (row: PayrollView["summaryRows"][number]) => hours(row.overtimeMinutes)],
-  ["Tatil çalışması (sa)", (row: PayrollView["summaryRows"][number]) => hours(row.holidayWorkMinutes)],
-  ["Eksik süre (sa)", (row: PayrollView["summaryRows"][number]) => hours(row.missingMinutes)],
+  ["Planlanan (dk)", (row: PayrollView["summaryRows"][number]) => row.plannedMinutes],
+  ["Net çalışma (dk)", (row: PayrollView["summaryRows"][number]) => row.workedMinutes],
+  ["Fazla mesai (dk)", (row: PayrollView["summaryRows"][number]) => row.overtimeMinutes],
+  ["Tatil çalışması (dk)", (row: PayrollView["summaryRows"][number]) => row.holidayWorkMinutes],
+  ["Eksik süre (dk)", (row: PayrollView["summaryRows"][number]) => row.missingMinutes],
   ["Geç kalma (dk)", (row: PayrollView["summaryRows"][number]) => row.lateMinutes],
   ["Erken çıkış (dk)", (row: PayrollView["summaryRows"][number]) => row.earlyLeaveMinutes],
   ["İzin (gün)", (row: PayrollView["summaryRows"][number]) => row.leaveDays],
@@ -65,7 +66,7 @@ export async function renderPayrollPdf(view: PayrollView, companyName: string) {
 
   const page = { width: 841.89, height: 595.28, margin: 24 };
   const nameWidth = 120;
-  const totals = [["Gün", (row: PayrollView["summaryRows"][number]) => String(row.attendedDays)], ["Net sa", (row: PayrollView["summaryRows"][number]) => String(hours(row.workedMinutes))], ["FM sa", (row: PayrollView["summaryRows"][number]) => String(hours(row.overtimeMinutes + row.holidayWorkMinutes))], ["Eksik sa", (row: PayrollView["summaryRows"][number]) => String(hours(row.missingMinutes))], ["Geç dk", (row: PayrollView["summaryRows"][number]) => String(row.lateMinutes)], ["İzin", (row: PayrollView["summaryRows"][number]) => String(row.leaveDays)], ["Dev.", (row: PayrollView["summaryRows"][number]) => String(row.missingDays)]] as const;
+  const totals = [["Gün", (row: PayrollView["summaryRows"][number]) => String(row.attendedDays)], ["Net", (row: PayrollView["summaryRows"][number]) => clock(row.workedMinutes)], ["FM", (row: PayrollView["summaryRows"][number]) => clock(row.overtimeMinutes + row.holidayWorkMinutes)], ["Eksik", (row: PayrollView["summaryRows"][number]) => clock(row.missingMinutes)], ["Geç dk", (row: PayrollView["summaryRows"][number]) => String(row.lateMinutes)], ["İzin", (row: PayrollView["summaryRows"][number]) => String(row.leaveDays)], ["Dev.", (row: PayrollView["summaryRows"][number]) => String(row.missingDays)]] as const;
   const totalWidth = 34;
   const dayWidth = (page.width - page.margin * 2 - nameWidth - totals.length * totalWidth) / view.dayKeys.length;
   const rowHeight = 18;
@@ -73,7 +74,7 @@ export async function renderPayrollPdf(view: PayrollView, companyName: string) {
 
   const drawHeader = () => {
     doc.font("NotoBold").fontSize(13).fillColor("#101828").text(title(view, companyName), page.margin, 22);
-    doc.font("Noto").fontSize(7).fillColor("#667085").text(`Oluşturulma: ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Istanbul" }).format(new Date())} · FM: fazla mesai + tatil çalışması · Dev.: devamsız gün`, page.margin, 40);
+    doc.font("Noto").fontSize(7).fillColor("#667085").text(`Oluşturulma: ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Istanbul" }).format(new Date())} · Süreler saat:dakika · FM: fazla mesai + tatil çalışması · Dev.: devamsız gün`, page.margin, 40);
     let x = page.margin;
     const y = tableTop - rowHeight;
     doc.rect(page.margin, y, page.width - page.margin * 2, rowHeight).fill("#F2F4F7");

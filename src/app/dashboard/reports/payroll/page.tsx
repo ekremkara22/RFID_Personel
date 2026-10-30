@@ -9,7 +9,7 @@ import styles from "../../page.module.css";
 import ui from "../../management.module.css";
 import rs from "../reports.module.css";
 import { getReportContext, type ReportSearchParams } from "../report-context";
-import { DayCode, DayCodeLegend, ExportLink, formatDuration, formatHours, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
+import { DayCode, DayCodeLegend, ExportLink, formatDuration, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
 import { dayTitle, getPayrollView, isWeekend, PAYROLL_STATUS_LABELS, weekdayShort } from "./payroll-data";
 
 function formatDate(value?: Date | null) {
@@ -44,9 +44,9 @@ export default async function PayrollPage(props: { searchParams: Promise<ReportS
 
       <KpiGrid>
         <Kpi icon={<Users size={18} />} label="Personel" value={summaryRows.length} hint={`${total((row) => row.attendedDays)} çalışılan gün`} tone="info" />
-        <Kpi icon={<Clock3 size={18} />} label="Net çalışma" value={`${formatHours(total((row) => row.workedMinutes))} sa`} hint={`Planlanan ${formatHours(total((row) => row.plannedMinutes))} sa`} tone="success" />
-        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={`${formatHours(total((row) => row.overtimeMinutes))} sa`} hint={`Tatil çalışması ${formatHours(total((row) => row.holidayWorkMinutes))} sa`} tone="info" />
-        <Kpi icon={<AlarmClock size={18} />} label="Eksik süre" value={`${formatHours(total((row) => row.missingMinutes))} sa`} hint={`${total((row) => row.missingDays)} devamsız gün`} tone="warning" />
+        <Kpi icon={<Clock3 size={18} />} label="Net çalışma" value={formatDuration(total((row) => row.workedMinutes))} hint={`Planlanan ${formatDuration(total((row) => row.plannedMinutes))}`} tone="success" />
+        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={formatDuration(total((row) => row.overtimeMinutes))} hint={`Tatil çalışması ${formatDuration(total((row) => row.holidayWorkMinutes))}`} tone="info" />
+        <Kpi icon={<AlarmClock size={18} />} label="Eksik süre" value={formatDuration(total((row) => row.missingMinutes))} hint={`${total((row) => row.missingDays)} devamsız gün`} tone="warning" />
         <Kpi icon={<CalendarCheck2 size={18} />} label="Geç kalma" value={formatDuration(total((row) => row.lateMinutes))} hint={`${total((row) => row.lateDays)} gün`} tone="warning" />
         <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken gün" value={total((row) => row.errorDays)} hint="Devamsızlık hariç hareket sorunları" tone={total((row) => row.errorDays) ? "danger" : "success"} />
       </KpiGrid>
@@ -82,7 +82,7 @@ export default async function PayrollPage(props: { searchParams: Promise<ReportS
         </div>
       </section>
 
-      <Panel title="Puantaj cetveli" description="Hücrenin üzerine gelerek giriş-çıkış ve süre ayrıntısını görebilirsiniz. Toplamlar saat cinsindendir." aside={<span className={ui.countBadge}>{summaryRows.length} personel</span>}>
+      <Panel title="Puantaj cetveli" description="Hücrenin üzerine gelerek giriş-çıkış ve süre ayrıntısını görebilirsiniz. Süreler saat ve dakika olarak gösterilir." aside={<span className={ui.countBadge}>{summaryRows.length} personel</span>}>
         {summaryRows.length === 0 ? <p className={rs.emptyText}>Bu dönemde ve filtrelerde personel bulunamadı.</p> : (
           <div className={rs.sheetViewport}>
             <table className={rs.sheet}>
@@ -91,10 +91,10 @@ export default async function PayrollPage(props: { searchParams: Promise<ReportS
                   <th className={rs.sheetPerson}>Personel</th>
                   {view.dayKeys.map((dayKey) => <th key={dayKey} className={isWeekend(dayKey) ? rs.weekend : undefined}>{Number(dayKey.slice(8))}<small>{weekdayShort(dayKey)}</small></th>)}
                   <th className={rs.sheetTotal}>Çalışılan<small>gün</small></th>
-                  <th className={rs.sheetTotal}>Net<small>saat</small></th>
-                  <th className={rs.sheetTotal}>Fazla<small>mesai sa</small></th>
-                  <th className={rs.sheetTotal}>Tatil<small>çalışma sa</small></th>
-                  <th className={rs.sheetTotal}>Eksik<small>saat</small></th>
+                  <th className={rs.sheetTotal}>Net<small>çalışma</small></th>
+                  <th className={rs.sheetTotal}>Fazla<small>mesai</small></th>
+                  <th className={rs.sheetTotal}>Tatil<small>çalışması</small></th>
+                  <th className={rs.sheetTotal}>Eksik<small>süre</small></th>
                   <th className={rs.sheetTotal}>Geç<small>dk</small></th>
                   <th className={rs.sheetTotal}>İzin<small>gün</small></th>
                   <th className={rs.sheetTotal}>Devamsız<small>gün</small></th>
@@ -111,10 +111,10 @@ export default async function PayrollPage(props: { searchParams: Promise<ReportS
                         return <td key={dayKey} className={isWeekend(dayKey) ? rs.weekend : undefined}><DayCode code={day?.code ?? ""} title={dayTitle(day, dayKey)} /></td>;
                       })}
                       <td className={rs.sheetTotal}>{row.attendedDays}</td>
-                      <td className={rs.sheetTotal}>{formatHours(row.workedMinutes)}</td>
-                      <td className={rs.sheetTotal}>{formatHours(row.overtimeMinutes)}</td>
-                      <td className={rs.sheetTotal}>{formatHours(row.holidayWorkMinutes)}</td>
-                      <td className={rs.sheetTotal}>{formatHours(row.missingMinutes)}</td>
+                      <td className={rs.sheetTotal}>{formatDuration(row.workedMinutes)}</td>
+                      <td className={rs.sheetTotal}>{formatDuration(row.overtimeMinutes)}</td>
+                      <td className={rs.sheetTotal}>{formatDuration(row.holidayWorkMinutes)}</td>
+                      <td className={rs.sheetTotal}>{formatDuration(row.missingMinutes)}</td>
                       <td className={rs.sheetTotal}>{row.lateMinutes}</td>
                       <td className={rs.sheetTotal}>{row.leaveDays}</td>
                       <td className={rs.sheetTotal}>{row.missingDays}</td>

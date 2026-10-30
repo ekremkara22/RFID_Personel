@@ -6,14 +6,14 @@ import ui from "../../management.module.css";
 import rs from "../reports.module.css";
 import { getReportContext, type ReportSearchParams } from "../report-context";
 import { attendanceRatio, groupByDepartment } from "../report-metrics";
-import { BarList, formatDuration, formatHours, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
+import { BarList, formatDuration, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
 
 const COLUMNS: DataTableColumn[] = [
   { id: "department", label: "Departman", valueKey: "department", secondaryKey: "employees", kind: "stack" },
   { id: "rate", label: "Devam oranı", valueKey: "rate", secondaryKey: "days" },
-  { id: "worked", label: "Net çalışma", valueKey: "worked", exportValueKey: "workedHours", secondaryKey: "perPerson" },
-  { id: "overtime", label: "Fazla mesai", valueKey: "overtime", exportValueKey: "overtimeHours" },
-  { id: "missing", label: "Eksik süre", valueKey: "missing", exportValueKey: "missingHours" },
+  { id: "worked", label: "Net çalışma", valueKey: "worked", secondaryKey: "perPerson" },
+  { id: "overtime", label: "Fazla mesai", valueKey: "overtime" },
+  { id: "missing", label: "Eksik süre", valueKey: "missing" },
   { id: "late", label: "Geç kalma", valueKey: "late", secondaryKey: "lateRate" },
   { id: "leave", label: "İzin / devamsız", valueKey: "leave" },
   { id: "control", label: "Kontrol", valueKey: "control", toneKey: "tone", kind: "status" },
@@ -35,12 +35,9 @@ export default async function DepartmentReportPage(props: { searchParams: Promis
     rate: formatPercent(item.ratio.attended, item.ratio.planned),
     days: `${item.ratio.attended} / ${item.ratio.planned} planlı gün`,
     worked: formatDuration(item.totals.workedMinutes),
-    workedHours: formatHours(item.totals.workedMinutes),
-    perPerson: item.totals.employees ? `Kişi başı ${formatHours(item.totals.workedMinutes / item.totals.employees)} sa` : null,
+    perPerson: item.totals.employees ? `Kişi başı ${formatDuration(Math.round(item.totals.workedMinutes / item.totals.employees))}` : null,
     overtime: formatDuration(item.totals.overtimeMinutes + item.totals.holidayWorkMinutes),
-    overtimeHours: formatHours(item.totals.overtimeMinutes + item.totals.holidayWorkMinutes),
     missing: formatDuration(item.totals.missingMinutes),
-    missingHours: formatHours(item.totals.missingMinutes),
     late: `${item.totals.lateDays} gün · ${formatDuration(item.totals.lateMinutes)}`,
     lateRate: `Geç kalma oranı ${formatPercent(item.totals.lateDays, item.ratio.attended)}`,
     leave: `${item.totals.leaveDays} izin · ${item.totals.absentDays} devamsız`,
@@ -57,7 +54,7 @@ export default async function DepartmentReportPage(props: { searchParams: Promis
         <Kpi icon={<LayoutList size={18} />} label="Departman" value={departments.length} hint={`${summaries.length} personel`} tone="info" />
         <Kpi icon={<UserCheck size={18} />} label="Genel devam oranı" value={formatPercent(ratio.attended, ratio.planned)} hint={`${ratio.attended} / ${ratio.planned} planlı gün`} tone="success" />
         <Kpi icon={<Timer size={18} />} label="Geç kalınan gün" value={lateDays} tone="warning" />
-        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={`${formatHours(overtime)} sa`} tone="info" />
+        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={formatDuration(overtime)} tone="info" />
       </KpiGrid>
 
       <div className={rs.panelGridEven}>

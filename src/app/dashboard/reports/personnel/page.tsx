@@ -6,14 +6,14 @@ import styles from "../../page.module.css";
 import ui from "../../management.module.css";
 import { getReportContext, formatDayLabel, type ReportSearchParams } from "../report-context";
 import { attendanceRatio, totals } from "../report-metrics";
-import { formatDuration, formatHours, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
+import { formatDuration, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
 
 const SUMMARY_COLUMNS: DataTableColumn[] = [
   { id: "employee", label: "Personel", valueKey: "employee", secondaryKey: "organization", kind: "person" },
   { id: "days", label: "Planlı / Gelinen", valueKey: "days", secondaryKey: "rate" },
-  { id: "worked", label: "Net çalışma", valueKey: "worked", exportValueKey: "workedHours", secondaryKey: "planned" },
-  { id: "overtime", label: "Fazla mesai", valueKey: "overtime", exportValueKey: "overtimeHours", secondaryKey: "holiday" },
-  { id: "missing", label: "Eksik süre", valueKey: "missing", exportValueKey: "missingHours" },
+  { id: "worked", label: "Net çalışma", valueKey: "worked", secondaryKey: "planned" },
+  { id: "overtime", label: "Fazla mesai", valueKey: "overtime", secondaryKey: "holiday" },
+  { id: "missing", label: "Eksik süre", valueKey: "missing" },
   { id: "late", label: "Geç / erken", valueKey: "late", secondaryKey: "early" },
   { id: "leave", label: "İzin / devamsız", valueKey: "leave", secondaryKey: "absent" },
   { id: "status", label: "Durum", valueKey: "status", toneKey: "tone", kind: "status" },
@@ -50,13 +50,10 @@ export default async function PersonnelReportPage(props: { searchParams: Promise
       days: `${row.plannedDays} / ${row.attendedDays} gün`,
       rate: `Devam ${formatPercent(employeeRatio.attended, employeeRatio.planned)}`,
       worked: formatDuration(row.workedMinutes),
-      workedHours: formatHours(row.workedMinutes),
       planned: `Plan ${formatDuration(row.plannedMinutes)}`,
       overtime: formatDuration(row.overtimeMinutes),
-      overtimeHours: formatHours(row.overtimeMinutes),
       holiday: row.holidayWorkMinutes ? `Tatil ${formatDuration(row.holidayWorkMinutes)}` : null,
       missing: formatDuration(row.missingMinutes),
-      missingHours: formatHours(row.missingMinutes),
       late: `${row.lateDays} gün geç · ${formatDuration(row.lateMinutes)}`,
       early: `Erken çıkış ${formatDuration(row.earlyLeaveMinutes)}`,
       leave: `${row.leaveDays} gün izin`,
@@ -91,9 +88,9 @@ export default async function PersonnelReportPage(props: { searchParams: Promise
 
       <KpiGrid>
         <Kpi icon={<UserCheck size={18} />} label="Devam oranı" value={formatPercent(ratio.attended, ratio.planned)} hint={`${summaries.length} personel`} tone="success" />
-        <Kpi icon={<Clock3 size={18} />} label="Net çalışma" value={`${formatHours(sum.workedMinutes)} sa`} hint={`Planlanan ${formatHours(sum.plannedMinutes)} sa`} tone="info" />
-        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={`${formatHours(sum.overtimeMinutes)} sa`} hint={`Tatil çalışması ${formatHours(sum.holidayWorkMinutes)} sa`} tone="info" />
-        <Kpi icon={<AlarmClock size={18} />} label="Eksik süre" value={`${formatHours(sum.missingMinutes)} sa`} hint={`${sum.absentDays} devamsız · ${sum.leaveDays} izinli gün`} tone="warning" />
+        <Kpi icon={<Clock3 size={18} />} label="Net çalışma" value={formatDuration(sum.workedMinutes)} hint={`Planlanan ${formatDuration(sum.plannedMinutes)}`} tone="info" />
+        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={formatDuration(sum.overtimeMinutes)} hint={`Tatil çalışması ${formatDuration(sum.holidayWorkMinutes)}`} tone="info" />
+        <Kpi icon={<AlarmClock size={18} />} label="Eksik süre" value={formatDuration(sum.missingMinutes)} hint={`${sum.absentDays} devamsız · ${sum.leaveDays} izinli gün`} tone="warning" />
       </KpiGrid>
 
       <Panel title="Personel özeti" description={`${formatDayLabel(ctx.fromKey, { day: "2-digit", month: "long" })} – ${formatDayLabel(ctx.toKey, { day: "2-digit", month: "long", year: "numeric" })}`} aside={<span className={ui.countBadge}>{summaryRows.length} personel</span>}>

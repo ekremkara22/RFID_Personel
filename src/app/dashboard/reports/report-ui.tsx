@@ -14,11 +14,6 @@ export function formatDuration(minutes: number) {
   return rest ? `${hours} sa ${rest} dk` : `${hours} sa`;
 }
 
-/** 615 → "10,25" (Excel'de saat olarak toplanabilir) */
-export function formatHours(minutes: number) {
-  return (Math.round((minutes / 60) * 100) / 100).toLocaleString("tr-TR");
-}
-
 export function formatPercent(value: number, total: number) {
   return total ? `%${Math.round((value / total) * 100)}` : "—";
 }
