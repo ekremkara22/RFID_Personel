@@ -20,7 +20,7 @@ const COLUMNS: DataTableColumn[] = [
 export default async function LateArrivalsReportPage(props: { searchParams: Promise<ReportSearchParams> }) {
   const ctx = await getReportContext(await props.searchParams);
   const data = await loadAttendanceDays({ companyId: ctx.companyId, employeeWhere: ctx.employeeWhere, fromKey: ctx.fromKey, toKey: ctx.toKey });
-  const summaries = summarizeAttendanceDays(data.employees, data.rows, data.companyName);
+  const summaries = summarizeAttendanceDays(data.employees, data.rows, data.companyName).filter((row) => row.plannedDays || row.attendedDays);
   const lateRows = data.rows.filter((row) => row.lateMinutes > 0);
   const earlyRows = data.rows.filter((row) => row.earlyLeaveMinutes > 0);
   const lateMinutes = lateRows.reduce((total, row) => total + row.lateMinutes, 0);

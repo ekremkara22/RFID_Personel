@@ -18,6 +18,10 @@ export type ReportSearchParams = {
 const DAY_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE_DAYS = 370;
 
+function isDayKey(value?: string): value is string {
+  return Boolean(value && DAY_KEY_PATTERN.test(value) && getDateOnlyKey(dateOnlyFromKey(value)) === value);
+}
+
 function shiftDayKey(dayKey: string, days: number) {
   return getDateOnlyKey(new Date(dateOnlyFromKey(dayKey).getTime() + days * 24 * 60 * 60_000));
 }
@@ -29,9 +33,9 @@ export async function getReportContext(params: ReportSearchParams, options: { de
   const companyId = authorization.companyId;
   const todayKey = getAppDayKey(new Date());
   const defaultFrom = options.defaultFrom === "today" ? todayKey : `${todayKey.slice(0, 7)}-01`;
-  let toKey = DAY_KEY_PATTERN.test(params.to ?? "") ? params.to! : todayKey;
+  let toKey = isDayKey(params.to) ? params.to : todayKey;
   if (toKey > todayKey) toKey = todayKey;
-  let fromKey = DAY_KEY_PATTERN.test(params.from ?? "") ? params.from! : defaultFrom;
+  let fromKey = isDayKey(params.from) ? params.from : defaultFrom;
   if (fromKey > toKey) fromKey = toKey;
   if (shiftDayKey(fromKey, MAX_RANGE_DAYS) < toKey) fromKey = shiftDayKey(toKey, -MAX_RANGE_DAYS);
 

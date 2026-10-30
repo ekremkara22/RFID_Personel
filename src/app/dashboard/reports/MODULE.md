@@ -20,7 +20,9 @@ Rapor merkezi özeti, aylık puantaj cetveli (onay/kilit), günlük devam, perso
 
 ## Değişmez kurallar
 - Raporlar salt okunurdur; günlük değerler yalnız `loadAttendanceDays` (`src/lib/attendance-days.ts`, PDKS) ile alınır. Geç kalma, net süre, mola, fazla mesai gibi hesaplar raporda yeniden yazılmaz.
-- Mola sütunları yalnız mola takibi açık firmalarda gösterilir.
+- Ölçülen mola ve aşan mola sütunları yalnız mola takibi açık firmalarda gösterilir; düşülen (planlanan) mola her firmada bilgi olarak gösterilebilir.
+- Puantaj raporları seçilen aralığın (en çok 370 gün) günlük verisini bir kez okuyup hesaplar; liste ekranlarındaki "tek sorguda belleğe alma" yasağının bilinçli istisnasıdır.
+- Aylık puantaj cetveli personel × gün ızgarası olduğu için sütun sürükleme kuralının istisnasıdır; sıralanabilir liste ihtiyacı Personel Puantaj Özeti'ndedir.
 - Sütunlar sürüklenerek sıralanabilir; tercih tarayıcıda rapor bazlı saklanır ve dışa aktarma ekrandaki sırayı aynen kullanır.
 - Büyük listeler sayfalanır (cursor pagination); tüm veri tek sorguda belleğe alınmaz.
 - Tarih aralıkları uygulama saat dilimindedir (`app-time`).

@@ -38,14 +38,17 @@ export default async function PersonnelReportPage(props: { searchParams: Promise
   const sum = totals(summaries);
   const ratio = attendanceRatio(data.rows);
 
+  const rowsByEmployee = new Map<number, typeof data.rows>();
+  for (const row of data.rows) rowsByEmployee.set(row.employeeId, [...(rowsByEmployee.get(row.employeeId) ?? []), row]);
   const summaryRows = summaries.map((row) => {
+    const employeeRatio = attendanceRatio(rowsByEmployee.get(row.employeeId) ?? []);
     const tone = row.missingDays || row.errorDays ? "danger" : row.lateDays ? "warning" : "success";
     return {
       id: row.employeeId,
       employee: row.employee,
       organization: `${row.registrationNumber} · ${row.department}`,
       days: `${row.plannedDays} / ${row.attendedDays} gün`,
-      rate: `Devam ${formatPercent(Math.min(row.attendedDays, row.plannedDays), row.plannedDays)}`,
+      rate: `Devam ${formatPercent(employeeRatio.attended, employeeRatio.planned)}`,
       worked: formatDuration(row.workedMinutes),
       workedHours: formatHours(row.workedMinutes),
       planned: `Plan ${formatDuration(row.plannedMinutes)}`,

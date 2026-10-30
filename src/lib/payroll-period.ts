@@ -58,14 +58,13 @@ export function parsePayrollSnapshot(value?: string | null): PayrollSnapshot | n
   try {
     const parsed = JSON.parse(value) as Omit<PayrollSnapshot, "version"> & { version: number };
     if (!Array.isArray(parsed.summaryRows) || !Array.isArray(parsed.detailRows)) return null;
-    if (parsed.version === 2) return parsed as PayrollSnapshot;
-    if (parsed.version !== 1) return null;
+    if (parsed.version !== 1 && parsed.version !== 2) return null;
     // Onaylanmış eski dönemler değişmez; eski snapshot'ta olmayan alanlar sıfır gösterilir.
     return {
       ...parsed,
       version: 2,
-      trackingMode: null,
-      breakDeductionMode: null,
+      trackingMode: parsed.trackingMode ?? null,
+      breakDeductionMode: parsed.breakDeductionMode ?? null,
       summaryRows: parsed.summaryRows.map((row) => ({
         ...row,
         earlyLeaveMinutes: row.earlyLeaveMinutes ?? 0,

@@ -38,8 +38,9 @@ export function buildPayrollWorkbook(view: PayrollView, companyName: string) {
   sheet["!freeze"] = { xSplit: 2, ySplit: 3 };
   XLSX.utils.book_append_sheet(workbook, sheet, "Puantaj Cetveli");
 
-  const detailHeader = ["Sicil", "Personel", "Şube", "Departman", "Tarih", "Kod", "Planlanan giriş", "Planlanan çıkış", "İlk giriş", "Son çıkış", "Planlanan (dk)", "Net çalışma (dk)", "Düşülen mola (dk)", "Ölçülen mola (dk)", "Fazla mesai (dk)", "Tatil çalışması (dk)", "Eksik (dk)", "Geç (dk)", "Erken çıkış (dk)", "İzin", "Hareketler", "Kontrol durumu"];
-  const detailBody = view.detailRows.map((row) => [row.registrationNumber, row.employee, row.branch, row.department, row.date, row.code, row.plannedStart, row.plannedEnd, row.firstEntry, row.lastExit, row.plannedMinutes, row.workedMinutes, row.breakMinutes, row.actualBreakMinutes, row.overtimeMinutes, row.holidayWorkMinutes, row.missingMinutes, row.lateMinutes, row.earlyLeaveMinutes, row.leaveType, row.movements, row.issues]);
+  const breakTracking = view.snapshot.trackingMode !== "ENTRY_EXIT_ONLY";
+  const detailHeader = ["Sicil", "Personel", "Şube", "Departman", "Tarih", "Kod", "Planlanan giriş", "Planlanan çıkış", "İlk giriş", "Son çıkış", "Planlanan (dk)", "Net çalışma (dk)", "Düşülen mola (dk)", ...(breakTracking ? ["Ölçülen mola (dk)"] : []), "Fazla mesai (dk)", "Tatil çalışması (dk)", "Eksik (dk)", "Geç (dk)", "Erken çıkış (dk)", "İzin", "Hareketler", "Kontrol durumu"];
+  const detailBody = view.detailRows.map((row) => [row.registrationNumber, row.employee, row.branch, row.department, row.date, row.code, row.plannedStart, row.plannedEnd, row.firstEntry, row.lastExit, row.plannedMinutes, row.workedMinutes, row.breakMinutes, ...(breakTracking ? [row.actualBreakMinutes] : []), row.overtimeMinutes, row.holidayWorkMinutes, row.missingMinutes, row.lateMinutes, row.earlyLeaveMinutes, row.leaveType, row.movements, row.issues]);
   const detailSheet = XLSX.utils.aoa_to_sheet([detailHeader, ...detailBody]);
   detailSheet["!cols"] = detailHeader.map((label) => ({ wch: label === "Hareketler" ? 60 : Math.max(10, label.length + 2) }));
   XLSX.utils.book_append_sheet(workbook, detailSheet, "Günlük Detay");

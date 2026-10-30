@@ -135,13 +135,17 @@ export async function loadAttendanceDays(params: {
     .filter((calendar) => isInRange(getDateOnlyKey(calendar.workDate)))
     .map((calendar) => [`${calendar.employeeId}|${getDateOnlyKey(calendar.workDate)}`, calendar]));
   // Gece vardiyasındaki okutmalar takvim gününe değil, kesinleştirmedeki gibi vardiya penceresine aittir.
-  const nightWindows = calendars.flatMap((calendar) => {
+  const nightWindowsByEmployee = new Map<number, Array<{ dayKey: string; start: Date; end: Date }>>();
+  for (const calendar of calendars) {
     const bounds = calendar.crossesMidnight ? getScheduledShiftBounds(calendar, company.attendanceFinalizationDelayMinutes) : null;
-    return bounds ? [{ employeeId: calendar.employeeId, dayKey: getDateOnlyKey(calendar.workDate), start: bounds.collectionStart, end: bounds.dueAt }] : [];
-  });
+    if (!bounds) continue;
+    const list = nightWindowsByEmployee.get(calendar.employeeId) ?? [];
+    list.push({ dayKey: getDateOnlyKey(calendar.workDate), start: bounds.collectionStart, end: bounds.dueAt });
+    nightWindowsByEmployee.set(calendar.employeeId, list);
+  }
   const logsByKey = new Map<string, typeof logs>();
   for (const log of logs) {
-    const window = nightWindows.find((item) => item.employeeId === log.employeeId && log.scannedAt >= item.start && log.scannedAt <= item.end);
+    const window = nightWindowsByEmployee.get(log.employeeId)?.find((item) => log.scannedAt >= item.start && log.scannedAt <= item.end);
     const dayKey = window?.dayKey ?? getAppDayKey(log.scannedAt);
     if (!isInRange(dayKey)) continue;
     const key = `${log.employeeId}|${dayKey}`;
