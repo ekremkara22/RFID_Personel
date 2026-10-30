@@ -6,7 +6,7 @@ import ui from "../management.module.css";
 import rs from "./reports.module.css";
 import { getReportContext, listDayKeys, type ReportSearchParams } from "./report-context";
 import { attendanceRatio, dailyPresence, groupByDepartment, totals } from "./report-metrics";
-import { BarList, DailyTrend, formatDuration, formatHours, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "./report-ui";
+import { BarList, DailyPresenceTiles, formatDuration, formatHours, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "./report-ui";
 
 const rate = (ratio: { attended: number; planned: number }) => (ratio.planned ? ratio.attended / ratio.planned : 0);
 
@@ -45,23 +45,22 @@ export default async function ReportsPage(props: { searchParams: Promise<ReportS
         <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken" value={`${sum.errorDays} gün`} hint={<Link href="/dashboard/movement-reviews">Hareket incelemesine git</Link>} tone={sum.errorDays ? "danger" : "success"} />
       </KpiGrid>
 
-      <div className={rs.panelGrid}>
-        <Panel title="Günlük devam" description="Planlı personel ve işe gelen personel sayısı.">
-          <DailyTrend points={presence.map((day) => ({ dayKey: day.dayKey, value: Math.max(day.planned, day.present), secondary: day.present }))} valueLabel="Planlı" secondaryLabel="Gelen" />
-        </Panel>
-        <Panel title="En çok geç kalanlar" description="Toplam geç kalma süresine göre.">
-          <BarList tone="warning" emptyText="Bu dönemde geç kalma yok." items={topLate.map((row) => ({ label: row.employee, detail: `${row.department} · ${row.lateDays} gün`, value: row.lateMinutes, display: formatDuration(row.lateMinutes) }))} />
-        </Panel>
-      </div>
+      <Panel title="Günlük devam" description="Her gün işe gelen / planlı personel ve devam oranı. İzinli personel planlıya sayılmaz.">
+        <DailyPresenceTiles days={presence} />
+      </Panel>
 
       <div className={rs.panelGridEven}>
-        <Panel title="Departman devam oranı" description="Planlı iş günlerinde işe gelme oranı.">
-          <BarList tone="success" emptyText="Departman verisi yok." items={departments.map((item) => ({ label: item.department, detail: `${item.totals.employees} personel`, value: item.ratio.planned ? item.ratio.attended / item.ratio.planned : 0, display: formatPercent(item.ratio.attended, item.ratio.planned) }))} />
+        <Panel title="En çok geç kalanlar" description="Toplam geç kalma süresine göre.">
+          <BarList tone="warning" emptyText="Bu dönemde geç kalma yok." items={topLate.map((row) => ({ label: row.employee, detail: `${row.department} · ${row.lateDays} gün`, value: row.lateMinutes, display: formatDuration(row.lateMinutes) }))} />
         </Panel>
         <Panel title="En çok fazla mesai" description="Fazla mesai ve tatil çalışması toplamı.">
           <BarList tone="info" emptyText="Bu dönemde fazla mesai yok." items={topOvertime.map((row) => ({ label: row.employee, detail: row.department, value: row.overtimeMinutes + row.holidayWorkMinutes, display: `${formatHours(row.overtimeMinutes + row.holidayWorkMinutes)} sa` }))} />
         </Panel>
       </div>
+
+      <Panel title="Departman devam oranı" description="Planlı iş günlerinde işe gelme oranı.">
+        <BarList tone="success" emptyText="Departman verisi yok." items={departments.map((item) => ({ label: item.department, detail: `${item.totals.employees} personel`, value: item.ratio.planned ? item.ratio.attended / item.ratio.planned : 0, display: formatPercent(item.ratio.attended, item.ratio.planned) }))} />
+      </Panel>
 
       <Panel title="Raporlar" description="Her rapor aynı puantaj hesabını kullanır; sonuçlar aylık puantajla tutarlıdır." aside={<CalendarDays size={18} color="#98a2b3" />}>
         <nav className={rs.navGrid} aria-label="Rapor listesi">

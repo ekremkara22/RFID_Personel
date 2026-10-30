@@ -4,9 +4,8 @@ import { loadAttendanceDays, summarizeAttendanceDays } from "@/lib/attendance-da
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
 import rs from "../reports.module.css";
-import { formatDayLabel, getReportContext, listDayKeys, type ReportSearchParams } from "../report-context";
-import { dailyPresence } from "../report-metrics";
-import { BarList, DailyTrend, formatDuration, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
+import { formatDayLabel, getReportContext, type ReportSearchParams } from "../report-context";
+import { BarList, formatDuration, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
 
 const COLUMNS: DataTableColumn[] = [
   { id: "date", label: "Tarih", valueKey: "date", secondaryKey: "weekday", kind: "stack" },
@@ -25,7 +24,6 @@ export default async function LateArrivalsReportPage(props: { searchParams: Prom
   const earlyRows = data.rows.filter((row) => row.earlyLeaveMinutes > 0);
   const lateMinutes = lateRows.reduce((total, row) => total + row.lateMinutes, 0);
   const earlyMinutes = earlyRows.reduce((total, row) => total + row.earlyLeaveMinutes, 0);
-  const presence = dailyPresence(listDayKeys(ctx.fromKey, ctx.toKey), data.rows);
   const repeatLate = summaries.filter((row) => row.lateDays > 0).sort((first, second) => second.lateDays - first.lateDays || second.lateMinutes - first.lateMinutes).slice(0, 10);
   const topEarly = summaries.filter((row) => row.earlyLeaveMinutes > 0).sort((first, second) => second.earlyLeaveMinutes - first.earlyLeaveMinutes).slice(0, 10);
 
@@ -58,9 +56,6 @@ export default async function LateArrivalsReportPage(props: { searchParams: Prom
         <Kpi icon={<UserX size={18} />} label="Ortalama gecikme" value={lateRows.length ? formatDuration(Math.round(lateMinutes / lateRows.length)) : "—"} hint="Geç giriş başına" />
       </KpiGrid>
 
-      <Panel title="Günlük geç kalma" description="Gün bazında işe gelen ve geç kalan personel sayısı.">
-        <DailyTrend points={presence.map((day) => ({ dayKey: day.dayKey, value: day.present, secondary: day.late }))} valueLabel="Gelen" secondaryLabel="Geç kalan" />
-      </Panel>
 
       <div className={rs.panelGridEven}>
         <Panel title="En sık geç kalanlar" description="Geç kalınan gün sayısına göre.">

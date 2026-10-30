@@ -4,9 +4,9 @@ import { loadAttendanceDays, summarizeAttendanceDays } from "@/lib/attendance-da
 import styles from "../../page.module.css";
 import ui from "../../management.module.css";
 import rs from "../reports.module.css";
-import { getReportContext, listDayKeys, type ReportSearchParams } from "../report-context";
+import { getReportContext, type ReportSearchParams } from "../report-context";
 import { totals } from "../report-metrics";
-import { BarList, DailyTrend, formatDuration, formatHours, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
+import { BarList, formatDuration, formatHours, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
 
 export default async function OvertimeReportPage(props: { searchParams: Promise<ReportSearchParams> }) {
   const ctx = await getReportContext(await props.searchParams);
@@ -14,12 +14,6 @@ export default async function OvertimeReportPage(props: { searchParams: Promise<
   const breakTracking = data.trackingMode === "BREAK_TRACKING";
   const summaries = summarizeAttendanceDays(data.employees, data.rows, data.companyName).filter((row) => row.plannedDays || row.attendedDays);
   const sum = totals(summaries);
-  const byDay = new Map(listDayKeys(ctx.fromKey, ctx.toKey).map((key) => [key, { overtime: 0 }]));
-  for (const row of data.rows) {
-    const day = byDay.get(row.date);
-    if (!day) continue;
-    day.overtime += row.overtimeMinutes + row.holidayWorkMinutes;
-  }
   const topOvertime = [...summaries].filter((row) => row.overtimeMinutes + row.holidayWorkMinutes > 0).sort((first, second) => (second.overtimeMinutes + second.holidayWorkMinutes) - (first.overtimeMinutes + first.holidayWorkMinutes)).slice(0, 10);
   const topMissing = [...summaries].filter((row) => row.missingMinutes > 0).sort((first, second) => second.missingMinutes - first.missingMinutes).slice(0, 10);
 
@@ -69,9 +63,6 @@ export default async function OvertimeReportPage(props: { searchParams: Promise<
         {breakTracking ? <Kpi icon={<Coffee size={18} />} label="Planlananı aşan mola" value={formatDuration(sum.excessBreakMinutes)} hint={data.breakDeductionMode === "PLANNED_AND_EXCESS" ? "Puantajdan düşülür" : "Bilgi amaçlı, puantajdan düşülmez"} tone="neutral" /> : null}
       </KpiGrid>
 
-      <Panel title="Günlük fazla mesai" description="Fazla mesai ve tatil çalışmasının gün bazında toplamı.">
-        <DailyTrend points={[...byDay.entries()].map(([dayKey, day]) => ({ dayKey, value: day.overtime }))} valueLabel="Fazla mesai" format={(value) => `${formatHours(value)} sa`} />
-      </Panel>
 
       <div className={rs.panelGridEven}>
         <Panel title="En çok fazla mesai" description="Fazla mesai ve tatil çalışması toplamı.">

@@ -108,46 +108,35 @@ export function BarList(props: { items: Array<{ label: string; detail?: string; 
   );
 }
 
-/** Günlük sütun grafiği; ikinci seri aynı sütunda koyu tonla gösterilir. */
-export function DailyTrend(props: {
-  points: Array<{ dayKey: string; value: number; secondary?: number }>;
-  valueLabel: string;
-  secondaryLabel?: string;
-  format?: (value: number) => string;
-}) {
-  const format = props.format ?? ((value: number) => String(value));
-  const max = Math.max(1, ...props.points.map((point) => point.value));
-  const width = 720;
-  const height = 180;
-  const top = 12;
-  const bottom = 26;
-  const chartHeight = height - top - bottom;
-  const step = width / Math.max(1, props.points.length);
-  const barWidth = Math.max(4, Math.min(28, step * 0.62));
-  const labelEvery = Math.ceil(props.points.length / 12);
+const MAX_PRESENCE_DAYS = 62;
+
+/** Gün kutucukları: her gün gelen/planlı personel ve devam oranı; renk orana göre değişir. */
+export function DailyPresenceTiles(props: { days: Array<{ dayKey: string; planned: number; present: number }> }) {
+  if (props.days.length > MAX_PRESENCE_DAYS) {
+    return <p className={styles.emptyText}>Gün gün görünüm en çok {MAX_PRESENCE_DAYS} günlük aralıkta gösterilir. Aralığı daraltın.</p>;
+  }
   return (
-    <figure className={styles.trend}>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${props.valueLabel} günlük dağılımı`}>
-        {[0.25, 0.5, 0.75, 1].map((ratio) => <line key={ratio} x1={0} x2={width} y1={top + chartHeight * (1 - ratio)} y2={top + chartHeight * (1 - ratio)} className={styles.trendGrid} />)}
-        {props.points.map((point, index) => {
-          const x = index * step + (step - barWidth) / 2;
-          const barHeight = (point.value / max) * chartHeight;
-          const secondaryHeight = point.secondary ? (Math.min(point.secondary, point.value) / max) * chartHeight : 0;
+    <>
+      <ol className={styles.dayTiles}>
+        {props.days.map((day) => {
+          const rate = day.planned ? day.present / day.planned : null;
+          const tone = rate === null ? (day.present ? "info" : "off") : rate >= 0.9 ? "success" : rate >= 0.6 ? "warning" : "danger";
           return (
-            <g key={point.dayKey}>
-              <title>{`${formatDayLabel(point.dayKey, { day: "2-digit", month: "long", weekday: "short" })}: ${props.valueLabel} ${format(point.value)}${props.secondaryLabel && point.secondary !== undefined ? `, ${props.secondaryLabel} ${format(point.secondary)}` : ""}`}</title>
-              <rect x={x} y={top + chartHeight - barHeight} width={barWidth} height={Math.max(barHeight, point.value ? 2 : 0)} rx={3} className={styles.trendBar} />
-              {secondaryHeight ? <rect x={x} y={top + chartHeight - secondaryHeight} width={barWidth} height={secondaryHeight} rx={3} className={styles.trendBarSecondary} /> : null}
-              {index % labelEvery === 0 ? <text x={x + barWidth / 2} y={height - 8} textAnchor="middle" className={styles.trendLabel}>{formatDayLabel(point.dayKey, { day: "2-digit", month: "2-digit" })}</text> : null}
-            </g>
+            <li key={day.dayKey} className={styles.dayTile} data-tone={tone} title={`${formatDayLabel(day.dayKey, { day: "2-digit", month: "long", weekday: "long" })}: ${day.present} gelen / ${day.planned} planlı`}>
+              <span className={styles.dayTileDate}>{formatDayLabel(day.dayKey, { day: "2-digit", month: "2-digit" })}<small>{formatDayLabel(day.dayKey, { weekday: "short" })}</small></span>
+              <strong>{rate === null ? (day.present ? day.present : "—") : `%${Math.round(rate * 100)}`}</strong>
+              <span className={styles.dayTileCount}>{day.planned ? `${day.present}/${day.planned}` : day.present ? `${day.present} çalışan` : "Plan yok"}</span>
+            </li>
           );
         })}
-      </svg>
-      <figcaption className={styles.legend}>
-        <span><i className={styles.legendPrimary} />{props.valueLabel}</span>
-        {props.secondaryLabel ? <span><i className={styles.legendSecondary} />{props.secondaryLabel}</span> : null}
-      </figcaption>
-    </figure>
+      </ol>
+      <ul className={styles.tileLegend} aria-label="Renk açıklaması">
+        <li data-tone="success">%90 ve üzeri</li>
+        <li data-tone="warning">%60–89</li>
+        <li data-tone="danger">%60 altı</li>
+        <li data-tone="off">Planlı çalışma yok</li>
+      </ul>
+    </>
   );
 }
 

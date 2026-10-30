@@ -42,14 +42,13 @@ export function groupByDepartment(summaryRows: AttendanceSummaryRow[], dayRows: 
 
 /** Gün bazında planlı personel ve işe gelen personel sayısı. */
 export function dailyPresence(dayKeys: string[], rows: AttendanceDayRow[]) {
-  const byDay = new Map<string, { planned: number; present: number; late: number }>();
-  for (const key of dayKeys) byDay.set(key, { planned: 0, present: 0, late: 0 });
+  const byDay = new Map<string, { planned: number; present: number }>();
+  for (const key of dayKeys) byDay.set(key, { planned: 0, present: 0 });
   for (const row of rows) {
     const day = byDay.get(row.date);
     if (!day) continue;
     if (row.plannedMinutes > 0 && !LEAVE_CODES.has(row.code)) day.planned += 1;
     if (row.firstEntry !== "-") day.present += 1;
-    if (row.lateMinutes > 0) day.late += 1;
   }
   return dayKeys.map((dayKey) => ({ dayKey, ...byDay.get(dayKey)! }));
 }

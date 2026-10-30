@@ -74,12 +74,6 @@
   line-height: 1.4;
 }
 
-.panelGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 16px;
-}
-
 .panelGridEven {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -159,58 +153,88 @@
   white-space: nowrap;
 }
 
-/* Günlük trend */
-.trend {
+/* Günlük devam kutucukları */
+.dayTiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
   margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.trend svg {
-  display: block;
-  width: 100%;
-  height: auto;
+.dayTile {
+  display: grid;
+  gap: 2px;
+  border: 1px solid #eaecf0;
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 10px;
 }
 
-.trendGrid {
-  stroke: #eaecf0;
-  stroke-width: 1;
+.dayTile strong {
+  color: #101828;
+  font-size: 16px;
+  font-weight: 720;
+  line-height: 1.2;
 }
 
-.trendBar {
-  fill: #b2ddff;
+.dayTileDate {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 650;
 }
 
-.trendBarSecondary {
-  fill: #1570ef;
+.dayTileDate small {
+  color: #98a2b3;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-.trendLabel {
-  fill: #667085;
+.dayTileCount {
+  color: #667085;
   font-size: 11px;
 }
 
-.legend {
+.dayTile[data-tone="success"] { border-left-color: #12b76a; background: #f6fef9; }
+.dayTile[data-tone="warning"] { border-left-color: #f79009; background: #fffcf5; }
+.dayTile[data-tone="danger"] { border-left-color: #f04438; background: #fffbfa; }
+.dayTile[data-tone="info"] { border-left-color: #2e90fa; }
+.dayTile[data-tone="off"] { border-left-color: #eaecf0; background: #f9fafb; }
+.dayTile[data-tone="off"] strong { color: #98a2b3; }
+
+.tileLegend {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 8px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
   color: #475467;
   font-size: 12px;
 }
 
-.legend span {
+.tileLegend li {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.legend i {
+.tileLegend li::before {
+  content: "";
   width: 10px;
   height: 10px;
   border-radius: 3px;
+  background: #eaecf0;
 }
 
-.legendPrimary { background: #b2ddff; }
-.legendSecondary { background: #1570ef; }
+.tileLegend li[data-tone="success"]::before { background: #12b76a; }
+.tileLegend li[data-tone="warning"]::before { background: #f79009; }
+.tileLegend li[data-tone="danger"]::before { background: #f04438; }
 
 /* Puantaj kodları */
 .dayCode,
@@ -484,7 +508,6 @@
 }
 
 @media (max-width: 1100px) {
-  .panelGrid,
   .panelGridEven {
     grid-template-columns: minmax(0, 1fr);
   }
