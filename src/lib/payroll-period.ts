@@ -1,4 +1,4 @@
-import { type AttendanceTrackingMode, type LeaveType, PayrollPeriodStatus } from "@/generated/prisma/client";
+import { type AttendanceTrackingMode, type BreakDeductionMode, type LeaveType, PayrollPeriodStatus } from "@/generated/prisma/client";
 import { calculateAttendanceDay, type PuantajDayCode } from "@/lib/attendance-day-calculation";
 import { getScheduledShiftBounds } from "@/lib/attendance-finalization-rules";
 import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
@@ -26,6 +26,8 @@ export type PayrollDetailRow = {
   lateMinutes: number;
   earlyLeaveMinutes: number;
   breakMinutes: number;
+  actualBreakMinutes: number;
+  excessBreakMinutes: number;
   workedMinutes: number;
   overtimeMinutes: number;
   holidayWorkMinutes: number;
@@ -49,6 +51,8 @@ export type PayrollSummaryRow = {
   lateMinutes: number;
   earlyLeaveMinutes: number;
   breakMinutes: number;
+  actualBreakMinutes: number;
+  excessBreakMinutes: number;
   plannedMinutes: number;
   workedMinutes: number;
   overtimeMinutes: number;
@@ -62,6 +66,7 @@ export type PayrollSummaryRow = {
 export type PayrollSnapshot = {
   version: 2;
   trackingMode: AttendanceTrackingMode | null;
+  breakDeductionMode: BreakDeductionMode | null;
   monthKey: string;
   generatedAt: string;
   summaryRows: PayrollSummaryRow[];
@@ -116,7 +121,7 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
   const fetchStart = new Date(range.start.getTime() - oneDay);
   const fetchEnd = new Date(range.end.getTime() + oneDay);
   const [company, employees, calendars, logs] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, attendanceTrackingMode: true, attendanceFinalizationDelayMinutes: true } }),
+    prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, attendanceTrackingMode: true, breakDeductionMode: true, attendanceFinalizationDelayMinutes: true } }),
     prisma.employee.findMany({
       where: { companyId },
       orderBy: [{ department: "asc" }, { firstName: "asc" }, { lastName: "asc" }],
@@ -169,6 +174,7 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
     const leave = calendar?.leave ?? null;
     const day = calculateAttendanceDay({
       trackingMode: company.attendanceTrackingMode,
+      breakDeductionMode: company.breakDeductionMode,
       calendar: calendar ?? null,
       leave,
       logs: dayLogs,
@@ -195,6 +201,8 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
       lateMinutes: day.lateMinutes,
       earlyLeaveMinutes: day.earlyLeaveMinutes,
       breakMinutes: day.breakMinutes,
+      actualBreakMinutes: day.actualBreakMinutes,
+      excessBreakMinutes: day.excessBreakMinutes,
       workedMinutes: day.workedMinutes,
       overtimeMinutes: day.overtimeMinutes,
       holidayWorkMinutes: day.holidayWorkMinutes,
@@ -225,6 +233,8 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
       lateMinutes: sumMinutes(rows, (row) => row.lateMinutes),
       earlyLeaveMinutes: sumMinutes(rows, (row) => row.earlyLeaveMinutes),
       breakMinutes: sumMinutes(rows, (row) => row.breakMinutes),
+      actualBreakMinutes: sumMinutes(rows, (row) => row.actualBreakMinutes),
+      excessBreakMinutes: sumMinutes(rows, (row) => row.excessBreakMinutes),
       plannedMinutes: sumMinutes(rows, (row) => row.plannedMinutes),
       workedMinutes: sumMinutes(rows, (row) => row.workedMinutes),
       overtimeMinutes: sumMinutes(rows, (row) => row.overtimeMinutes),
@@ -239,6 +249,7 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
   return {
     version: 2,
     trackingMode: company.attendanceTrackingMode,
+    breakDeductionMode: company.breakDeductionMode,
     monthKey,
     generatedAt: new Date().toISOString(),
     summaryRows,
@@ -258,9 +269,12 @@ export function parsePayrollSnapshot(value?: string | null): PayrollSnapshot | n
       ...parsed,
       version: 2,
       trackingMode: null,
+      breakDeductionMode: null,
       summaryRows: parsed.summaryRows.map((row) => ({
         ...row,
         earlyLeaveMinutes: row.earlyLeaveMinutes ?? 0,
+        actualBreakMinutes: row.actualBreakMinutes ?? row.breakMinutes,
+        excessBreakMinutes: row.excessBreakMinutes ?? 0,
         plannedMinutes: row.plannedMinutes ?? 0,
         overtimeMinutes: row.overtimeMinutes ?? 0,
         holidayWorkMinutes: row.holidayWorkMinutes ?? 0,
@@ -274,6 +288,8 @@ export function parsePayrollSnapshot(value?: string | null): PayrollSnapshot | n
         leaveType: row.leaveType ?? "-",
         plannedMinutes: row.plannedMinutes ?? 0,
         earlyLeaveMinutes: row.earlyLeaveMinutes ?? 0,
+        actualBreakMinutes: row.actualBreakMinutes ?? row.breakMinutes,
+        excessBreakMinutes: row.excessBreakMinutes ?? 0,
         overtimeMinutes: row.overtimeMinutes ?? 0,
         holidayWorkMinutes: row.holidayWorkMinutes ?? 0,
         missingMinutes: row.missingMinutes ?? 0,

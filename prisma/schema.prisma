@@ -28,6 +28,11 @@ enum AttendanceTrackingMode {
   ENTRY_EXIT_ONLY
 }
 
+enum BreakDeductionMode {
+  PLANNED
+  PLANNED_AND_EXCESS
+}
+
 enum AttendanceAuditOperation {
   INSERT
   UPDATE
@@ -227,6 +232,7 @@ model Company {
   isActive                           Boolean                    @default(true)
   attendanceFinalizationDelayMinutes Int                        @default(120)
   attendanceTrackingMode             AttendanceTrackingMode     @default(BREAK_TRACKING)
+  breakDeductionMode                 BreakDeductionMode         @default(PLANNED_AND_EXCESS)
   createdAt                          DateTime                   @default(now())
   updatedAt                          DateTime                   @updatedAt
   users                              User[]

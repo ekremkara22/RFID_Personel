@@ -27,7 +27,7 @@ function log(id: number, type: DayLogInput["type"], hour: number, minute = 0): D
   return { id, type, scannedAt: at(hour, minute) };
 }
 
-const past = { isPast: true, isToday: false };
+const past = { isPast: true, isToday: false, breakDeductionMode: "PLANNED_AND_EXCESS" as const };
 
 test("sadece giris-cikis modunda takvimdeki mola dusulur, ara okutma sayilmaz", () => {
   const result = calculateAttendanceDay({
@@ -58,7 +58,7 @@ test("mola penceresinden once cikan personelden mola dusulmez", () => {
   assert.equal(result.earlyLeaveMinutes, 420);
 });
 
-test("mola takipli modda gercek mola dusulur, fazla mesai planlanan net sureyi asan dakikadir", () => {
+test("mola takibi acikken planlanandan kisa mola puantaji artirmaz, fazla mesai planlanan net sureyi asan dakikadir", () => {
   const result = calculateAttendanceDay({
     trackingMode: "BREAK_TRACKING",
     calendar: calendar(),
@@ -68,9 +68,29 @@ test("mola takipli modda gercek mola dusulur, fazla mesai planlanan net sureyi a
   });
   assert.equal(result.code, "G");
   assert.equal(result.lateMinutes, 10);
-  assert.equal(result.breakMinutes, 30);
-  assert.equal(result.workedMinutes, 630);
-  assert.equal(result.overtimeMinutes, 90);
+  assert.equal(result.actualBreakMinutes, 30);
+  assert.equal(result.breakMinutes, 60);
+  assert.equal(result.workedMinutes, 600);
+  assert.equal(result.overtimeMinutes, 60);
+});
+
+test("planlanan molayi asan sure yalniz secildiyse puantajdan dusulur", () => {
+  const input = {
+    trackingMode: "BREAK_TRACKING" as const,
+    calendar: calendar(),
+    leave: null,
+    logs: [log(1, "ENTRY", 8), log(2, "BREAK_START", 12), log(3, "BREAK_END", 13, 30), log(4, "EXIT", 18)],
+    isPast: true,
+    isToday: false,
+  };
+  const excess = calculateAttendanceDay({ ...input, breakDeductionMode: "PLANNED_AND_EXCESS" });
+  assert.equal(excess.excessBreakMinutes, 30);
+  assert.equal(excess.breakMinutes, 90);
+  assert.equal(excess.workedMinutes, 510);
+  const planned = calculateAttendanceDay({ ...input, breakDeductionMode: "PLANNED" });
+  assert.equal(planned.excessBreakMinutes, 30);
+  assert.equal(planned.breakMinutes, 60);
+  assert.equal(planned.workedMinutes, 540);
 });
 
 test("hafta tatilinde calisma ayri sayilir", () => {

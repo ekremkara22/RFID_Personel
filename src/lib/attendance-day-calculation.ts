@@ -1,4 +1,4 @@
-import type { AttendanceTrackingMode, AttendanceType, EmploymentStatus, LeaveDurationType, LeaveType, WorkDayType } from "@/generated/prisma/client";
+import type { AttendanceTrackingMode, AttendanceType, BreakDeductionMode, EmploymentStatus, LeaveDurationType, LeaveType, WorkDayType } from "@/generated/prisma/client";
 import { getAppDayRange, getDateOnlyKey } from "@/lib/app-time";
 import { getScheduledShiftBounds } from "@/lib/attendance-finalization-rules";
 import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
@@ -65,7 +65,12 @@ export type AttendanceDayResult = {
   exit: Date | null;
   plannedMinutes: number;
   workedMinutes: number;
+  /** Puantajdan düşülen mola. */
   breakMinutes: number;
+  /** Mola takibi açıkken okutmalardan ölçülen mola. */
+  actualBreakMinutes: number;
+  /** Ölçülen molanın planlanan molayı aşan kısmı. */
+  excessBreakMinutes: number;
   lateMinutes: number;
   earlyLeaveMinutes: number;
   overtimeMinutes: number;
@@ -93,18 +98,12 @@ function getPlannedBreakWindow(calendar: DayCalendarInput) {
   return { start: windowStart, end: windowEnd };
 }
 
-/**
- * Mola takipli modda gerçek mola süresi; sadece giriş-çıkış modunda takvimdeki mola,
- * personelin işyerinde olduğu süreyle kesiştiği kadar düşülür.
- */
-function getBreakMinutes(params: {
-  trackingMode: AttendanceTrackingMode;
+/** Takvimdeki mola; personelin işyerinde olduğu süreyle planlanan mola penceresinin kesiştiği kadar. */
+function getPlannedBreakMinutes(params: {
   calendar: DayCalendarInput | null;
   entry: Date;
   exit: Date;
-  actualBreakMinutes: number;
 }) {
-  if (params.trackingMode === "BREAK_TRACKING") return params.actualBreakMinutes;
   const planned = params.calendar?.plannedBreakMinutes ?? 0;
   if (!params.calendar || planned <= 0) return 0;
   const gross = minutesBetween(params.entry, params.exit);
@@ -125,7 +124,10 @@ function getPartialLeaveMinutes(leave: DayLeaveInput, plannedMinutes: number) {
 
 /** Bir personelin bir gününü puantaj değerlerine çevirir. Aylık puantaj bu hesabı kullanır. */
 export function calculateAttendanceDay(params: {
+  /** BREAK_TRACKING: mola takibi açık, ENTRY_EXIT_ONLY: kapalı. */
   trackingMode: AttendanceTrackingMode;
+  /** Mola takibi açıkken planlanan molayı aşan sürenin de düşülüp düşülmeyeceği. */
+  breakDeductionMode: BreakDeductionMode;
   calendar: DayCalendarInput | null;
   leave: DayLeaveInput | null;
   logs: DayLogInput[];
@@ -148,6 +150,8 @@ export function calculateAttendanceDay(params: {
     plannedMinutes,
     workedMinutes: 0,
     breakMinutes: 0,
+    actualBreakMinutes: 0,
+    excessBreakMinutes: 0,
     lateMinutes: 0,
     earlyLeaveMinutes: 0,
     overtimeMinutes: 0,
@@ -193,7 +197,13 @@ export function calculateAttendanceDay(params: {
   }
 
   if (entry && exit && exit > entry) {
-    result.breakMinutes = getBreakMinutes({ trackingMode, calendar, entry, exit, actualBreakMinutes: analysis.totalMinutes });
+    // Planlanan mola her durumda düşülür; ölçülen mola fazlası yalnız seçildiyse düşülür.
+    const plannedBreak = getPlannedBreakMinutes({ calendar, entry, exit });
+    if (trackingMode === "BREAK_TRACKING") {
+      result.actualBreakMinutes = analysis.totalMinutes;
+      result.excessBreakMinutes = Math.max(0, analysis.totalMinutes - (calendar?.plannedBreakMinutes ?? 0));
+    }
+    result.breakMinutes = plannedBreak + (params.breakDeductionMode === "PLANNED_AND_EXCESS" ? result.excessBreakMinutes : 0);
     result.workedMinutes = Math.max(0, minutesBetween(entry, exit) - result.breakMinutes);
     if (isRestDay) result.holidayWorkMinutes = result.workedMinutes;
     else if (plannedMinutes > 0) {

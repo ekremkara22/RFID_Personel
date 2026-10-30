@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ATTENDANCE_TRACKING_MODE_LABELS, ATTENDANCE_TRACKING_MODE_OPTIONS } from "@/lib/attendance-labels";
+import { ATTENDANCE_TRACKING_MODE_LABELS, ATTENDANCE_TRACKING_MODE_OPTIONS, BREAK_DEDUCTION_MODE_LABELS, BREAK_DEDUCTION_MODE_OPTIONS } from "@/lib/attendance-labels";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createCompanyAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -112,13 +112,23 @@ export default async function NewCompanyPage() {
           </label>
 
           <label className={styles.field}>
-            <span>Puantaj Modu</span>
+            <span>Mola Takibi</span>
             <select name="attendanceTrackingMode" defaultValue="BREAK_TRACKING">
               {ATTENDANCE_TRACKING_MODE_OPTIONS.map((mode) => (
                 <option key={mode} value={mode}>{ATTENDANCE_TRACKING_MODE_LABELS[mode]}</option>
               ))}
             </select>
-            <small>Sadece giriş-çıkış modunda ilk okutma giriş, son okutma çıkış sayılır; ara okutmalar hesaba katılmaz ve takvimdeki mola süresi düşülür. Değişiklik açık puantaj dönemlerine uygulanır, onaylı ve kilitli dönemler değişmez.</small>
+            <small>Kapalıyken ilk okutma giriş, son okutma çıkış sayılır; aradaki okutmalar mola sayılmaz. Değişiklik açık puantaj dönemlerine uygulanır, onaylı ve kilitli dönemler değişmez.</small>
+          </label>
+
+          <label className={styles.field}>
+            <span>Mola Düşümü</span>
+            <select name="breakDeductionMode" defaultValue="PLANNED_AND_EXCESS">
+              {BREAK_DEDUCTION_MODE_OPTIONS.map((mode) => (
+                <option key={mode} value={mode}>{BREAK_DEDUCTION_MODE_LABELS[mode]}</option>
+              ))}
+            </select>
+            <small>Mola takibi kapalıyken yalnız planlanan mola düşülür. Açıkken ölçülen mola raporlanır; planlanan molayı aşan sürenin puantajdan düşülüp düşülmeyeceğini buradan seçin.</small>
           </label>
 
           <label className={`${styles.field} ${styles.fullWidth}`}>
