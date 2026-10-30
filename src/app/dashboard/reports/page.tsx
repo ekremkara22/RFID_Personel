@@ -8,6 +8,8 @@ import { getReportContext, listDayKeys, type ReportSearchParams } from "./report
 import { attendanceRatio, dailyPresence, groupByDepartment, totals } from "./report-metrics";
 import { BarList, DailyTrend, formatDuration, formatHours, formatPercent, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "./report-ui";
 
+const rate = (ratio: { attended: number; planned: number }) => (ratio.planned ? ratio.attended / ratio.planned : 0);
+
 const REPORT_LINKS = [
   { href: "/dashboard/reports/payroll", icon: <FileLock2 size={18} />, title: "Aylık Puantaj", text: "Personel × gün puantaj cetveli, onay, kilit ve Excel/PDF çıktısı." },
   { href: "/dashboard/reports/daily-attendance", icon: <Clock3 size={18} />, title: "Günlük Devam", text: "Seçilen gün kim geldi, kim gelmedi; giriş, çıkış, mola ve net süre." },
@@ -25,7 +27,7 @@ export default async function ReportsPage(props: { searchParams: Promise<ReportS
   const sum = totals(summaries);
   const ratio = attendanceRatio(data.rows);
   const presence = dailyPresence(listDayKeys(ctx.fromKey, ctx.toKey), data.rows);
-  const departments = groupByDepartment(summaries, data.rows).sort((first, second) => second.ratio.planned - first.ratio.planned);
+  const departments = groupByDepartment(summaries, data.rows).sort((first, second) => rate(second.ratio) - rate(first.ratio));
   const topLate = [...summaries].filter((row) => row.lateMinutes > 0).sort((first, second) => second.lateMinutes - first.lateMinutes).slice(0, 8);
   const topOvertime = [...summaries].filter((row) => row.overtimeMinutes + row.holidayWorkMinutes > 0).sort((first, second) => (second.overtimeMinutes + second.holidayWorkMinutes) - (first.overtimeMinutes + first.holidayWorkMinutes)).slice(0, 8);
 

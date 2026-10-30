@@ -42,10 +42,21 @@ export async function getPayrollView(ctx: ReportContext, month?: string) {
 
 export type PayrollView = Awaited<ReturnType<typeof getPayrollView>>;
 
-export function isWeekend(dayKey: string) {
+const WEEKDAY_SHORT = ["Pz", "Pt", "Sa", "Ça", "Pe", "Cu", "Ct"];
+
+function weekdayIndex(dayKey: string) {
   const [year, month, day] = dayKey.split("-").map(Number);
-  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+export function isWeekend(dayKey: string) {
+  const weekday = weekdayIndex(dayKey);
   return weekday === 0 || weekday === 6;
+}
+
+/** Puantaj kodlarıyla karışmasın diye iki harfli gün kısaltması. */
+export function weekdayShort(dayKey: string) {
+  return WEEKDAY_SHORT[weekdayIndex(dayKey)];
 }
 
 export function dayTitle(row: AttendanceDayRow | undefined, dayKey: string) {

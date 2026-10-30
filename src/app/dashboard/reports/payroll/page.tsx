@@ -10,7 +10,7 @@ import ui from "../../management.module.css";
 import rs from "../reports.module.css";
 import { getReportContext, type ReportSearchParams } from "../report-context";
 import { DayCode, DayCodeLegend, ExportLink, formatDuration, formatHours, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
-import { dayTitle, getPayrollView, isWeekend, PAYROLL_STATUS_LABELS } from "./payroll-data";
+import { dayTitle, getPayrollView, isWeekend, PAYROLL_STATUS_LABELS, weekdayShort } from "./payroll-data";
 
 function formatDate(value?: Date | null) {
   return value ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Istanbul" }).format(value) : "—";
@@ -48,7 +48,7 @@ export default async function PayrollPage(props: { searchParams: Promise<ReportS
         <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={`${formatHours(total((row) => row.overtimeMinutes))} sa`} hint={`Tatil çalışması ${formatHours(total((row) => row.holidayWorkMinutes))} sa`} tone="info" />
         <Kpi icon={<AlarmClock size={18} />} label="Eksik süre" value={`${formatHours(total((row) => row.missingMinutes))} sa`} hint={`${total((row) => row.missingDays)} devamsız gün`} tone="warning" />
         <Kpi icon={<CalendarCheck2 size={18} />} label="Geç kalma" value={formatDuration(total((row) => row.lateMinutes))} hint={`${total((row) => row.lateDays)} gün`} tone="warning" />
-        <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken gün" value={total((row) => row.errorDays)} hint="Eksik çıkış, eşleşmeyen hareket, gecikmeli kayıt" tone={total((row) => row.errorDays) ? "danger" : "success"} />
+        <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken gün" value={total((row) => row.errorDays)} hint="Eksik çıkış, eşleşmeyen hareket, gecikmeli kayıt (devamsızlık hariç)" tone={total((row) => row.errorDays) ? "danger" : "success"} />
       </KpiGrid>
 
       <section className={ui.surface} aria-label="Dönem durumu">
@@ -89,7 +89,7 @@ export default async function PayrollPage(props: { searchParams: Promise<ReportS
               <thead>
                 <tr>
                   <th className={rs.sheetPerson}>Personel</th>
-                  {view.dayKeys.map((dayKey) => <th key={dayKey} className={isWeekend(dayKey) ? rs.weekend : undefined}>{Number(dayKey.slice(8))}<small>{new Intl.DateTimeFormat("tr-TR", { weekday: "narrow", timeZone: "UTC" }).format(new Date(`${dayKey}T12:00:00Z`))}</small></th>)}
+                  {view.dayKeys.map((dayKey) => <th key={dayKey} className={isWeekend(dayKey) ? rs.weekend : undefined}>{Number(dayKey.slice(8))}<small>{weekdayShort(dayKey)}</small></th>)}
                   <th className={rs.sheetTotal}>Çalışılan<small>gün</small></th>
                   <th className={rs.sheetTotal}>Net<small>saat</small></th>
                   <th className={rs.sheetTotal}>Fazla<small>mesai sa</small></th>

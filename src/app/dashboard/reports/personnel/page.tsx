@@ -43,7 +43,7 @@ export default async function PersonnelReportPage(props: { searchParams: Promise
     return {
       id: row.employeeId,
       employee: row.employee,
-      organization: `${row.registrationNumber} · ${row.department} · ${row.branch}`,
+      organization: `${row.registrationNumber} · ${row.department}`,
       days: `${row.plannedDays} / ${row.attendedDays} gün`,
       rate: `Devam ${formatPercent(Math.min(row.attendedDays, row.plannedDays), row.plannedDays)}`,
       worked: formatDuration(row.workedMinutes),
@@ -77,7 +77,7 @@ export default async function PersonnelReportPage(props: { searchParams: Promise
     breakText: row.breakMinutes ? `Mola ${formatDuration(row.breakMinutes)}` : null,
     diff: row.overtimeMinutes ? `+${formatDuration(row.overtimeMinutes)}` : row.holidayWorkMinutes ? `Tatil +${formatDuration(row.holidayWorkMinutes)}` : row.missingMinutes ? `−${formatDuration(row.missingMinutes)}` : "—",
     late: row.lateMinutes || row.earlyLeaveMinutes ? `${row.lateMinutes} / ${row.earlyLeaveMinutes} dk` : "—",
-    movements: row.movements || "—",
+    movements: row.movements.replaceAll(" | ", " · ") || "—",
     issues: row.issues,
   })) : [];
 
@@ -94,7 +94,7 @@ export default async function PersonnelReportPage(props: { searchParams: Promise
       </KpiGrid>
 
       <Panel title="Personel özeti" description={`${formatDayLabel(ctx.fromKey, { day: "2-digit", month: "long" })} – ${formatDayLabel(ctx.toKey, { day: "2-digit", month: "long", year: "numeric" })}`} aside={<span className={ui.countBadge}>{summaryRows.length} personel</span>}>
-        <ReorderableDataTable rows={summaryRows} columns={SUMMARY_COLUMNS} storageKey="reports.personnel.summary.columns" filename={`personel-puantaj-ozeti-${ctx.fromKey}-${ctx.toKey}`} emptyMessage="Seçilen filtrelerde personel bulunamadı." canExport={ctx.canExport} minWidth={1080} />
+        <ReorderableDataTable rows={summaryRows} columns={SUMMARY_COLUMNS} storageKey="reports.personnel.summary.columns" filename={`personel-puantaj-ozeti-${ctx.fromKey}-${ctx.toKey}`} emptyMessage="Seçilen filtrelerde personel bulunamadı." canExport={ctx.canExport} minWidth={980} />
       </Panel>
 
       {selected ? (

@@ -242,7 +242,8 @@ export function summarizeAttendanceDays(employees: AttendanceEmployee[], rows: A
       holidayWorkMinutes: sum(list, (row) => row.holidayWorkMinutes),
       missingMinutes: sum(list, (row) => row.missingMinutes),
       leaveDays: list.filter((row) => LEAVE_CODES.has(row.code)).length,
-      errorDays: list.filter((row) => row.issues !== "Normal").length,
+      // Devamsızlık (Hareket yok) ayrı sayılır; burada yalnız hareket kaydı sorunlu günler sayılır.
+      errorDays: list.filter((row) => row.issues.split(", ").some((issue) => issue !== "Normal" && issue !== "Hareket yok")).length,
       codeCounts,
     };
   });

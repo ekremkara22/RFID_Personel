@@ -62,10 +62,10 @@ export default async function DepartmentReportPage(props: { searchParams: Promis
 
       <div className={rs.panelGridEven}>
         <Panel title="Devam oranı" description="Planlı iş günlerinde işe gelme oranı.">
-          <BarList tone="success" emptyText="Departman verisi yok." items={departments.map((item) => ({ label: item.department, detail: `${item.totals.employees} personel`, value: item.ratio.planned ? item.ratio.attended / item.ratio.planned : 0, display: formatPercent(item.ratio.attended, item.ratio.planned) }))} />
+          <BarList tone="success" emptyText="Departman verisi yok." items={[...departments].sort((first, second) => (second.ratio.planned ? second.ratio.attended / second.ratio.planned : 0) - (first.ratio.planned ? first.ratio.attended / first.ratio.planned : 0)).map((item) => ({ label: item.department, detail: `${item.totals.employees} personel`, value: item.ratio.planned ? item.ratio.attended / item.ratio.planned : 0, display: formatPercent(item.ratio.attended, item.ratio.planned) }))} />
         </Panel>
         <Panel title="Geç kalma süresi" description="Departman toplamı.">
-          <BarList tone="warning" emptyText="Bu dönemde geç kalma yok." items={departments.filter((item) => item.totals.lateMinutes).map((item) => ({ label: item.department, detail: `${item.totals.lateDays} gün`, value: item.totals.lateMinutes, display: formatDuration(item.totals.lateMinutes) }))} />
+          <BarList tone="warning" emptyText="Bu dönemde geç kalma yok." items={departments.filter((item) => item.totals.lateMinutes).sort((first, second) => second.totals.lateMinutes - first.totals.lateMinutes).map((item) => ({ label: item.department, detail: `${item.totals.lateDays} gün`, value: item.totals.lateMinutes, display: formatDuration(item.totals.lateMinutes) }))} />
         </Panel>
       </div>
 

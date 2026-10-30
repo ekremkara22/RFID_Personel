@@ -13,7 +13,7 @@
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
 }
 
@@ -489,12 +489,24 @@
 }
 
 @media (max-width: 760px) {
-  .filterBar {
-    grid-template-columns: minmax(0, 1fr);
+  .filterBar,
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .filterBar > button {
+    grid-column: 1 / -1;
     justify-self: stretch;
+  }
+
+  .kpi {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .kpiValue {
+    font-size: 18px;
   }
 
   .barList li {
