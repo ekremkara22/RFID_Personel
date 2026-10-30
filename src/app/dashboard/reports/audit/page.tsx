@@ -2,13 +2,15 @@ import { redirect } from "next/navigation";
 import { Filter, History } from "lucide-react";
 import { AttendanceAuditOperation } from "@/generated/prisma/client";
 import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
-import { ExportButton } from "@/app/dashboard/export-button";
+import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reorderable-data-table";
 import { assertPermission, can, employeeScopeWhere } from "@/lib/authorization";
 import { PERMISSIONS } from "@/lib/permission-catalog";
 import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayRange, getDateOnlyKey } from "@/lib/app-time";
 import { queryRepository } from "@/modules/shared/query-repository";
 import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
+import ui from "../../management.module.css";
+import rs from "../reports.module.css";
 
 type SearchParams = {
   q?: string;
@@ -46,8 +48,7 @@ function userName(user: { firstName: string | null; lastName: string | null; nam
 }
 
 export default async function AuditReportPage(props: { searchParams?: Promise<SearchParams> }) {
-  const { user, authorization } = await requireSessionUser();
-  if (user.role !== "COMPANY_ADMIN") redirect("/dashboard");
+  const { authorization } = await requireSessionUser();
   assertPermission(authorization, PERMISSIONS.AUDIT_VIEW);
   if (!authorization.companyId) redirect("/dashboard");
 
@@ -104,66 +105,48 @@ export default async function AuditReportPage(props: { searchParams?: Promise<Se
     reason: audit.correctionReason,
   }));
 
-  return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>Raporlar / Audit</p>
-          <h1 className={styles.title}>Hareket Audit Raporu</h1>
-          <p className={styles.subtitle}>Manuel ve otomatik hareket değişikliklerini aktör, tarih, eski/yeni değer ve gerekçesiyle inceleyin.</p>
-        </div>
-        <div className={styles.heroMeta}>
-          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
-            rows={exportRows}
-            columns={[
-              { key: "operation", label: "İşlem" }, { key: "employee", label: "Personel" },
-              { key: "company", label: "Firma" }, { key: "branch", label: "Şube" },
-              { key: "department", label: "Departman" }, { key: "movementDateTime", label: "Hareket Zamanı" },
-              { key: "oldValue", label: "Eski Değer" }, { key: "newValue", label: "Yeni Değer" },
-              { key: "changedBy", label: "İşlemi Yapan" }, { key: "changedAt", label: "İşlem Zamanı" },
-              { key: "reason", label: "Açıklama" },
-            ]}
-            filename="hareket-audit-raporu"
-            className={styles.primaryLinkButton}
-          /> : null}
-        </div>
-      </section>
+  const columns: DataTableColumn[] = [
+    { id: "operation", label: "İşlem", valueKey: "operation", toneKey: "tone", kind: "status" },
+    { id: "employee", label: "Personel", valueKey: "employee", secondaryKey: "organization", kind: "person" },
+    { id: "movementDateTime", label: "Hareket zamanı", valueKey: "movementDateTime" },
+    { id: "oldValue", label: "Eski değer", valueKey: "oldValue" },
+    { id: "newValue", label: "Yeni değer", valueKey: "newValue" },
+    { id: "changedBy", label: "İşlemi yapan", valueKey: "changedBy", secondaryKey: "changedAt", kind: "stack" },
+    { id: "reason", label: "Açıklama", valueKey: "reason" },
+  ];
+  const tableRows = audits.map((audit, index) => ({
+    ...exportRows[index],
+    id: audit.id,
+    organization: `${audit.employee.branch ?? "Şubesiz"} · ${audit.employee.department}`,
+    tone: audit.operation === "DELETE" ? "danger" : audit.operation === "INSERT" ? "success" : "warning",
+  }));
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <form className={styles.filterGrid}>
-          <label className={styles.field}><span>Personel</span><input name="q" defaultValue={query} placeholder="Ad veya soyad" /></label>
-          <label className={styles.field}><span>Firma</span><input value={companies[0]?.name ?? ""} readOnly /></label>
-          <label className={styles.field}><span>Şube</span><select name="branch" defaultValue={branch}><option value="">Tüm Şubeler</option>{branches.map((item) => <option key={item.id} value={item.name}>{item.company.name} / {item.name}</option>)}</select></label>
-          <label className={styles.field}><span>Departman</span><select name="department" defaultValue={department}><option value="">Tüm Departmanlar</option>{departments.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
-          <label className={styles.field}><span>İşlem Türü</span><select name="operation" defaultValue={operation ?? ""}><option value="">Tüm İşlemler</option>{Object.values(AttendanceAuditOperation).map((item) => <option key={item} value={item}>{operationLabels[item]}</option>)}</select></label>
-          <label className={styles.field}><span>Başlangıç</span><input name="from" type="date" defaultValue={getDateOnlyKey(fromDate)} max={getDateOnlyKey(today)} /></label>
-          <label className={styles.field}><span>Bitiş</span><input name="to" type="date" defaultValue={getDateOnlyKey(toDate)} max={getDateOnlyKey(today)} /></label>
-          <button type="submit" className={styles.primaryButton}><Filter size={16} /><span>Filtrele</span></button>
+  return (
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <header className={ui.pageHeader}>
+        <div className={ui.headerCopy}>
+          <p className={ui.kicker}>Raporlar / Audit</p>
+          <h1 className={ui.pageTitle}>Audit Raporu</h1>
+          <p className={ui.pageDescription}>Manuel ve otomatik hareket değişikliklerini işlemi yapan, tarih, eski/yeni değer ve gerekçesiyle inceleyin.</p>
+        </div>
+      </header>
+
+      <section className={ui.surface} aria-label="Audit filtreleri">
+        <form className={rs.filterBar}>
+          <label className={ui.field}><span className={ui.fieldLabel}>Personel</span><input className={ui.control} name="q" defaultValue={query} placeholder="Ad veya soyad" /></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Şube</span><select className={ui.control} name="branch" defaultValue={branch}><option value="">Tüm şubeler</option>{branches.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Departman</span><select className={ui.control} name="department" defaultValue={department}><option value="">Tüm departmanlar</option>{departments.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>İşlem türü</span><select className={ui.control} name="operation" defaultValue={operation ?? ""}><option value="">Tüm işlemler</option>{Object.values(AttendanceAuditOperation).map((item) => <option key={item} value={item}>{operationLabels[item]}</option>)}</select></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Başlangıç</span><input className={ui.control} name="from" type="date" defaultValue={getDateOnlyKey(fromDate)} max={getDateOnlyKey(today)} /></label>
+          <label className={ui.field}><span className={ui.fieldLabel}>Bitiş</span><input className={ui.control} name="to" type="date" defaultValue={getDateOnlyKey(toDate)} max={getDateOnlyKey(today)} /></label>
+          <button type="submit" className={ui.filterButton}><Filter size={15} />Göster</button>
         </form>
       </section>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Değişiklik geçmişi</p><h2 className={styles.sectionTitle}>Audit Kayıtları</h2></div><div className={styles.countPill}>{audits.length} kayıt</div></div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>İşlem</th><th>Personel / Firma</th><th>Hareket Zamanı</th><th>Eski Değer</th><th>Yeni Değer</th><th>İşlemi Yapan</th><th>İşlem Zamanı</th><th>Açıklama</th></tr></thead>
-            <tbody>
-              {audits.length === 0 ? <tr><td colSpan={8} className={styles.emptyCell}>Seçilen filtrelerde audit kaydı bulunamadı.</td></tr> : audits.map((audit) => (
-                <tr key={audit.id}>
-                  <td><strong>{operationLabels[audit.operation]}</strong></td>
-                  <td><strong>{audit.employee.firstName} {audit.employee.lastName}</strong><p className={styles.tableSubText}>{audit.employee.company.name} · {audit.employee.branch ?? "Şubesiz"} · {audit.employee.department}</p></td>
-                  <td>{formatDateTime(audit.movementDateTime)}</td>
-                  <td>{audit.oldType ? ATTENDANCE_TYPE_LABELS[audit.oldType] : "-"}<p className={styles.tableSubText}>{audit.oldScannedAt ? formatDateTime(audit.oldScannedAt) : "-"}</p></td>
-                  <td>{audit.newType ? ATTENDANCE_TYPE_LABELS[audit.newType] : "-"}<p className={styles.tableSubText}>{audit.newScannedAt ? formatDateTime(audit.newScannedAt) : "-"}</p></td>
-                  <td>{userName(audit.changedBy)}</td>
-                  <td>{formatDateTime(audit.createdAt)}</td>
-                  <td>{audit.correctionReason}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className={styles.helperText}><History size={15} /> En fazla 1.000 kayıt gösterilir. Tam listeyi almak için tarih aralığını daraltabilirsiniz.</p>
+      <section className={ui.surface}>
+        <div className={ui.sectionHeading}><div><h2>Değişiklik geçmişi</h2><p>{companies[0]?.name ?? ""} · en fazla 1.000 kayıt gösterilir; tam liste için tarih aralığını daraltın.</p></div><span className={ui.countBadge}>{audits.length} kayıt</span></div>
+        <ReorderableDataTable rows={tableRows} columns={columns} storageKey="reports.audit.columns" filename="hareket-audit-raporu" emptyMessage="Seçilen filtrelerde audit kaydı bulunamadı." canExport={can(authorization, PERMISSIONS.REPORT_EXPORT)} minWidth={1100} />
+        <p className={ui.tableHint} style={{ marginTop: 10 }}><History size={14} /> Sistem kayıtları otomatik kesinleştirme ve demo okutmalardan gelir.</p>
       </section>
     </div>
   );

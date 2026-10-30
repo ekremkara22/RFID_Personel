@@ -41,12 +41,13 @@ export const NAVIGATION_REGISTRY: readonly NavigationDefinition[] = [
   { href: "/dashboard/calendar/change-logs", label: "Değişiklik Geçmişi", icon: "calendar", group: "hr-calendar", audience: "all", module: MODULES.HR, permission: PERMISSIONS.CALENDAR_VIEW, managePermission: PERMISSIONS.CALENDAR_MANAGE },
 
   { href: "/dashboard/reports", label: "Rapor Merkezi", icon: "file-chart", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
-  { href: "/dashboard/reports/personnel", label: "Personel PDKS", icon: "users", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
-  { href: "/dashboard/reports/departments", label: "Departman Puantaj", icon: "file-chart", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
-  { href: "/dashboard/reports/late-arrivals", label: "Geç Kalma Raporu", icon: "timer", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
-  { href: "/dashboard/reports/daily-attendance", label: "Günlük Mola ve Mesai", icon: "clock", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
+  { href: "/dashboard/reports/payroll", label: "Aylık Puantaj", icon: "lock", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
+  { href: "/dashboard/reports/daily-attendance", label: "Günlük Devam", icon: "clock", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
+  { href: "/dashboard/reports/personnel", label: "Personel Puantaj Özeti", icon: "users", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
+  { href: "/dashboard/reports/departments", label: "Departman Karşılaştırma", icon: "list", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
+  { href: "/dashboard/reports/late-arrivals", label: "Geç Kalma ve Erken Çıkış", icon: "timer", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
+  { href: "/dashboard/reports/overtime", label: "Fazla Mesai ve Eksik Süre", icon: "clock", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
   { href: "/dashboard/reports/audit", label: "Audit Raporu", icon: "history", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW, managePermission: PERMISSIONS.AUDIT_VIEW },
-  { href: "/dashboard/reports/payroll", label: "Aylık Puantaj Onayı", icon: "lock", group: "hr-reports", audience: "all", module: MODULES.HR, permission: PERMISSIONS.REPORT_VIEW },
 
   { href: "/dashboard/production/work-orders", label: "İş Emirleri", icon: "clipboard", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },
   { href: "/dashboard/production/gantt", label: "Gantt Planlama", icon: "calendar", group: "production", audience: "all", module: MODULES.PRODUCTION_PLANNING, permission: PERMISSIONS.CAPACITY_VIEW },

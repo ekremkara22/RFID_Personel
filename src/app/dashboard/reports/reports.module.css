@@ -1,0 +1,517 @@
+/* İK raporlarına özgü desenler. Sayfa iskeleti, buton, alan ve tablo stilleri management.module.css'tedir. */
+
+.filterBar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.filterBar > button {
+  justify-self: start;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.kpiIcon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #f2f4f7;
+  color: #475467;
+}
+
+.kpi[data-tone="info"] .kpiIcon { background: #eff8ff; color: #175cd3; }
+.kpi[data-tone="success"] .kpiIcon { background: #ecfdf3; color: #067647; }
+.kpi[data-tone="warning"] .kpiIcon { background: #fffaeb; color: #b54708; }
+.kpi[data-tone="danger"] .kpiIcon { background: #fef3f2; color: #b42318; }
+
+.kpiBody {
+  min-width: 0;
+}
+
+.kpiLabel {
+  margin: 0;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.kpiValue {
+  margin: 4px 0 0;
+  color: #101828;
+  font-size: 22px;
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.kpiHint {
+  margin: 4px 0 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.panelGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.panelGridEven {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.emptyText {
+  margin: 0;
+  padding: 18px 0;
+  color: #667085;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Çubuk listesi */
+.barList {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.barList li {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.9fr) minmax(80px, 1.2fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.barLabel {
+  min-width: 0;
+  display: grid;
+}
+
+.barLabel strong {
+  overflow: hidden;
+  color: #101828;
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barLabel span {
+  overflow: hidden;
+  color: #667085;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f2f4f7;
+}
+
+.barTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2e90fa;
+}
+
+.barTrack span[data-tone="warning"] { background: #f79009; }
+.barTrack span[data-tone="danger"] { background: #f04438; }
+.barTrack span[data-tone="success"] { background: #12b76a; }
+
+.barValue {
+  min-width: 64px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Günlük trend */
+.trend {
+  margin: 0;
+}
+
+.trend svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.trendGrid {
+  stroke: #eaecf0;
+  stroke-width: 1;
+}
+
+.trendBar {
+  fill: #b2ddff;
+}
+
+.trendBarSecondary {
+  fill: #1570ef;
+}
+
+.trendLabel {
+  fill: #667085;
+  font-size: 11px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+  color: #475467;
+  font-size: 12px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legendPrimary { background: #b2ddff; }
+.legendSecondary { background: #1570ef; }
+
+/* Puantaj kodları */
+.dayCode,
+.dayCodeEmpty {
+  min-width: 26px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.dayCodeEmpty {
+  color: #d0d5dd;
+}
+
+.dayCode { background: #f2f4f7; color: #344054; }
+.dayCode[data-code="Ç"] { background: #ecfdf3; color: #067647; }
+.dayCode[data-code="G"] { background: #fffaeb; color: #b54708; }
+.dayCode[data-code="Y"],
+.dayCode[data-code="İ"] { background: #eff8ff; color: #175cd3; }
+.dayCode[data-code="R"] { background: #f4f3ff; color: #5925dc; }
+.dayCode[data-code="Üİ"] { background: #fdf2fa; color: #c11574; }
+.dayCode[data-code="HT"],
+.dayCode[data-code="RT"] { background: #f9fafb; color: #667085; }
+.dayCode[data-code="D"] { background: #fef3f2; color: #b42318; }
+.dayCode[data-code="!"] { background: #b42318; color: #fff; }
+
+.codeLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #475467;
+  font-size: 12px;
+}
+
+.codeLegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Puantaj cetveli: personel × gün */
+.sheetViewport {
+  width: 100%;
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+}
+
+.sheet {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  font-size: 12px;
+}
+
+.sheet th,
+.sheet td {
+  border-right: 1px solid #f2f4f7;
+  border-bottom: 1px solid #eaecf0;
+  padding: 6px 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sheet thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f9fafb;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sheet thead th small {
+  display: block;
+  color: #98a2b3;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.sheet th.weekend,
+.sheet td.weekend {
+  background: #fcfcfd;
+}
+
+.sheet thead th.weekend {
+  background: #f2f4f7;
+}
+
+.sheetPerson {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 200px;
+  max-width: 220px;
+  background: #fff;
+  padding: 8px 12px !important;
+  text-align: left !important;
+  box-shadow: 1px 0 0 #eaecf0;
+}
+
+.sheet thead .sheetPerson {
+  z-index: 3;
+  background: #f9fafb;
+}
+
+.sheetPerson strong {
+  display: block;
+  overflow: hidden;
+  color: #101828;
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.sheetPerson span {
+  display: block;
+  overflow: hidden;
+  color: #667085;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.sheetTotal {
+  min-width: 64px;
+  background: #f9fafb;
+  color: #101828;
+  font-weight: 650;
+}
+
+.sheet thead th.sheetTotal {
+  background: #eef4ff;
+  color: #3538cd;
+}
+
+.sheetDayLink {
+  display: inline-block;
+  border-radius: 6px;
+}
+
+.sheetDayLink:focus-visible {
+  outline: 3px solid rgba(21, 112, 239, 0.25);
+}
+
+/* Dönem durumu ve işlemler */
+.periodBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.periodMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  color: #475467;
+  font-size: 13px;
+}
+
+.periodMeta span {
+  color: #667085;
+}
+
+.periodActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.periodActions form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.periodActions input {
+  min-width: 240px;
+  min-height: 40px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.statusPill[data-status="OPEN"] { background: #fffaeb; color: #b54708; }
+.statusPill[data-status="APPROVED"] { background: #ecfdf3; color: #067647; }
+.statusPill[data-status="LOCKED"] { background: #f2f4f7; color: #344054; }
+
+.modeNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.navGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.navCard {
+  display: flex;
+  gap: 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.navCard:hover {
+  border-color: #84caff;
+  background: #f5faff;
+}
+
+.navCard:focus-visible {
+  outline: 3px solid rgba(21, 112, 239, 0.18);
+}
+
+.navCard h3 {
+  margin: 0;
+  color: #101828;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.navCard p {
+  margin: 4px 0 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.navCard > span {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+@media (max-width: 1100px) {
+  .panelGrid,
+  .panelGridEven {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .filterBar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filterBar > button {
+    justify-self: stretch;
+  }
+
+  .barList li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .barTrack {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .periodActions input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .sheetPerson {
+    min-width: 150px;
+  }
+}

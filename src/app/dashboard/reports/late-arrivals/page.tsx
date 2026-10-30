@@ -1,428 +1,79 @@
-import { redirect } from "next/navigation";
-import { ExportButton } from "@/app/dashboard/export-button";
-import { LeaveApprovalStatus } from "@/generated/prisma/client";
-import { can, employeeScopeWhere } from "@/lib/authorization";
-import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
-import { queryRepository } from "@/modules/shared/query-repository";
-import { PERMISSIONS } from "@/lib/permission-catalog";
-import { requireSessionUser } from "@/lib/session";
-import { timeToMinutes } from "@/lib/work-calendar-rules";
+import { LogOut, Timer, UserX, Users } from "lucide-react";
+import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reorderable-data-table";
+import { loadAttendanceDays, summarizeAttendanceDays } from "@/lib/attendance-days";
 import styles from "../../page.module.css";
+import ui from "../../management.module.css";
+import rs from "../reports.module.css";
+import { formatDayLabel, getReportContext, listDayKeys, type ReportSearchParams } from "../report-context";
+import { dailyPresence } from "../report-metrics";
+import { BarList, DailyTrend, formatDuration, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
 
-type SearchParams = {
-  from?: string;
-  to?: string;
-  companyId?: string;
-  branch?: string;
-};
+const COLUMNS: DataTableColumn[] = [
+  { id: "date", label: "Tarih", valueKey: "date", secondaryKey: "weekday", kind: "stack" },
+  { id: "employee", label: "Personel", valueKey: "employee", secondaryKey: "organization", kind: "person" },
+  { id: "kind", label: "Olay", valueKey: "kind", toneKey: "tone", kind: "status" },
+  { id: "plan", label: "Planlanan", valueKey: "plan" },
+  { id: "actual", label: "Gerçekleşen", valueKey: "actual" },
+  { id: "minutes", label: "Süre", valueKey: "minutesText", exportValueKey: "minutes" },
+];
 
-function parseDateParam(value?: string) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const parsed = dateOnlyFromKey(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
+export default async function LateArrivalsReportPage(props: { searchParams: Promise<ReportSearchParams> }) {
+  const ctx = await getReportContext(await props.searchParams);
+  const data = await loadAttendanceDays({ companyId: ctx.companyId, employeeWhere: ctx.employeeWhere, fromKey: ctx.fromKey, toKey: ctx.toKey });
+  const summaries = summarizeAttendanceDays(data.employees, data.rows, data.companyName);
+  const lateRows = data.rows.filter((row) => row.lateMinutes > 0);
+  const earlyRows = data.rows.filter((row) => row.earlyLeaveMinutes > 0);
+  const lateMinutes = lateRows.reduce((total, row) => total + row.lateMinutes, 0);
+  const earlyMinutes = earlyRows.reduce((total, row) => total + row.earlyLeaveMinutes, 0);
+  const presence = dailyPresence(listDayKeys(ctx.fromKey, ctx.toKey), data.rows);
+  const repeatLate = summaries.filter((row) => row.lateDays > 0).sort((first, second) => second.lateDays - first.lateDays || second.lateMinutes - first.lateMinutes).slice(0, 10);
+  const topEarly = summaries.filter((row) => row.earlyLeaveMinutes > 0).sort((first, second) => second.earlyLeaveMinutes - first.earlyLeaveMinutes).slice(0, 10);
 
-function getDefaultFromDate(today: Date) {
-  const date = new Date(today);
-  date.setUTCDate(date.getUTCDate() - 6);
-  return date;
-}
-
-function getEndExclusive(date: Date) {
-  const end = new Date(date);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return end;
-}
-
-function formatTime(date: Date) {
-  return new Intl.DateTimeFormat("tr-TR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: APP_TIME_ZONE,
-  }).format(date);
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-}
-
-function parseId(value?: string) {
-  if (!value) return null;
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-}
-
-function formatMinutes(minutes: number) {
-  if (minutes < 60) return `${minutes} dk`;
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  return remaining > 0 ? `${hours} sa ${remaining} dk` : `${hours} sa`;
-}
-
-export default async function LateArrivalsReportPage(props: { searchParams?: Promise<SearchParams> }) {
-  const { authorization } = await requireSessionUser();
-  if (!authorization.companyId) redirect("/dashboard");
-
-  const searchParams = (await props.searchParams) ?? {};
-  const today = getAppDayRange(new Date()).dateOnly;
-  const fromDate = parseDateParam(searchParams.from) ?? getDefaultFromDate(today);
-  const toDate = parseDateParam(searchParams.to) ?? today;
-  const safeToDate = toDate < fromDate ? fromDate : toDate;
-  const endExclusive = getEndExclusive(safeToDate);
-  const attendanceStart = getAppDayRange(getDateOnlyKey(fromDate)).start;
-  const attendanceEnd = getAppDayRange(getDateOnlyKey(safeToDate)).end;
-  const selectedCompanyId = parseId(searchParams.companyId);
-  const selectedBranch = searchParams.branch?.trim() || "";
-
-  const [companies, branches, employees, dailyCalendars, logs, approvedLeaves] = await Promise.all([
-    queryRepository.company.findMany({
-      where: { id: authorization.companyId },
-      orderBy: { name: "asc" },
-    }),
-    queryRepository.branch.findMany({
-      where: { companyId: authorization.companyId, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) },
-      include: { company: true },
-      orderBy: [{ companyId: "asc" }, { name: "asc" }],
-    }),
-    queryRepository.employee.findMany({
-      where: {
-        ...employeeScopeWhere(authorization),
-        ...(selectedBranch ? { branch: selectedBranch } : {}),
-      },
-      include: { company: true },
-      orderBy: [{ companyId: "asc" }, { branch: "asc" }, { department: "asc" }, { firstName: "asc" }],
-    }),
-    queryRepository.employeeDailyCalendar.findMany({
-      where: {
-        workDate: { gte: fromDate, lt: endExclusive },
-        employee: {
-          ...employeeScopeWhere(authorization),
-          ...(selectedBranch ? { branch: selectedBranch } : {}),
-        },
-      },
-      include: { employee: { include: { company: true } } },
-      orderBy: [{ workDate: "asc" }],
-      take: 10000,
-    }),
-    queryRepository.attendanceLog.findMany({
-      where: {
-        type: "ENTRY",
-        scannedAt: { gte: attendanceStart, lt: attendanceEnd },
-        employee: {
-          ...employeeScopeWhere(authorization),
-          ...(selectedBranch ? { branch: selectedBranch } : {}),
-        },
-      },
-      include: { employee: { include: { company: true } } },
-      orderBy: [{ scannedAt: "asc" }],
-      take: 10000,
-    }),
-    queryRepository.leaveRequest.findMany({
-      where: {
-        companyId: authorization.companyId,
-        approvalStatus: LeaveApprovalStatus.APPROVED,
-        startDate: { lt: endExclusive },
-        endDate: { gte: fromDate },
-        employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
-      },
-      select: { employeeId: true, startDate: true, endDate: true },
-      take: 5000,
-    }),
-  ]);
-
-  const employeeIds = new Set(employees.map((employee) => employee.id));
-  const firstEntryByEmployeeDay = new Map<number, Map<string, (typeof logs)[number]>>();
-
-  logs.forEach((log) => {
-    const dayKey = getAppDayKey(log.scannedAt);
-    const employeeMap = firstEntryByEmployeeDay.get(log.employeeId) ?? new Map<string, (typeof logs)[number]>();
-    if (!employeeMap.has(dayKey)) {
-      employeeMap.set(dayKey, log);
-    }
-    firstEntryByEmployeeDay.set(log.employeeId, employeeMap);
-  });
-
-  const leaveKeys = new Set<string>();
-  approvedLeaves.forEach((leave) => {
-    const cursor = new Date(leave.startDate);
-    cursor.setHours(0, 0, 0, 0);
-    const leaveEnd = new Date(leave.endDate);
-    leaveEnd.setHours(0, 0, 0, 0);
-
-    while (cursor <= leaveEnd) {
-      leaveKeys.add(`${leave.employeeId}-${getDateOnlyKey(cursor)}`);
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
-    }
-  });
-
-  const lateDetails = dailyCalendars.flatMap((day) => {
-    if (!employeeIds.has(day.employeeId)) return [];
-    if (!day.checkLateArrival || !day.plannedStart || day.plannedNetMinutes <= 0) return [];
-    if (leaveKeys.has(`${day.employeeId}-${getDateOnlyKey(day.workDate)}`)) return [];
-
-    const plannedStartMinutes = timeToMinutes(day.plannedStart);
-    if (plannedStartMinutes === null) return [];
-
-    const firstEntry = firstEntryByEmployeeDay.get(day.employeeId)?.get(getDateOnlyKey(day.workDate));
-    if (!firstEntry) return [];
-
-    const lateMinutes = getAppMinutes(firstEntry.scannedAt) - plannedStartMinutes;
-    if (lateMinutes <= 0) return [];
-
-    return [
-      {
-        employeeId: day.employeeId,
-        employee: `${day.employee.firstName} ${day.employee.lastName}`.trim(),
-        registrationNumber: day.employee.registrationNumber ?? "-",
-        company: day.employee.company.name,
-        branch: day.employee.branch ?? "-",
-        department: day.employee.department || "Departmansiz",
-        workDate: day.workDate,
-        plannedStart: day.plannedStart,
-        firstEntry: firstEntry.scannedAt,
-        lateMinutes,
-      },
-    ];
-  });
-
-  const reportRows = Array.from(
-    lateDetails.reduce((summary, detail) => {
-      const current = summary.get(detail.employeeId) ?? {
-        employeeId: detail.employeeId,
-        employee: detail.employee,
-        registrationNumber: detail.registrationNumber,
-        company: detail.company,
-        branch: detail.branch,
-        department: detail.department,
-        lateCount: 0,
-        totalLateMinutes: 0,
-        averageLateMinutes: 0,
-        lastLateDate: "",
-      };
-
-      current.lateCount += 1;
-      current.totalLateMinutes += detail.lateMinutes;
-      current.averageLateMinutes = Math.round(current.totalLateMinutes / current.lateCount);
-      current.lastLateDate = formatDate(detail.workDate);
-      summary.set(detail.employeeId, current);
-      return summary;
-    }, new Map<number, { employeeId: number; employee: string; registrationNumber: string; company: string; branch: string; department: string; lateCount: number; totalLateMinutes: number; averageLateMinutes: number; lastLateDate: string }>()),
-  )
-    .map(([, row]) => ({
-      ...row,
-      totalLateText: formatMinutes(row.totalLateMinutes),
-      averageLateText: formatMinutes(row.averageLateMinutes),
-    }))
-    .sort((first, second) => second.lateCount - first.lateCount || second.totalLateMinutes - first.totalLateMinutes);
-
-  const exportRows = reportRows.map((row) => ({
-    employee: row.employee,
-    registrationNumber: row.registrationNumber,
-    company: row.company,
-    branch: row.branch,
-    department: row.department,
-    lateCount: row.lateCount,
-    totalLateMinutes: row.totalLateMinutes,
-    averageLateMinutes: row.averageLateMinutes,
-    lastLateDate: row.lastLateDate,
+  const events = [
+    ...lateRows.map((row) => ({ row, kind: "Geç giriş", tone: "warning", plan: row.plannedStart, actual: row.firstEntry, minutes: row.lateMinutes })),
+    ...earlyRows.map((row) => ({ row, kind: "Erken çıkış", tone: "danger", plan: row.plannedEnd, actual: row.lastExit, minutes: row.earlyLeaveMinutes })),
+  ].sort((first, second) => second.row.date.localeCompare(first.row.date) || second.minutes - first.minutes).map((item, index) => ({
+    id: index,
+    date: formatDayLabel(item.row.date, { day: "2-digit", month: "long", year: "numeric" }),
+    weekday: formatDayLabel(item.row.date, { weekday: "long" }),
+    employee: item.row.employee,
+    organization: `${item.row.department} · ${item.row.branch}`,
+    kind: item.kind,
+    tone: item.tone,
+    plan: item.plan,
+    actual: item.actual,
+    minutesText: formatDuration(item.minutes),
+    minutes: item.minutes,
   }));
-  const detailExportRows = lateDetails.map((detail) => ({
-    employee: detail.employee,
-    company: detail.company,
-    branch: detail.branch,
-    department: detail.department,
-    workDate: formatDate(detail.workDate),
-    plannedStart: detail.plannedStart,
-    firstEntry: formatTime(detail.firstEntry),
-    lateMinutes: detail.lateMinutes,
-  }));
-
-  const totalLateCount = reportRows.reduce((sum, row) => sum + row.lateCount, 0);
-  const totalLateMinutes = reportRows.reduce((sum, row) => sum + row.totalLateMinutes, 0);
-  const topRow = reportRows[0];
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>Geç Kalma</p>
-          <h1 className={styles.title}>Geç Kalma Raporu</h1>
-          <p className={styles.subtitle}>
-            Seçilen tarih, firma ve şube aralığında sadece geç kalan personeli; geç kalma adedi ve toplam dakika ile listeler.
-          </p>
-        </div>
-        {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
-          rows={exportRows}
-          columns={[
-            { key: "employee", label: "Personel" },
-            { key: "registrationNumber", label: "Sicil No" },
-            { key: "company", label: "Firma" },
-            { key: "branch", label: "Şube" },
-            { key: "department", label: "Departman" },
-            { key: "lateCount", label: "Geç Kalma Sayısı" },
-            { key: "totalLateMinutes", label: "Toplam Geç Dakika" },
-            { key: "averageLateMinutes", label: "Ortalama Geç Dakika" },
-            { key: "lastLateDate", label: "Son Geç Kalma" },
-          ]}
-          filename="gec-kalma-raporu"
-          className={styles.primaryLinkButton}
-        /> : null}
-      </section>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <ReportHeader kicker="Raporlar / Mesai uyumu" title="Geç Kalma ve Erken Çıkış" description="Planlanan vardiyaya göre geç giriş ve erken çıkış olayları. Kısmi izinli günler ve takvimde geç kalma kontrolü kapalı günler sayılmaz." />
+      <ReportFilters ctx={ctx} showEmployee />
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <form className={styles.filterGrid}>
-          <label className={styles.field}>
-            <span>Başlangıç</span>
-            <input type="date" name="from" defaultValue={getDateOnlyKey(fromDate)} />
-          </label>
-          <label className={styles.field}>
-            <span>Bitiş</span>
-            <input type="date" name="to" defaultValue={getDateOnlyKey(safeToDate)} />
-          </label>
-          <label className={styles.field}>
-            <span>Firma</span>
-            <select name="companyId" defaultValue={selectedCompanyId ?? ""}>
-              <option value="">Tüm firmalar</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={styles.field}>
-            <span>Şube</span>
-            <select name="branch" defaultValue={selectedBranch}>
-              <option value="">Tüm şubeler</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.name}>
-                  {branch.company.name} / {branch.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className={styles.primaryButton} type="submit">Raporu Getir</button>
-        </form>
-      </section>
+      <KpiGrid>
+        <Kpi icon={<Timer size={18} />} label="Geç giriş" value={`${lateRows.length} olay`} hint={formatDuration(lateMinutes)} tone="warning" />
+        <Kpi icon={<LogOut size={18} />} label="Erken çıkış" value={`${earlyRows.length} olay`} hint={formatDuration(earlyMinutes)} tone="danger" />
+        <Kpi icon={<Users size={18} />} label="Geç kalan personel" value={summaries.filter((row) => row.lateDays).length} hint={`${summaries.length} personelden`} tone="info" />
+        <Kpi icon={<UserX size={18} />} label="Ortalama gecikme" value={lateRows.length ? formatDuration(Math.round(lateMinutes / lateRows.length)) : "—"} hint="Geç giriş başına" />
+      </KpiGrid>
 
-      <section className={styles.metricsGrid}>
-        <article className={`glass-panel ${styles.metricCard}`}>
-          <p className={styles.metricLabel}>Geç Kalan Personel</p>
-          <p className={styles.metricValue}>{reportRows.length}</p>
-        </article>
-        <article className={`glass-panel ${styles.metricCard}`}>
-          <p className={styles.metricLabel}>Geç Kalma Adedi</p>
-          <p className={styles.metricValue}>{totalLateCount}</p>
-        </article>
-        <article className={`glass-panel ${styles.metricCard}`}>
-          <p className={styles.metricLabel}>Toplam Geç Süre</p>
-          <p className={styles.metricValue}>{formatMinutes(totalLateMinutes)}</p>
-        </article>
-        <article className={`glass-panel ${styles.metricCard}`}>
-          <p className={styles.metricLabel}>En Çok Geç Kalan</p>
-          <p className={styles.metricValue}>{topRow ? topRow.employee : "-"}</p>
-        </article>
-      </section>
+      <Panel title="Günlük geç kalma" description="Gün bazında işe gelen ve geç kalan personel sayısı.">
+        <DailyTrend points={presence.map((day) => ({ dayKey: day.dayKey, value: day.present, secondary: day.late }))} valueLabel="Gelen" secondaryLabel="Geç kalan" />
+      </Panel>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Personel</th>
-                <th>Firma</th>
-                <th>Şube</th>
-                <th>Departman</th>
-                <th>Geç Kalma</th>
-                <th>Toplam Süre</th>
-                <th>Ortalama</th>
-                <th>Son Geç Kalma</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportRows.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className={styles.emptyCell}>Seçilen aralıkta geç kalma kaydı bulunamadı.</td>
-                </tr>
-              ) : (
-                reportRows.map((row) => (
-                  <tr key={row.employeeId}>
-                    <td>
-                      {row.employee}
-                      <p className={styles.tableSubText}>Sicil: {row.registrationNumber}</p>
-                    </td>
-                    <td>{row.company}</td>
-                    <td>{row.branch}</td>
-                    <td>{row.department}</td>
-                    <td>{row.lateCount}</td>
-                    <td>{row.totalLateText}</td>
-                    <td>{row.averageLateText}</td>
-                    <td>{row.lastLateDate}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div className={rs.panelGridEven}>
+        <Panel title="En sık geç kalanlar" description="Geç kalınan gün sayısına göre.">
+          <BarList tone="warning" emptyText="Bu dönemde geç kalma yok." items={repeatLate.map((row) => ({ label: row.employee, detail: `${row.department} · ${formatDuration(row.lateMinutes)}`, value: row.lateDays, display: `${row.lateDays} gün` }))} />
+        </Panel>
+        <Panel title="En çok erken çıkanlar" description="Toplam erken çıkış süresine göre.">
+          <BarList tone="danger" emptyText="Bu dönemde erken çıkış yok." items={topEarly.map((row) => ({ label: row.employee, detail: row.department, value: row.earlyLeaveMinutes, display: formatDuration(row.earlyLeaveMinutes) }))} />
+        </Panel>
+      </div>
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <p className={styles.sectionEyebrow}>Detay</p>
-            <h2 className={styles.sectionTitle}>Geç Kalma Hareketleri</h2>
-          </div>
-          {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
-            rows={detailExportRows}
-            columns={[
-              { key: "employee", label: "Personel" },
-              { key: "company", label: "Firma" },
-              { key: "branch", label: "Şube" },
-              { key: "department", label: "Departman" },
-              { key: "workDate", label: "Tarih" },
-              { key: "plannedStart", label: "Planlanan Giriş" },
-              { key: "firstEntry", label: "İlk Giriş" },
-              { key: "lateMinutes", label: "Geç Dakika" },
-            ]}
-            filename="gec-kalma-hareket-detayi"
-            className={styles.primaryLinkButton}
-          /> : null}
-        </div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                <th>Personel</th>
-                <th>Planlanan</th>
-                <th>İlk Giriş</th>
-                <th>Geç Süre</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lateDetails.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className={styles.emptyCell}>Detay kaydı yok.</td>
-                </tr>
-              ) : (
-                lateDetails.map((detail) => (
-                  <tr key={`${detail.employeeId}-${getDateOnlyKey(detail.workDate)}`}>
-                    <td>{formatDate(detail.workDate)}</td>
-                    <td>{detail.employee}</td>
-                    <td>{detail.plannedStart}</td>
-                    <td>{formatTime(detail.firstEntry)}</td>
-                    <td>{formatMinutes(detail.lateMinutes)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <Panel title="Olay listesi" aside={<span className={ui.countBadge}>{events.length} olay</span>}>
+        <ReorderableDataTable rows={events} columns={COLUMNS} storageKey="reports.late.columns" filename={`gec-kalma-erken-cikis-${ctx.fromKey}-${ctx.toKey}`} emptyMessage="Seçilen aralıkta geç giriş veya erken çıkış yok." canExport={ctx.canExport} minWidth={900} />
+      </Panel>
     </div>
   );
 }

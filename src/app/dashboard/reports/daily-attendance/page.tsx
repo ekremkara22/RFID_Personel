@@ -1,219 +1,97 @@
-import { AlertTriangle, Clock3, Coffee, LogIn } from "lucide-react";
-import { redirect } from "next/navigation";
-import { ExportButton } from "@/app/dashboard/export-button";
-import { can, employeeScopeWhere } from "@/lib/authorization";
-import { calculateBreakMinutes } from "@/lib/attendance-sequence";
-import { APP_TIME_ZONE, dateOnlyFromKey, getAppDayRange, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
-import { queryRepository } from "@/modules/shared/query-repository";
-import { PERMISSIONS } from "@/lib/permission-catalog";
-import { requireSessionUser } from "@/lib/session";
-import { timeToMinutes } from "@/lib/work-calendar-rules";
+import { CalendarOff, Coffee, LogIn, Timer, UserX, Users } from "lucide-react";
+import type { AttendanceType } from "@/generated/prisma/client";
+import { ReorderableDataTable, type DataTableColumn } from "@/app/dashboard/reorderable-data-table";
+import { PUANTAJ_DAY_CODE_LABELS } from "@/lib/attendance-day-calculation";
+import { loadAttendanceDays } from "@/lib/attendance-days";
+import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
 import styles from "../../page.module.css";
+import ui from "../../management.module.css";
+import { formatDayLabel, getReportContext, type ReportSearchParams } from "../report-context";
+import { formatDuration, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
 
-type SearchParams = { date?: string; branch?: string };
+const TYPE_BY_LABEL = new Map(Object.entries(ATTENDANCE_TYPE_LABELS).map(([type, label]) => [label, type as AttendanceType]));
+const LEAVE_CODES = new Set(["Y", "R", "Üİ", "İ"]);
 
-function parseDate(value?: string) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = dateOnlyFromKey(value);
-  return Number.isNaN(date.getTime()) ? null : date;
+function lastMovementType(movements: string) {
+  const last = movements.split(" | ").at(-1);
+  return last ? TYPE_BY_LABEL.get(last.slice(6)) ?? null : null;
 }
 
-function nextDay(date: Date) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + 1);
-  return result;
-}
+export default async function DailyAttendanceReportPage(props: { searchParams: Promise<ReportSearchParams> }) {
+  const params = await props.searchParams;
+  const ctx = await getReportContext({ ...params, from: params.to }, { defaultFrom: "today" });
+  const dayKey = ctx.toKey;
+  const isToday = dayKey === ctx.todayKey;
+  const data = await loadAttendanceDays({ companyId: ctx.companyId, employeeWhere: ctx.employeeWhere, fromKey: dayKey, toKey: dayKey });
+  const breakTracking = data.trackingMode === "BREAK_TRACKING";
+  const rowByEmployee = new Map(data.rows.map((row) => [row.employeeId, row]));
+  const employees = data.employees.filter((employee) => employee.isActive || rowByEmployee.has(employee.id));
 
-function formatTime(date?: Date | null) {
-  if (!date) return "—";
-  return new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE }).format(date);
-}
-
-function durationText(minutes: number) {
-  if (minutes < 60) return `${minutes} dk`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest ? `${hours} sa ${rest} dk` : `${hours} sa`;
-}
-
-function initials(firstName: string, lastName: string) {
-  return `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toLocaleUpperCase("tr-TR");
-}
-
-export default async function DailyAttendanceReportPage(props: { searchParams?: Promise<SearchParams> }) {
-  const { authorization } = await requireSessionUser();
-  if (!authorization.companyId) redirect("/dashboard");
-
-  const searchParams = (await props.searchParams) ?? {};
-  const now = new Date();
-  const today = getAppDayRange(now).dateOnly;
-  const selectedDate = parseDate(searchParams.date) ?? today;
-  const endExclusive = nextDay(selectedDate);
-  const attendanceRange = getAppDayRange(getDateOnlyKey(selectedDate));
-  const selectedBranch = searchParams.branch?.trim() ?? "";
-
-  const [employees, branches, calendars, logs] = await Promise.all([
-    queryRepository.employee.findMany({
-      where: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
-      orderBy: [{ department: "asc" }, { firstName: "asc" }, { lastName: "asc" }],
-    }),
-    queryRepository.branch.findMany({ where: { companyId: authorization.companyId, isActive: true, ...(authorization.scopeMode === "RESTRICTED" && authorization.branchIds.length ? { id: { in: authorization.branchIds } } : {}) }, orderBy: { name: "asc" } }),
-    queryRepository.employeeDailyCalendar.findMany({
-      where: {
-        workDate: { gte: selectedDate, lt: endExclusive },
-        employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
-      },
-    }),
-    queryRepository.attendanceLog.findMany({
-      where: {
-        scannedAt: { gte: attendanceRange.start, lt: attendanceRange.end },
-        employee: { ...employeeScopeWhere(authorization), ...(selectedBranch ? { branch: selectedBranch } : {}) },
-      },
-      orderBy: { scannedAt: "asc" },
-    }),
-  ]);
-
-  const calendarByEmployee = new Map(calendars.map((calendar) => [calendar.employeeId, calendar]));
-  const logsByEmployee = new Map<number, typeof logs>();
-  for (const log of logs) {
-    const list = logsByEmployee.get(log.employeeId) ?? [];
-    list.push(log);
-    logsByEmployee.set(log.employeeId, list);
-  }
-
-  const isToday = getDateOnlyKey(selectedDate) === getDateOnlyKey(today);
-  const rows = employees.map((employee) => {
-    const employeeLogs = logsByEmployee.get(employee.id) ?? [];
-    const calendar = calendarByEmployee.get(employee.id);
-    const entry = employeeLogs.find((log) => log.type === "ENTRY")?.scannedAt ?? null;
-    const exit = [...employeeLogs].reverse().find((log) => log.type === "EXIT")?.scannedAt ?? null;
-    const breakReference = isToday ? now : employeeLogs.at(-1)?.scannedAt ?? attendanceRange.start;
-    const breakResult = calculateBreakMinutes(employeeLogs, breakReference);
-    const plannedStart = timeToMinutes(calendar?.plannedStart);
-    const plannedEnd = timeToMinutes(calendar?.plannedEnd);
-    const lateMinutes = entry && plannedStart !== null && calendar?.checkLateArrival
-      ? Math.max(0, getAppMinutes(entry) - plannedStart)
-      : 0;
-    const earlyMinutes = exit && plannedEnd !== null && calendar?.checkEarlyDeparture
-      ? Math.max(0, plannedEnd - getAppMinutes(exit))
-      : 0;
-    const movementStatus = breakResult.isOnBreak
-      ? "Molada"
-      : exit
-        ? "Çıkış yaptı"
-        : entry
-          ? "İş yerinde"
-          : "Hareket yok";
-
-    return {
-      employeeId: employee.id,
+  const entries = employees.map((employee) => {
+    const row = rowByEmployee.get(employee.id);
+    const last = row ? lastMovementType(row.movements) : null;
+    const present = Boolean(row && row.firstEntry !== "-");
+    const planned = Boolean(row && row.plannedMinutes > 0);
+    const onLeave = Boolean(row && LEAVE_CODES.has(row.code));
+    let status = "Kayıt yok";
+    let tone = "neutral";
+    if (isToday && present && last === "EXIT") status = "Çıkış yaptı";
+    else if (isToday && present && (last === "BREAK_START" || last === "MEAL_START")) { status = "Molada"; tone = "warning"; }
+    // Mola takibi kapalıyken gün içi son okutmanın çıkış olup olmadığı gün kesinleşince belli olur.
+    else if (isToday && present) { status = breakTracking ? "İş yerinde" : "Giriş yaptı"; tone = "success"; }
+    else if (row?.code) { status = PUANTAJ_DAY_CODE_LABELS[row.code]; tone = row.code === "!" || row.code === "D" ? "danger" : row.code === "G" ? "warning" : row.code === "Ç" ? "success" : "neutral"; }
+    else if (planned && !present) { status = isToday ? "Henüz gelmedi" : "Gelmedi"; tone = "warning"; }
+    const flags = { present, planned, onLeave, late: Boolean(row?.lateMinutes), onBreak: status === "Molada", inside: status === "İş yerinde" || status === "Molada" };
+    return { flags, row: {
+      id: employee.id,
       employee: `${employee.firstName} ${employee.lastName}`.trim(),
-      initials: initials(employee.firstName, employee.lastName),
-      registrationNumber: employee.registrationNumber ?? "—",
-      department: employee.department || "Departmansız",
-      branch: employee.branch ?? "—",
-      plannedStartText: calendar?.plannedStart ?? "—",
-      entryText: formatTime(entry),
-      lateMinutes,
-      breakMinutes: breakResult.totalMinutes,
-      isOnBreak: breakResult.isOnBreak,
-      exitText: formatTime(exit),
-      earlyMinutes,
-      movementStatus,
-      movementCount: employeeLogs.length,
-      timeline: employeeLogs.map((log) => ({ type: log.type, time: formatTime(log.scannedAt) })),
-    };
+      organization: `${employee.registrationNumber ?? "-"} · ${employee.department || "Departmansız"} · ${employee.branch ?? "-"}`,
+      plan: row && row.plannedStart !== "-" ? `${row.plannedStart} – ${row.plannedEnd}` : row?.leaveType !== undefined && row.leaveType !== "-" ? row.leaveType : "Plan yok",
+      entry: row?.firstEntry ?? "-",
+      late: row?.lateMinutes ? `${row.lateMinutes} dk geç` : present ? "Zamanında" : null,
+      exit: row?.lastExit ?? "-",
+      early: row?.earlyLeaveMinutes ? `${row.earlyLeaveMinutes} dk erken` : null,
+      worked: row?.workedMinutes ? formatDuration(row.workedMinutes) : "—",
+      workedMinutes: row?.workedMinutes ?? 0,
+      deducted: row?.breakMinutes ? `Düşülen mola ${formatDuration(row.breakMinutes)}` : null,
+      breakActual: row ? formatDuration(row.actualBreakMinutes) : "—",
+      breakExcess: row?.excessBreakMinutes ? `${formatDuration(row.excessBreakMinutes)} aşım` : null,
+      movements: row?.movements.replaceAll(" | ", " · ") || "Hareket yok",
+      movementCount: row?.movementCount ?? 0,
+      status,
+      tone,
+    } };
   });
 
-  const presentCount = rows.filter((row) => row.entryText !== "—").length;
-  const onBreakCount = rows.filter((row) => row.isOnBreak).length;
-  const lateCount = rows.filter((row) => row.lateMinutes > 0).length;
-  const earlyCount = rows.filter((row) => row.earlyMinutes > 0).length;
-  const totalBreakMinutes = rows.reduce((total, row) => total + row.breakMinutes, 0);
-  const exportRows = rows.map((row) => ({
-    personel: row.employee,
-    sicilNo: row.registrationNumber,
-    departman: row.department,
-    sube: row.branch,
-    planlananGiris: row.plannedStartText,
-    giris: row.entryText,
-    gecDakika: row.lateMinutes,
-    molaDakika: row.breakMinutes,
-    cikis: row.exitText,
-    erkenCikisDakika: row.earlyMinutes,
-    durum: row.movementStatus,
-  }));
+  const columns: DataTableColumn[] = [
+    { id: "employee", label: "Personel", valueKey: "employee", secondaryKey: "organization", kind: "person" },
+    { id: "status", label: "Durum", valueKey: "status", toneKey: "tone", kind: "status" },
+    { id: "entry", label: "Giriş", valueKey: "entry", secondaryKey: "late" },
+    { id: "exit", label: "Çıkış", valueKey: "exit", secondaryKey: "early" },
+    { id: "plan", label: "Planlanan", valueKey: "plan" },
+    { id: "worked", label: "Net çalışma", valueKey: "worked", exportValueKey: "workedMinutes", secondaryKey: "deducted" },
+    ...(breakTracking ? [{ id: "break", label: "Ölçülen mola", valueKey: "breakActual", secondaryKey: "breakExcess" }] : []),
+    { id: "movements", label: "Hareketler", valueKey: "movements" },
+  ];
+  const count = (pick: (flags: (typeof entries)[number]["flags"]) => boolean) => entries.filter((entry) => pick(entry.flags)).length;
 
   return (
-    <div className={styles.page}>
-      <section className={`glass-panel ${styles.heroCard}`}>
-        <div>
-          <p className={styles.eyebrow}>Günlük Operasyon</p>
-          <h1 className={styles.title}>Mola ve Mesai Raporu</h1>
-          <p className={styles.subtitle}>Her personelin ilk girişi, gerçek mola süresi, son çıkışı ve mesai uygunluğu tek satırda.</p>
-        </div>
-        {can(authorization, PERMISSIONS.REPORT_EXPORT) ? <ExportButton
-          rows={exportRows}
-          columns={[
-            { key: "personel", label: "Personel" }, { key: "sicilNo", label: "Sicil No" },
-            { key: "departman", label: "Departman" }, { key: "sube", label: "Şube" },
-            { key: "planlananGiris", label: "Planlanan Giriş" }, { key: "giris", label: "İlk Giriş" },
-            { key: "gecDakika", label: "Geç Dakika" }, { key: "molaDakika", label: "Toplam Mola Dakika" },
-            { key: "cikis", label: "Son Çıkış" }, { key: "erkenCikisDakika", label: "Erken Çıkış Dakika" },
-            { key: "durum", label: "Anlık Durum" },
-          ]}
-          filename={`gunluk-mola-mesai-${getDateOnlyKey(selectedDate)}`}
-          className={styles.primaryLinkButton}
-        /> : null}
-      </section>
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <ReportHeader kicker="Raporlar / Günlük" title="Günlük Devam" description={`${formatDayLabel(dayKey, { day: "2-digit", month: "long", year: "numeric", weekday: "long" })} · Kim geldi, kim gelmedi; giriş, çıkış${breakTracking ? ", mola" : ""} ve net çalışma süresi.`} />
+      <ReportFilters ctx={ctx} dateMode="day" />
 
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <form className={styles.dailyReportFilters}>
-          <label className={styles.field}><span>Rapor tarihi</span><input type="date" name="date" defaultValue={getDateOnlyKey(selectedDate)} /></label>
-          <label className={styles.field}>
-            <span>Şube</span>
-            <select name="branch" defaultValue={selectedBranch}>
-              <option value="">Tüm şubeler</option>
-              {branches.map((branch) => <option key={branch.id} value={branch.name}>{branch.name}</option>)}
-            </select>
-          </label>
-          <button className={styles.primaryButton} type="submit">Raporu Getir</button>
-        </form>
-      </section>
+      <KpiGrid>
+        <Kpi icon={<Users size={18} />} label="Planlı personel" value={count((flags) => flags.planned && !flags.onLeave)} tone="info" />
+        <Kpi icon={<LogIn size={18} />} label="Gelen" value={count((flags) => flags.present)} hint={isToday ? `${count((flags) => flags.inside)} kişi şu an içeride` : undefined} tone="success" />
+        <Kpi icon={<Timer size={18} />} label="Geç kalan" value={count((flags) => flags.late)} tone="warning" />
+        <Kpi icon={<UserX size={18} />} label={isToday ? "Henüz gelmeyen" : "Gelmeyen"} value={count((flags) => flags.planned && !flags.onLeave && !flags.present)} tone="danger" />
+        <Kpi icon={<CalendarOff size={18} />} label="İzinli" value={count((flags) => flags.onLeave)} />
+        {breakTracking && isToday ? <Kpi icon={<Coffee size={18} />} label="Şu an molada" value={count((flags) => flags.onBreak)} tone="warning" /> : null}
+      </KpiGrid>
 
-      <section className={styles.metricsGrid}>
-        <article className={`glass-panel ${styles.metricCard}`}><span className={styles.metricIcon}><LogIn size={18} /></span><p className={styles.metricLabel}>Giriş Yapan</p><p className={styles.metricValue}>{presentCount}/{rows.length}</p></article>
-        <article className={`glass-panel ${styles.metricCard}`}><span className={styles.metricIcon}><Coffee size={18} /></span><p className={styles.metricLabel}>Şu An Molada</p><p className={styles.metricValue}>{onBreakCount}</p></article>
-        <article className={`glass-panel ${styles.metricCard}`}><span className={styles.metricIcon}><Clock3 size={18} /></span><p className={styles.metricLabel}>Toplam Mola</p><p className={styles.metricValue}>{durationText(totalBreakMinutes)}</p></article>
-        <article className={`glass-panel ${styles.metricCard}`}><span className={styles.metricIcon}><AlertTriangle size={18} /></span><p className={styles.metricLabel}>Dikkat Gerektiren</p><p className={styles.metricValue}>{lateCount + earlyCount}</p></article>
-      </section>
-
-      <section className={`glass-panel ${styles.sectionCard}`}>
-        <div className={styles.sectionHeader}>
-          <div><p className={styles.sectionEyebrow}>{getDateOnlyKey(selectedDate)}</p><h2 className={styles.sectionTitle}>Personel Durumları</h2></div>
-          <p className={styles.helperText}>Çıkış, planlanan mesai bitimine ±30 dakikadaki son basımdır.</p>
-        </div>
-        <div className={styles.tableWrap}>
-          <table className={`${styles.table} ${styles.dailyAttendanceTable}`}>
-            <thead><tr><th>Personel</th><th>İlk Giriş</th><th>Geç Kalma</th><th>Mola Hareketleri</th><th>Toplam Mola</th><th>Son Çıkış</th><th>Erken Çıkış</th><th>Durum</th></tr></thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.employeeId}>
-                  <td><div className={styles.reportPerson}><span>{row.initials}</span><div><strong>{row.employee}</strong><small>{row.department} · {row.branch}<br />Sicil: {row.registrationNumber}</small></div></div></td>
-                  <td><strong>{row.entryText}</strong><small className={styles.cellHint}>Plan: {row.plannedStartText}</small></td>
-                  <td><span className={row.lateMinutes > 0 ? styles.reportBadgeDanger : styles.reportBadgeSuccess}>{row.lateMinutes > 0 ? `${row.lateMinutes} dk geç` : row.entryText === "—" ? "—" : "Zamanında"}</span></td>
-                  <td><div className={styles.movementTimeline}>{row.timeline.length ? row.timeline.map((item, index) => <span key={`${item.type}-${index}`} title={item.type}>{item.time}</span>) : <small>Hareket yok</small>}</div></td>
-                  <td><strong>{durationText(row.breakMinutes)}</strong>{row.isOnBreak ? <small className={styles.liveBreak}>● Mola sürüyor</small> : null}</td>
-                  <td><strong>{row.exitText}</strong></td>
-                  <td><span className={row.earlyMinutes > 0 ? styles.reportBadgeWarning : styles.reportBadgeSuccess}>{row.earlyMinutes > 0 ? `${row.earlyMinutes} dk erken` : row.exitText === "—" ? "—" : "Normal"}</span></td>
-                  <td><span className={`${styles.reportState} ${row.isOnBreak ? styles.reportStateBreak : ""}`}>{row.movementStatus}</span><small className={styles.cellHint}>{row.movementCount} kart basımı</small></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {rows.length === 0 ? <p className={styles.reportEmpty}>Seçilen şubede aktif personel bulunamadı.</p> : null}
-        </div>
-      </section>
+      <Panel title="Personel durumları" description={data.trackingMode === "ENTRY_EXIT_ONLY" ? "Mola takibi kapalı: ilk okutma giriş, son okutma çıkış sayılır; takvimdeki mola net süreden düşülür." : "Mola takibi açık: ara okutmalar mola başlangıç ve bitişi sayılır."} aside={<span className={ui.countBadge}>{entries.length} personel</span>}>
+        <ReorderableDataTable rows={entries.map((entry) => entry.row)} columns={columns} storageKey={`reports.daily.columns.${breakTracking ? "break" : "simple"}`} filename={`gunluk-devam-${dayKey}`} emptyMessage="Seçilen filtrelerde personel bulunamadı." canExport={ctx.canExport} minWidth={1100} />
+      </Panel>
     </div>
   );
 }

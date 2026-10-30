@@ -1,55 +1,132 @@
-import { Filter, LockKeyhole } from "lucide-react";
-import { redirect } from "next/navigation";
+import { AlarmClock, AlertTriangle, CalendarCheck2, Clock3, FileSpreadsheet, FileText, LockKeyhole, TimerReset, Users } from "lucide-react";
 import { PayrollPeriodStatus } from "@/generated/prisma/client";
 import { approvePayrollPeriodAction, lockPayrollPeriodAction, reopenPayrollPeriodAction } from "@/app/dashboard/actions";
-import { ExportButton } from "@/app/dashboard/export-button";
 import { SubmitButton } from "@/app/dashboard/submit-button";
-import { can, employeeScopeWhere } from "@/lib/authorization";
+import { can } from "@/lib/authorization";
+import { ATTENDANCE_TRACKING_MODE_LABELS, BREAK_DEDUCTION_MODE_LABELS } from "@/lib/attendance-labels";
 import { PERMISSIONS } from "@/lib/permission-catalog";
-import { buildPayrollSnapshot, getDefaultPayrollMonth, getPayrollMonthRange, normalizePayrollMonth, parsePayrollSnapshot } from "@/lib/payroll-period";
-import { queryRepository } from "@/modules/shared/query-repository";
-import { requireSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
+import ui from "../../management.module.css";
+import rs from "../reports.module.css";
+import { getReportContext, type ReportSearchParams } from "../report-context";
+import { DayCode, DayCodeLegend, ExportLink, formatDuration, formatHours, Kpi, KpiGrid, Panel, ReportFilters, ReportHeader } from "../report-ui";
+import { dayTitle, getPayrollView, isWeekend, PAYROLL_STATUS_LABELS } from "./payroll-data";
 
-const statusLabels: Record<PayrollPeriodStatus, string> = { OPEN: "Açık", APPROVED: "Onaylandı", LOCKED: "Kilitli" };
-function minutesText(value: number) { const hours = Math.floor(value / 60); const minutes = value % 60; return hours ? `${hours} sa ${minutes} dk` : `${minutes} dk`; }
-function formatDate(value?: Date | null) { return value ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short" }).format(value) : "—"; }
+function formatDate(value?: Date | null) {
+  return value ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Istanbul" }).format(value) : "—";
+}
 
-export default async function PayrollPage(props: { searchParams: Promise<{ month?: string; companyId?: string; branch?: string; department?: string }> }) {
-  const { authorization } = await requireSessionUser();
-  if (!authorization.companyId) redirect("/dashboard");
+export default async function PayrollPage(props: { searchParams: Promise<ReportSearchParams> }) {
   const params = await props.searchParams;
-  const monthKey = normalizePayrollMonth(params.month);
-  const companyId = authorization.companyId;
-  const branch = params.branch?.trim() ?? "";
-  const department = params.department?.trim() ?? "";
-  const range = getPayrollMonthRange(monthKey);
-  const [companies, branches, departments, period] = await Promise.all([
-    queryRepository.company.findMany({ where: { id: companyId }, orderBy: { name: "asc" } }),
-    queryRepository.branch.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
-    queryRepository.department.findMany({ where: { companyId, isActive: true }, orderBy: { name: "asc" } }),
-    queryRepository.payrollPeriod.findUnique({ where: { companyId_year_month: { companyId, year: range.year, month: range.month } }, include: { approvedBy: true, lockedBy: true } }),
-  ]);
-  const frozenSnapshot = parsePayrollSnapshot(period?.snapshotJson);
-  const snapshot = frozenSnapshot ?? await buildPayrollSnapshot(companyId, monthKey);
-  const scopedEmployees = await queryRepository.employee.findMany({ where: employeeScopeWhere(authorization), select: { id: true } });
-  const scopedEmployeeIds = new Set(scopedEmployees.map((item) => item.id));
-  const summaryRows = snapshot.summaryRows.filter((row) => scopedEmployeeIds.has(row.employeeId) && (!branch || row.branch === branch) && (!department || row.department === department));
-  const employeeIds = new Set(summaryRows.map((row) => row.employeeId));
-  const detailRows = snapshot.detailRows.filter((row) => employeeIds.has(row.employeeId));
-  const returnTo = `/dashboard/reports/payroll?month=${monthKey}&companyId=${companyId}${branch ? `&branch=${encodeURIComponent(branch)}` : ""}${department ? `&department=${encodeURIComponent(department)}` : ""}`;
-  const status = period?.status ?? PayrollPeriodStatus.OPEN;
-  const totalLate = summaryRows.reduce((total, row) => total + row.lateMinutes, 0);
-  const totalBreak = summaryRows.reduce((total, row) => total + row.breakMinutes, 0);
-  const errorDays = summaryRows.reduce((total, row) => total + row.errorDays, 0);
-  const mayExport = can(authorization, PERMISSIONS.REPORT_EXPORT);
-  const mayApprove = can(authorization, PERMISSIONS.PAYROLL_APPROVE) && (authorization.isPlatformAdmin || authorization.scopeMode === "COMPANY");
+  const ctx = await getReportContext(params);
+  const view = await getPayrollView(ctx, params.month);
+  const { summaryRows, status } = view;
+  const total = (pick: (row: (typeof summaryRows)[number]) => number) => summaryRows.reduce((sum, row) => sum + pick(row), 0);
+  const filterQuery = new URLSearchParams({ month: view.monthKey, ...(ctx.branch ? { branch: ctx.branch } : {}), ...(ctx.department ? { department: ctx.department } : {}) }).toString();
+  const returnTo = `/dashboard/reports/payroll?${filterQuery}`;
+  const mayApprove = can(ctx.authorization, PERMISSIONS.PAYROLL_APPROVE) && (ctx.authorization.isPlatformAdmin || ctx.authorization.scopeMode === "COMPANY");
+  const trackingMode = view.snapshot.trackingMode;
+  const deductionMode = view.snapshot.breakDeductionMode;
 
-  return <div className={styles.page}>
-    <section className={`glass-panel ${styles.heroCard}`}><div><p className={styles.eyebrow}>Raporlar / Puantaj</p><h1 className={styles.title}>Aylık Puantaj Onayı</h1><p className={styles.subtitle}>Ayı kontrol edin, snapshot oluşturarak onaylayın ve kesinleştiğinde kilitleyin. Kilitli ayların hareketleri değiştirilemez.</p></div><div className={styles.heroMeta}><span className={status === PayrollPeriodStatus.LOCKED ? styles.reportBadgeDanger : status === PayrollPeriodStatus.APPROVED ? styles.reportBadgeSuccess : styles.reportBadgeWarning}>{statusLabels[status]}</span>{mayExport ? <><ExportButton rows={summaryRows.map((row) => ({ ...row, codeCounts: undefined }))} columns={[{ key: "employee", label: "Personel" }, { key: "registrationNumber", label: "Sicil" }, { key: "branch", label: "Şube" }, { key: "department", label: "Departman" }, { key: "plannedDays", label: "Planlı Gün" }, { key: "attendedDays", label: "Çalışılan Gün" }, { key: "missingDays", label: "Eksik Gün" }, { key: "lateMinutes", label: "Geç Dakika" }, { key: "breakMinutes", label: "Mola Dakika" }, { key: "workedMinutes", label: "Çalışma Dakika" }, { key: "errorDays", label: "Hatalı Gün" }]} filename={`puantaj-ozet-${monthKey}`} className={styles.primaryLinkButton} label="Özet Dışa Aktar" /><ExportButton rows={detailRows} columns={[{ key: "employee", label: "Personel" }, { key: "registrationNumber", label: "Sicil" }, { key: "date", label: "Tarih" }, { key: "branch", label: "Şube" }, { key: "department", label: "Departman" }, { key: "dayType", label: "Gün Tipi" }, { key: "plannedStart", label: "Planlanan Giriş" }, { key: "plannedEnd", label: "Planlanan Çıkış" }, { key: "firstEntry", label: "İlk Giriş" }, { key: "lastExit", label: "Son Çıkış" }, { key: "lateMinutes", label: "Geç Dakika" }, { key: "breakMinutes", label: "Mola Dakika" }, { key: "workedMinutes", label: "Çalışma Dakika" }, { key: "movementCount", label: "Hareket Adedi" }, { key: "movements", label: "Hareketler" }, { key: "issues", label: "Kontrol Durumu" }]} filename={`puantaj-detay-${monthKey}`} className={styles.primaryLinkButton} label="Ayrıntılı Dışa Aktar" /></> : null}</div></section>
-    <section className={`glass-panel ${styles.sectionCard}`}><form className={styles.filterGrid}><label className={styles.field}><span>Dönem</span><input type="month" name="month" defaultValue={monthKey} max={getDefaultPayrollMonth()} /></label><label className={styles.field}><span>Firma</span><select name="companyId" defaultValue={companyId}>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label><label className={styles.field}><span>Şube</span><select name="branch" defaultValue={branch}><option value="">Tüm şubeler</option>{branches.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label><label className={styles.field}><span>Departman</span><select name="department" defaultValue={department}><option value="">Tüm departmanlar</option>{departments.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label><button type="submit" className={styles.primaryButton}><Filter size={16} /> Raporu Getir</button></form></section>
-    <section className={styles.metricsGrid}><article className={`glass-panel ${styles.metricCard}`}><p className={styles.metricLabel}>Personel</p><p className={styles.metricValue}>{summaryRows.length}</p></article><article className={`glass-panel ${styles.metricCard}`}><p className={styles.metricLabel}>Toplam Gecikme</p><p className={styles.metricValue}>{minutesText(totalLate)}</p></article><article className={`glass-panel ${styles.metricCard}`}><p className={styles.metricLabel}>Toplam Mola</p><p className={styles.metricValue}>{minutesText(totalBreak)}</p></article><article className={`glass-panel ${styles.metricCard}`}><p className={styles.metricLabel}>Kontrol Gerektiren Gün</p><p className={styles.metricValue}>{errorDays}</p></article></section>
-    <section className={`glass-panel ${styles.sectionCard}`}><div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Dönem işlemleri</p><h2 className={styles.sectionTitle}>{monthKey} · {statusLabels[status]}</h2></div></div>{mayApprove ? (status === PayrollPeriodStatus.OPEN ? <form action={approvePayrollPeriodAction} className={styles.payrollActionForm}><input type="hidden" name="companyId" value={companyId} /><input type="hidden" name="month" value={monthKey} /><input type="hidden" name="returnTo" value={returnTo} /><input name="approvalNote" required placeholder="Kontrol / onay açıklaması" /><SubmitButton idleLabel="Dönemi Onayla" pendingLabel="Snapshot oluşturuluyor..." className={styles.primaryButton} /></form> : status === PayrollPeriodStatus.APPROVED ? <div className={styles.payrollActionRow}><form action={reopenPayrollPeriodAction}><input type="hidden" name="companyId" value={companyId} /><input type="hidden" name="month" value={monthKey} /><input type="hidden" name="returnTo" value={returnTo} /><SubmitButton idleLabel="Onayı Geri Al" pendingLabel="Açılıyor..." className={styles.smallButton} /></form><form action={lockPayrollPeriodAction}><input type="hidden" name="companyId" value={companyId} /><input type="hidden" name="month" value={monthKey} /><input type="hidden" name="returnTo" value={returnTo} /><SubmitButton idleLabel="Dönemi Kilitle" pendingLabel="Kilitleniyor..." className={styles.dangerButton} /></form></div> : <p className={styles.helperText}><LockKeyhole size={16} /> Bu dönem kilitlidir. Hareket ekleme, silme ve tarih/tip düzenleme işlemleri engellenir.</p>) : <p className={styles.helperText}>Bu dönemi görüntüleyebilirsiniz; onay, yeniden açma ve kilitleme için firma geneli puantaj yetkisi gerekir.</p>}<div className={styles.detailList}><p><span>Snapshot</span>{frozenSnapshot ? formatDate(period?.snapshotCreatedAt) : "Canlı hesaplama"}</p><p><span>Onaylayan</span>{period?.approvedBy?.name ?? period?.approvedBy?.email ?? "—"} · {formatDate(period?.approvedAt)}</p><p><span>Kilitleyen</span>{period?.lockedBy?.name ?? period?.lockedBy?.email ?? "—"} · {formatDate(period?.lockedAt)}</p><p><span>Açıklama</span>{period?.approvalNote ?? "—"}</p></div></section>
-    <section className={`glass-panel ${styles.sectionCard}`}><div className={styles.sectionHeader}><div><p className={styles.sectionEyebrow}>Personel özeti</p><h2 className={styles.sectionTitle}>Aylık Sonuçlar</h2></div><div className={styles.countPill}>{summaryRows.length} personel</div></div><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Personel</th><th>Planlı / Çalışılan</th><th>Eksik Gün</th><th>Geç Kalma</th><th>Mola</th><th>Net Çalışma</th><th>Hatalı Gün</th></tr></thead><tbody>{summaryRows.length === 0 ? <tr><td colSpan={7} className={styles.emptyCell}>Bu dönemde personel verisi bulunamadı.</td></tr> : summaryRows.map((row) => <tr key={row.employeeId}><td><strong>{row.employee}</strong><p className={styles.tableSubText}>{row.registrationNumber} · {row.department} · {row.branch}</p></td><td>{row.plannedDays} / {row.attendedDays}</td><td>{row.missingDays}</td><td>{row.lateDays} gün · {row.lateMinutes} dk</td><td>{minutesText(row.breakMinutes)}</td><td>{minutesText(row.workedMinutes)}</td><td><span className={row.errorDays ? styles.reportBadgeDanger : styles.reportBadgeSuccess}>{row.errorDays}</span></td></tr>)}</tbody></table></div></section>
-  </div>;
+  return (
+    <div className={`${styles.page} ${ui.managementPage}`}>
+      <ReportHeader
+        kicker="Raporlar / Puantaj"
+        title="Aylık Puantaj"
+        description="RFID hareketlerinden üretilen aylık puantaj cetveli. Kontrol edip onaylayın; kilitlenen dönemin hareketleri değiştirilemez."
+        actions={ctx.canExport ? <>
+          <ExportLink href={`/dashboard/reports/payroll/export?${filterQuery}&format=xlsx`} icon={<FileSpreadsheet size={15} />} label="Excel" />
+          <ExportLink href={`/dashboard/reports/payroll/export?${filterQuery}&format=pdf`} icon={<FileText size={15} />} label="PDF" />
+        </> : null}
+      />
+
+      <ReportFilters ctx={ctx} dateMode="month" monthKey={view.monthKey} />
+
+      <KpiGrid>
+        <Kpi icon={<Users size={18} />} label="Personel" value={summaryRows.length} hint={`${total((row) => row.attendedDays)} çalışılan gün`} tone="info" />
+        <Kpi icon={<Clock3 size={18} />} label="Net çalışma" value={`${formatHours(total((row) => row.workedMinutes))} sa`} hint={`Planlanan ${formatHours(total((row) => row.plannedMinutes))} sa`} tone="success" />
+        <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={`${formatHours(total((row) => row.overtimeMinutes))} sa`} hint={`Tatil çalışması ${formatHours(total((row) => row.holidayWorkMinutes))} sa`} tone="info" />
+        <Kpi icon={<AlarmClock size={18} />} label="Eksik süre" value={`${formatHours(total((row) => row.missingMinutes))} sa`} hint={`${total((row) => row.missingDays)} devamsız gün`} tone="warning" />
+        <Kpi icon={<CalendarCheck2 size={18} />} label="Geç kalma" value={formatDuration(total((row) => row.lateMinutes))} hint={`${total((row) => row.lateDays)} gün`} tone="warning" />
+        <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken gün" value={total((row) => row.errorDays)} hint="Eksik çıkış, eşleşmeyen hareket, gecikmeli kayıt" tone={total((row) => row.errorDays) ? "danger" : "success"} />
+      </KpiGrid>
+
+      <section className={ui.surface} aria-label="Dönem durumu">
+        <div className={rs.periodBar}>
+          <div>
+            <div className={ui.sectionHeading} style={{ marginBottom: 8 }}>
+              <div><h2>{view.monthKey} dönemi <span className={rs.statusPill} data-status={status}>{PAYROLL_STATUS_LABELS[status]}</span></h2>
+                <p>{view.isFrozen ? `Onay anındaki snapshot gösteriliyor (${formatDate(view.period?.snapshotCreatedAt)}).` : "Canlı hesaplama: hareketler değiştikçe güncellenir."}</p></div>
+            </div>
+            <p className={rs.periodMeta}>
+              {trackingMode ? <span>Mola takibi: <strong>{ATTENDANCE_TRACKING_MODE_LABELS[trackingMode]}</strong></span> : null}
+              {trackingMode === "BREAK_TRACKING" && deductionMode ? <span>Mola düşümü: <strong>{BREAK_DEDUCTION_MODE_LABELS[deductionMode]}</strong></span> : null}
+              {view.period?.approvedAt ? <span>Onaylayan: <strong>{view.period.approvedBy?.name ?? view.period.approvedBy?.email ?? "—"}</strong> · {formatDate(view.period.approvedAt)}</span> : null}
+              {view.period?.lockedAt ? <span>Kilitleyen: <strong>{view.period.lockedBy?.name ?? view.period.lockedBy?.email ?? "—"}</strong> · {formatDate(view.period.lockedAt)}</span> : null}
+              {view.period?.approvalNote ? <span>Not: <strong>{view.period.approvalNote}</strong></span> : null}
+            </p>
+          </div>
+          <div className={rs.periodActions}>
+            {!mayApprove ? <p className={ui.tableHint}>Onay ve kilit için firma geneli puantaj yetkisi gerekir.</p>
+              : status === PayrollPeriodStatus.OPEN ? <form action={approvePayrollPeriodAction}>
+                <input type="hidden" name="companyId" value={ctx.companyId} /><input type="hidden" name="month" value={view.monthKey} /><input type="hidden" name="returnTo" value={returnTo} />
+                <input name="approvalNote" required placeholder="Kontrol / onay açıklaması" aria-label="Onay açıklaması" />
+                <SubmitButton idleLabel="Dönemi Onayla" pendingLabel="Snapshot oluşturuluyor..." className={ui.primaryAction} />
+              </form>
+              : status === PayrollPeriodStatus.APPROVED ? <>
+                <form action={reopenPayrollPeriodAction}><input type="hidden" name="companyId" value={ctx.companyId} /><input type="hidden" name="month" value={view.monthKey} /><input type="hidden" name="returnTo" value={returnTo} /><SubmitButton idleLabel="Onayı Geri Al" pendingLabel="Açılıyor..." className={ui.secondaryAction} /></form>
+                <form action={lockPayrollPeriodAction}><input type="hidden" name="companyId" value={ctx.companyId} /><input type="hidden" name="month" value={view.monthKey} /><input type="hidden" name="returnTo" value={returnTo} /><SubmitButton idleLabel="Dönemi Kilitle" pendingLabel="Kilitleniyor..." className={ui.dangerAction} /></form>
+              </>
+              : <p className={rs.modeNote}><LockKeyhole size={15} />Dönem kilitli; hareket ekleme, silme ve düzenleme engellenir.</p>}
+          </div>
+        </div>
+      </section>
+
+      <Panel title="Puantaj cetveli" description="Hücrenin üzerine gelerek giriş-çıkış ve süre ayrıntısını görebilirsiniz. Toplamlar saat cinsindendir." aside={<span className={ui.countBadge}>{summaryRows.length} personel</span>}>
+        {summaryRows.length === 0 ? <p className={rs.emptyText}>Bu dönemde ve filtrelerde personel bulunamadı.</p> : (
+          <div className={rs.sheetViewport}>
+            <table className={rs.sheet}>
+              <thead>
+                <tr>
+                  <th className={rs.sheetPerson}>Personel</th>
+                  {view.dayKeys.map((dayKey) => <th key={dayKey} className={isWeekend(dayKey) ? rs.weekend : undefined}>{Number(dayKey.slice(8))}<small>{new Intl.DateTimeFormat("tr-TR", { weekday: "narrow", timeZone: "UTC" }).format(new Date(`${dayKey}T12:00:00Z`))}</small></th>)}
+                  <th className={rs.sheetTotal}>Çalışılan<small>gün</small></th>
+                  <th className={rs.sheetTotal}>Net<small>saat</small></th>
+                  <th className={rs.sheetTotal}>Fazla<small>mesai sa</small></th>
+                  <th className={rs.sheetTotal}>Tatil<small>çalışma sa</small></th>
+                  <th className={rs.sheetTotal}>Eksik<small>saat</small></th>
+                  <th className={rs.sheetTotal}>Geç<small>dk</small></th>
+                  <th className={rs.sheetTotal}>İzin<small>gün</small></th>
+                  <th className={rs.sheetTotal}>Devamsız<small>gün</small></th>
+                </tr>
+              </thead>
+              <tbody>
+                {summaryRows.map((row) => {
+                  const days = view.daysByEmployee.get(row.employeeId);
+                  return (
+                    <tr key={row.employeeId}>
+                      <th scope="row" className={rs.sheetPerson}><strong>{row.employee}</strong><span>{row.registrationNumber} · {row.department}</span></th>
+                      {view.dayKeys.map((dayKey) => {
+                        const day = days?.get(dayKey);
+                        return <td key={dayKey} className={isWeekend(dayKey) ? rs.weekend : undefined}><DayCode code={day?.code ?? ""} title={dayTitle(day, dayKey)} /></td>;
+                      })}
+                      <td className={rs.sheetTotal}>{row.attendedDays}</td>
+                      <td className={rs.sheetTotal}>{formatHours(row.workedMinutes)}</td>
+                      <td className={rs.sheetTotal}>{formatHours(row.overtimeMinutes)}</td>
+                      <td className={rs.sheetTotal}>{formatHours(row.holidayWorkMinutes)}</td>
+                      <td className={rs.sheetTotal}>{formatHours(row.missingMinutes)}</td>
+                      <td className={rs.sheetTotal}>{row.lateMinutes}</td>
+                      <td className={rs.sheetTotal}>{row.leaveDays}</td>
+                      <td className={rs.sheetTotal}>{row.missingDays}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div style={{ marginTop: 14 }}><DayCodeLegend /></div>
+      </Panel>
+    </div>
+  );
 }
