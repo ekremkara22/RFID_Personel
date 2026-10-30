@@ -1,4 +1,4 @@
-import type { AttendanceType } from "@/generated/prisma/client";
+import type { AttendanceTrackingMode, AttendanceType } from "@/generated/prisma/client";
 
 type Movement = { id?: number; type: AttendanceType; scannedAt?: Date };
 
@@ -7,9 +7,12 @@ const BREAK_END_TYPES = new Set<AttendanceType>(["BREAK_END", "MEAL_END"]);
 
 export function inferBidirectionalMovement(params: {
   logs: Movement[];
+  trackingMode?: AttendanceTrackingMode;
 }): AttendanceType {
   const { logs } = params;
   if (logs.length === 0) return "ENTRY";
+  // Mola ölçmeyen firmada ara okutmalar hesaba katılmaz; son okutma kesinleştirmede çıkış olur.
+  if (params.trackingMode === "ENTRY_EXIT_ONLY") return "INTERMEDIATE";
 
   // Çift yönlü cihazdaki gün içi tür geçicidir. Kesin çıkış, personelin
   // çözümlenmiş vardiya bitişi ve firma toleransı dolduktan sonra belirlenir.
@@ -50,7 +53,9 @@ export function analyzeAttendanceSequence(
     unmatchedLogIds.push(sorted.at(-1)!.id!);
   }
 
-  const middle = sorted.slice(1, hasFinalExit ? -1 : undefined).filter((log) => log.type !== "EXIT");
+  const middle = sorted
+    .slice(1, hasFinalExit ? -1 : undefined)
+    .filter((log) => log.type !== "EXIT" && log.type !== "INTERMEDIATE");
   for (let index = 0; index < middle.length;) {
     const start = middle[index];
     const end = middle[index + 1];

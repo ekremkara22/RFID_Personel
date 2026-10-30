@@ -178,7 +178,7 @@ export async function simulateDemoCardScanAction(formData: FormData): Promise<Ac
 
     const employee = await prisma.employee.findFirst({
       where: { id: getId(formData, "employeeId"), isActive: true, ...employeeScopeWhere(authorization) },
-      select: { id: true, firstName: true, lastName: true, rfidCardId: true, companyId: true, company: { select: { attendanceFinalizationDelayMinutes: true } } },
+      select: { id: true, firstName: true, lastName: true, rfidCardId: true, companyId: true, company: { select: { attendanceFinalizationDelayMinutes: true, attendanceTrackingMode: true } } },
     });
     if (!employee) throw new ActionError("Personel bulunamadı.");
 
@@ -192,6 +192,7 @@ export async function simulateDemoCardScanAction(formData: FormData): Promise<Ac
       devicePurpose: DevicePurpose.BIDIRECTIONAL,
       scannedAt,
       finalizationDelayMinutes: employee.company.attendanceFinalizationDelayMinutes,
+      trackingMode: employee.company.attendanceTrackingMode,
     });
     await saveResolvedEmployeeWorkCalendar(employee.id, scannedAt);
     await prisma.$transaction(async (tx) => {

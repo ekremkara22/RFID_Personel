@@ -1,9 +1,9 @@
-import { AttendanceType, PayrollPeriodStatus } from "@/generated/prisma/client";
+import { type AttendanceTrackingMode, type LeaveType, PayrollPeriodStatus } from "@/generated/prisma/client";
+import { calculateAttendanceDay, type PuantajDayCode } from "@/lib/attendance-day-calculation";
+import { getScheduledShiftBounds } from "@/lib/attendance-finalization-rules";
 import { ATTENDANCE_TYPE_LABELS } from "@/lib/attendance-labels";
-import { analyzeAttendanceSequence } from "@/lib/attendance-sequence";
-import { dateOnlyFromKey, getAppDayKey, getAppMinutes, getDateOnlyKey } from "@/lib/app-time";
+import { dateOnlyFromKey, getAppDayKey, getDateOnlyKey } from "@/lib/app-time";
 import { prisma } from "@/lib/prisma";
-import { timeToMinutes } from "@/lib/work-calendar-rules";
 
 export const PAYROLL_MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -20,9 +20,16 @@ export type PayrollDetailRow = {
   plannedEnd: string;
   firstEntry: string;
   lastExit: string;
+  code: PuantajDayCode;
+  leaveType: string;
+  plannedMinutes: number;
   lateMinutes: number;
+  earlyLeaveMinutes: number;
   breakMinutes: number;
   workedMinutes: number;
+  overtimeMinutes: number;
+  holidayWorkMinutes: number;
+  missingMinutes: number;
   movementCount: number;
   movements: string;
   issues: string;
@@ -40,13 +47,21 @@ export type PayrollSummaryRow = {
   missingDays: number;
   lateDays: number;
   lateMinutes: number;
+  earlyLeaveMinutes: number;
   breakMinutes: number;
+  plannedMinutes: number;
   workedMinutes: number;
+  overtimeMinutes: number;
+  holidayWorkMinutes: number;
+  missingMinutes: number;
+  leaveDays: number;
   errorDays: number;
+  codeCounts: Partial<Record<PuantajDayCode, number>>;
 };
 
 export type PayrollSnapshot = {
-  version: 1;
+  version: 2;
+  trackingMode: AttendanceTrackingMode | null;
   monthKey: string;
   generatedAt: string;
   summaryRows: PayrollSummaryRow[];
@@ -74,6 +89,17 @@ export function getPayrollMonthRange(monthKey: string) {
   };
 }
 
+const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
+  ANNUAL: "Yıllık izin",
+  EXCUSE: "Mazeret izni",
+  UNPAID: "Ücretsiz izin",
+  MEDICAL: "Rapor",
+  ADMINISTRATIVE: "İdari izin",
+  HOURLY: "Saatlik izin",
+  HALF_DAY: "Yarım gün izin",
+};
+const LEAVE_CODES = new Set<PuantajDayCode>(["Y", "R", "Üİ", "İ"]);
+
 function formatTime(date?: Date | null) {
   if (!date) return "-";
   return new Intl.DateTimeFormat("tr-TR", {
@@ -85,30 +111,43 @@ function formatTime(date?: Date | null) {
 
 export async function buildPayrollSnapshot(companyId: number, monthKey: string): Promise<PayrollSnapshot> {
   const range = getPayrollMonthRange(monthKey);
+  const oneDay = 24 * 60 * 60_000;
+  // Gece vardiyası ay sınırını aşabilir: önceki günün vardiyası ve sonraki günün okutmaları da okunur.
+  const fetchStart = new Date(range.start.getTime() - oneDay);
+  const fetchEnd = new Date(range.end.getTime() + oneDay);
   const [company, employees, calendars, logs] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true } }),
+    prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, attendanceTrackingMode: true, attendanceFinalizationDelayMinutes: true } }),
     prisma.employee.findMany({
       where: { companyId },
       orderBy: [{ department: "asc" }, { firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.employeeDailyCalendar.findMany({
-      where: { employee: { companyId }, workDate: { gte: range.start, lt: range.end } },
+      where: { employee: { companyId }, workDate: { gte: fetchStart, lt: range.end } },
+      include: { leave: { select: { type: true, durationType: true, startTime: true, endTime: true } } },
       orderBy: [{ workDate: "asc" }, { employeeId: "asc" }],
     }),
     prisma.attendanceLog.findMany({
-      where: { employee: { companyId }, scannedAt: { gte: range.start, lt: range.end } },
+      where: { employee: { companyId }, scannedAt: { gte: fetchStart, lt: fetchEnd } },
       orderBy: [{ scannedAt: "asc" }, { id: "asc" }],
     }),
   ]);
 
   const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
-  const calendarByKey = new Map(calendars.map((calendar) => [
-    `${calendar.employeeId}-${getDateOnlyKey(calendar.workDate)}`,
-    calendar,
-  ]));
+  const isInMonth = (dayKey: string) => dayKey.startsWith(`${monthKey}-`);
+  const calendarByKey = new Map(calendars
+    .filter((calendar) => isInMonth(getDateOnlyKey(calendar.workDate)))
+    .map((calendar) => [`${calendar.employeeId}-${getDateOnlyKey(calendar.workDate)}`, calendar]));
+  // Gece vardiyasındaki okutmalar takvim gününe değil, kesinleştirmedeki gibi vardiya penceresine aittir.
+  const nightWindows = calendars.flatMap((calendar) => {
+    const bounds = calendar.crossesMidnight ? getScheduledShiftBounds(calendar, company.attendanceFinalizationDelayMinutes) : null;
+    return bounds ? [{ employeeId: calendar.employeeId, dayKey: getDateOnlyKey(calendar.workDate), start: bounds.collectionStart, end: bounds.dueAt }] : [];
+  });
   const logsByKey = new Map<string, typeof logs>();
   for (const log of logs) {
-    const key = `${log.employeeId}-${getAppDayKey(log.scannedAt)}`;
+    const window = nightWindows.find((item) => item.employeeId === log.employeeId && log.scannedAt >= item.start && log.scannedAt <= item.end);
+    const dayKey = window?.dayKey ?? getAppDayKey(log.scannedAt);
+    if (!isInMonth(dayKey)) continue;
+    const key = `${log.employeeId}-${dayKey}`;
     const list = logsByKey.get(key) ?? [];
     list.push(log);
     logsByKey.set(key, list);
@@ -127,26 +166,15 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
     if (!employee) continue;
     const calendar = calendarByKey.get(key);
     const dayLogs = logsByKey.get(key) ?? [];
-    const entry = dayLogs.find((log) => log.type === AttendanceType.ENTRY)?.scannedAt ?? null;
-    const exit = [...dayLogs].reverse().find((log) => log.type === AttendanceType.EXIT)?.scannedAt ?? null;
-    const analysis = analyzeAttendanceSequence(dayLogs, {
-      requireExit: dayKey < todayKey && dayLogs.length > 0,
-      allowOpenBreak: dayKey === todayKey,
+    const leave = calendar?.leave ?? null;
+    const day = calculateAttendanceDay({
+      trackingMode: company.attendanceTrackingMode,
+      calendar: calendar ?? null,
+      leave,
+      logs: dayLogs,
+      isPast: dayKey < todayKey,
+      isToday: dayKey === todayKey,
     });
-    const plannedStart = timeToMinutes(calendar?.plannedStart);
-    const lateMinutes = entry && plannedStart !== null && calendar?.checkLateArrival
-      ? Math.max(0, getAppMinutes(entry) - plannedStart)
-      : 0;
-    const workedMinutes = entry && exit
-      ? Math.max(0, Math.floor((exit.getTime() - entry.getTime()) / 60_000) - analysis.totalMinutes)
-      : 0;
-    const issues: string[] = [];
-    if (calendar?.checkAbsence && dayLogs.length === 0) issues.push("Hareket yok");
-    if (dayLogs.length > 0 && !exit && dayKey < todayKey) issues.push("Eksik çıkış");
-    if (!analysis.isValid) issues.push("Eşleşmeyen hareket");
-    if (dayLogs.some((log) => log.receivedAt && log.receivedAt.getTime() - log.scannedAt.getTime() > 5 * 60_000)) {
-      issues.push("Gecikmeli aktarım");
-    }
 
     detailRows.push({
       employeeId,
@@ -159,20 +187,30 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
       dayType: calendar?.dayType ?? "TAKVİM YOK",
       plannedStart: calendar?.plannedStart ?? "-",
       plannedEnd: calendar?.plannedEnd ?? "-",
-      firstEntry: formatTime(entry),
-      lastExit: formatTime(exit),
-      lateMinutes,
-      breakMinutes: analysis.totalMinutes,
-      workedMinutes,
+      firstEntry: formatTime(day.entry),
+      lastExit: formatTime(day.exit),
+      code: day.code,
+      leaveType: leave ? LEAVE_TYPE_LABELS[leave.type] : "-",
+      plannedMinutes: day.plannedMinutes,
+      lateMinutes: day.lateMinutes,
+      earlyLeaveMinutes: day.earlyLeaveMinutes,
+      breakMinutes: day.breakMinutes,
+      workedMinutes: day.workedMinutes,
+      overtimeMinutes: day.overtimeMinutes,
+      holidayWorkMinutes: day.holidayWorkMinutes,
+      missingMinutes: day.missingMinutes,
       movementCount: dayLogs.length,
       movements: dayLogs.map((log) => `${formatTime(log.scannedAt)} ${ATTENDANCE_TYPE_LABELS[log.type]}`).join(" | "),
-      issues: issues.join(", ") || "Normal",
+      issues: day.issues.join(", ") || "Normal",
     });
   }
 
+  const sumMinutes = (rows: PayrollDetailRow[], pick: (row: PayrollDetailRow) => number) =>
+    rows.reduce((total, row) => total + pick(row), 0);
   const summaryRows = employees.map<PayrollSummaryRow>((employee) => {
     const rows = detailRows.filter((row) => row.employeeId === employee.id);
-    const plannedRows = rows.filter((row) => row.dayType !== "TAKVİM YOK" && row.dayType !== "NON_WORKING" && row.dayType !== "WEEKLY_REST");
+    const codeCounts: Partial<Record<PuantajDayCode, number>> = {};
+    for (const row of rows) if (row.code) codeCounts[row.code] = (codeCounts[row.code] ?? 0) + 1;
     return {
       employeeId: employee.id,
       employee: `${employee.firstName} ${employee.lastName}`.trim(),
@@ -180,27 +218,67 @@ export async function buildPayrollSnapshot(companyId: number, monthKey: string):
       company: company.name,
       branch: employee.branch ?? "-",
       department: employee.department || "Departmansız",
-      plannedDays: plannedRows.length,
+      plannedDays: rows.filter((row) => row.plannedMinutes > 0).length,
       attendedDays: rows.filter((row) => row.firstEntry !== "-").length,
-      missingDays: rows.filter((row) => row.issues.includes("Hareket yok")).length,
+      missingDays: codeCounts["D"] ?? 0,
       lateDays: rows.filter((row) => row.lateMinutes > 0).length,
-      lateMinutes: rows.reduce((total, row) => total + row.lateMinutes, 0),
-      breakMinutes: rows.reduce((total, row) => total + row.breakMinutes, 0),
-      workedMinutes: rows.reduce((total, row) => total + row.workedMinutes, 0),
+      lateMinutes: sumMinutes(rows, (row) => row.lateMinutes),
+      earlyLeaveMinutes: sumMinutes(rows, (row) => row.earlyLeaveMinutes),
+      breakMinutes: sumMinutes(rows, (row) => row.breakMinutes),
+      plannedMinutes: sumMinutes(rows, (row) => row.plannedMinutes),
+      workedMinutes: sumMinutes(rows, (row) => row.workedMinutes),
+      overtimeMinutes: sumMinutes(rows, (row) => row.overtimeMinutes),
+      holidayWorkMinutes: sumMinutes(rows, (row) => row.holidayWorkMinutes),
+      missingMinutes: sumMinutes(rows, (row) => row.missingMinutes),
+      leaveDays: rows.filter((row) => LEAVE_CODES.has(row.code)).length,
       errorDays: rows.filter((row) => row.issues !== "Normal").length,
+      codeCounts,
     };
   });
 
-  return { version: 1, monthKey, generatedAt: new Date().toISOString(), summaryRows, detailRows };
+  return {
+    version: 2,
+    trackingMode: company.attendanceTrackingMode,
+    monthKey,
+    generatedAt: new Date().toISOString(),
+    summaryRows,
+    detailRows,
+  };
 }
 
 export function parsePayrollSnapshot(value?: string | null): PayrollSnapshot | null {
   if (!value) return null;
   try {
-    const parsed = JSON.parse(value) as PayrollSnapshot;
-    return parsed.version === 1 && Array.isArray(parsed.summaryRows) && Array.isArray(parsed.detailRows)
-      ? parsed
-      : null;
+    const parsed = JSON.parse(value) as Omit<PayrollSnapshot, "version"> & { version: number };
+    if (!Array.isArray(parsed.summaryRows) || !Array.isArray(parsed.detailRows)) return null;
+    if (parsed.version === 2) return parsed as PayrollSnapshot;
+    if (parsed.version !== 1) return null;
+    // Onaylanmış eski dönemler değişmez; eski snapshot'ta olmayan alanlar sıfır gösterilir.
+    return {
+      ...parsed,
+      version: 2,
+      trackingMode: null,
+      summaryRows: parsed.summaryRows.map((row) => ({
+        ...row,
+        earlyLeaveMinutes: row.earlyLeaveMinutes ?? 0,
+        plannedMinutes: row.plannedMinutes ?? 0,
+        overtimeMinutes: row.overtimeMinutes ?? 0,
+        holidayWorkMinutes: row.holidayWorkMinutes ?? 0,
+        missingMinutes: row.missingMinutes ?? 0,
+        leaveDays: row.leaveDays ?? 0,
+        codeCounts: row.codeCounts ?? {},
+      })),
+      detailRows: parsed.detailRows.map((row) => ({
+        ...row,
+        code: row.code ?? "",
+        leaveType: row.leaveType ?? "-",
+        plannedMinutes: row.plannedMinutes ?? 0,
+        earlyLeaveMinutes: row.earlyLeaveMinutes ?? 0,
+        overtimeMinutes: row.overtimeMinutes ?? 0,
+        holidayWorkMinutes: row.holidayWorkMinutes ?? 0,
+        missingMinutes: row.missingMinutes ?? 0,
+      })),
+    };
   } catch {
     return null;
   }

@@ -31,7 +31,7 @@ export async function runAttendanceFinalizer(now = new Date(), lookbackDays = 4)
       employee: {
         select: {
           companyId: true,
-          company: { select: { attendanceFinalizationDelayMinutes: true } },
+          company: { select: { attendanceFinalizationDelayMinutes: true, attendanceTrackingMode: true } },
         },
       },
     },
@@ -100,7 +100,8 @@ export async function runAttendanceFinalizer(now = new Date(), lookbackDays = 4)
       continue;
     }
 
-    const result = buildFinalizedMovementTypes(logs);
+    const trackingMode = candidate.employee.company.attendanceTrackingMode;
+    const result = buildFinalizedMovementTypes(logs, trackingMode);
     if (result.status === "EMPTY") {
       await prisma.employeeDailyCalendar.update({
         where: { id: refreshed.id },
@@ -125,7 +126,9 @@ export async function runAttendanceFinalizer(now = new Date(), lookbackDays = 4)
       ? `Hareketler ${calendarDescription} kullanılarak otomatik kesinleştirildi.`
       : result.duplicateIds.length > 0
         ? `Tekrarlı okutma şüphesi nedeniyle otomatik kesinleştirme yapılmadı. Kayıtlar: ${result.duplicateIds.join(", ")}.`
-        : "Çıkış veya mola eşleşmesi kesin belirlenemedi; yönetici incelemesi gerekiyor.";
+        : trackingMode === "ENTRY_EXIT_ONLY"
+          ? "Gün içinde tek okutma var; çıkış belirlenemedi, yönetici incelemesi gerekiyor."
+          : "Çıkış veya mola eşleşmesi kesin belirlenemedi; yönetici incelemesi gerekiyor.";
 
     await prisma.$transaction(async (tx) => {
       for (const log of changedLogs) {

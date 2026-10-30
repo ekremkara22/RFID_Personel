@@ -130,6 +130,7 @@ export async function POST(request: Request) {
       devicePurpose: device.purpose,
       scannedAt,
       finalizationDelayMinutes: device.company.attendanceFinalizationDelayMinutes,
+      trackingMode: device.company.attendanceTrackingMode,
     });
 
     const [log] = await prisma.$transaction([

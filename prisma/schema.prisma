@@ -20,6 +20,12 @@ enum AttendanceType {
   BREAK_END
   MEAL_START
   MEAL_END
+  INTERMEDIATE
+}
+
+enum AttendanceTrackingMode {
+  BREAK_TRACKING
+  ENTRY_EXIT_ONLY
 }
 
 enum AttendanceAuditOperation {
@@ -220,6 +226,7 @@ model Company {
   category                           String?
   isActive                           Boolean                    @default(true)
   attendanceFinalizationDelayMinutes Int                        @default(120)
+  attendanceTrackingMode             AttendanceTrackingMode     @default(BREAK_TRACKING)
   createdAt                          DateTime                   @default(now())
   updatedAt                          DateTime                   @updatedAt
   users                              User[]

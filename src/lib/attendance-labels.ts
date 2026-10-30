@@ -1,4 +1,4 @@
-import type { AttendanceType } from "@/generated/prisma/client";
+import type { AttendanceTrackingMode, AttendanceType } from "@/generated/prisma/client";
 
 export const ATTENDANCE_TYPE_LABELS: Record<AttendanceType, string> = {
   ENTRY: "Giriş",
@@ -7,4 +7,12 @@ export const ATTENDANCE_TYPE_LABELS: Record<AttendanceType, string> = {
   BREAK_END: "Mola Bitiş",
   MEAL_START: "Yemek Çıkış",
   MEAL_END: "Yemek Giriş",
+  INTERMEDIATE: "Ara Okutma",
 };
+
+export const ATTENDANCE_TRACKING_MODE_LABELS: Record<AttendanceTrackingMode, string> = {
+  BREAK_TRACKING: "Mola takipli",
+  ENTRY_EXIT_ONLY: "Sadece giriş-çıkış",
+};
+
+export const ATTENDANCE_TRACKING_MODE_OPTIONS = Object.keys(ATTENDANCE_TRACKING_MODE_LABELS) as AttendanceTrackingMode[];

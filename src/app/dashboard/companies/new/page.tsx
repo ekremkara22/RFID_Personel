@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { ATTENDANCE_TRACKING_MODE_LABELS, ATTENDANCE_TRACKING_MODE_OPTIONS } from "@/lib/attendance-labels";
 import { BackLink } from "@/app/dashboard/back-link";
 import { createCompanyAction } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/submit-button";
@@ -108,6 +109,16 @@ export default async function NewCompanyPage() {
             <span>Mesai Sonu Kesinleştirme Toleransı</span>
             <input name="attendanceFinalizationDelayMinutes" type="number" min={30} max={720} step={30} defaultValue={120} required />
             <small>Hareketler vardiya bitiminden bu kadar dakika sonra kesinleştirilir.</small>
+          </label>
+
+          <label className={styles.field}>
+            <span>Puantaj Modu</span>
+            <select name="attendanceTrackingMode" defaultValue="BREAK_TRACKING">
+              {ATTENDANCE_TRACKING_MODE_OPTIONS.map((mode) => (
+                <option key={mode} value={mode}>{ATTENDANCE_TRACKING_MODE_LABELS[mode]}</option>
+              ))}
+            </select>
+            <small>Sadece giriş-çıkış modunda ilk okutma giriş, son okutma çıkış sayılır; ara okutmalar hesaba katılmaz ve takvimdeki mola süresi düşülür. Değişiklik açık puantaj dönemlerine uygulanır, onaylı ve kilitli dönemler değişmez.</small>
           </label>
 
           <label className={`${styles.field} ${styles.fullWidth}`}>

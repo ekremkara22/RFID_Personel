@@ -542,7 +542,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ da
   const selectedWorkingEmployees = scopedEmployees.filter((employee) => {
     if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id) || !isSelectedShiftOpen(employee.id)) return false;
     const latest = latestSelectedLogByEmployee.get(employee.id);
-    return latest?.type === "ENTRY" || latest?.type === "BREAK_END" || latest?.type === "MEAL_END";
+    return latest?.type === "ENTRY" || latest?.type === "BREAK_END" || latest?.type === "MEAL_END" || latest?.type === "INTERMEDIATE";
   });
   const selectedOnBreakEmployees = scopedEmployees.filter((employee) => {
     if (!employee.isActive || selectedLeaveEmployeeIds.has(employee.id) || !isSelectedShiftOpen(employee.id)) return false;

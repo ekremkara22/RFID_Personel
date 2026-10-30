@@ -12,13 +12,15 @@ Firmanın "kim ne zaman geldi, ne kadar çalıştı" sorusuna doğru yanıt verm
 
 ## Kapsam
 - Ekranlar: `src/app/dashboard/movements/**`, `src/app/dashboard/movement-reviews/**`
-- İş mantığı: `src/modules/attendance/`, `src/modules/attendance-review/`, `src/modules/payroll/` (puantaj dönemi onay/kilit), `src/lib/attendance-sequence.ts`, `attendance-finalization-rules.ts`, `attendance-finalizer.ts`, `attendance-review.ts`, `attendance-labels.ts`, `payroll-period.ts`
+- İş mantığı: `src/modules/attendance/`, `src/modules/attendance-review/`, `src/modules/payroll/` (puantaj dönemi onay/kilit), `src/lib/attendance-sequence.ts`, `attendance-finalization-rules.ts`, `attendance-finalizer.ts`, `attendance-review.ts`, `attendance-labels.ts`, `attendance-day-calculation.ts`, `payroll-period.ts`
 - Zamanlanmış iş: `scripts/finalize-attendance.ts` (`deploy/*/…-attendance-finalizer.timer`)
 - Veri: `AttendanceLog`, `AttendanceReviewResolution`, `AttendanceMovementAudit`, `PayrollPeriod`
-- Testler: `attendance-sequence.test.ts`, `attendance-finalization-rules.test.ts`, `attendance-review.test.ts`
+- Testler: `attendance-sequence.test.ts`, `attendance-finalization-rules.test.ts`, `attendance-review.test.ts`, `attendance-day-calculation.test.ts`
 
 ## Değişmez kurallar
-- Hareket türleri: giriş, çıkış, mola başlangıç/bitiş, yemek başlangıç/bitiş. Sıra ve eşleşme `attendance-sequence` kurallarıyla değerlendirilir.
+- Hareket türleri: giriş, çıkış, mola başlangıç/bitiş, yemek başlangıç/bitiş, ara okutma. Sıra ve eşleşme `attendance-sequence` kurallarıyla değerlendirilir.
+- Firma puantaj modu (`Company.attendanceTrackingMode`): *Mola takipli* veya *Sadece giriş-çıkış*. Sadece giriş-çıkış modunda ilk okutma giriş, son okutma çıkış, aradakiler hesaba katılmayan ara okutmadır; tek okutmalı gün incelemeye düşer ve net süreden takvimdeki mola (planlanan mola penceresiyle kesiştiği kadar) düşülür.
+- Günlük puantaj değerleri (gün kodu, net çalışma, geç/erken, fazla mesai, tatil çalışması, eksik süre) yalnız `src/lib/attendance-day-calculation.ts` ile hesaplanır; aylık puantaj bu hesabı kullanır, yenilenen raporlar da buna taşınır (günlük mola ve operasyon raporları henüz eski hesapta). Gece vardiyası okutmaları vardiya penceresine göre güne bağlanır. Mod değişikliği açık dönemlerde canlı hesaba yansır; onaylı/kilitli dönemin snapshot'ı değişmez.
 - Kısa aralıktaki tekrar okumalar (`DUPLICATE_SCAN_WINDOW_MS`) tek hareket sayılır; gecikmeli yüklenen cihaz kayıtları işaretlenir.
 - Manuel ekleme, düzeltme ve silme `AttendanceMovementAudit` ile iz bırakır; iz silinmez.
 - Onaylanmış veya kilitli puantaj dönemindeki hareketler değiştirilemez; önce dönem yeniden açılmalıdır (yetki gerekir).

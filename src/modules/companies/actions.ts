@@ -1,6 +1,8 @@
 "use server";
 
+import type { AttendanceTrackingMode } from "@/generated/prisma/client";
 import { ActionError } from "@/lib/action-error";
+import { ATTENDANCE_TRACKING_MODE_OPTIONS } from "@/lib/attendance-labels";
 import { runFormAction } from "@/lib/run-form-action";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
@@ -23,6 +25,14 @@ function getAttendanceFinalizationDelayMinutes(formData: FormData) {
   return value;
 }
 
+function getAttendanceTrackingMode(formData: FormData): AttendanceTrackingMode {
+  const value = getString(formData, "attendanceTrackingMode") || "BREAK_TRACKING";
+  if (!ATTENDANCE_TRACKING_MODE_OPTIONS.includes(value as AttendanceTrackingMode)) {
+    throw new ActionError("Geçersiz puantaj modu.");
+  }
+  return value as AttendanceTrackingMode;
+}
+
 export async function createCompanyAction(formData: FormData) {
   const { user } = await requireSessionUser();
 
@@ -39,6 +49,7 @@ export async function createCompanyAction(formData: FormData) {
   const district = getString(formData, "district");
   const category = getString(formData, "category");
   const attendanceFinalizationDelayMinutes = getAttendanceFinalizationDelayMinutes(formData);
+  const attendanceTrackingMode = getAttendanceTrackingMode(formData);
   const adminFirstName = getString(formData, "adminFirstName");
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
@@ -74,6 +85,7 @@ export async function createCompanyAction(formData: FormData) {
         district: district || null,
         category: category || null,
         attendanceFinalizationDelayMinutes,
+        attendanceTrackingMode,
       },
     });
 
@@ -135,6 +147,7 @@ async function updateCompanyActionImpl(formData: FormData) {
   const district = getString(formData, "district");
   const category = getString(formData, "category");
   const attendanceFinalizationDelayMinutes = getAttendanceFinalizationDelayMinutes(formData);
+  const attendanceTrackingMode = getAttendanceTrackingMode(formData);
   const adminFirstName = getString(formData, "adminFirstName");
   const adminLastName = getString(formData, "adminLastName");
   const adminEmail = getString(formData, "adminEmail").toLowerCase();
@@ -174,6 +187,7 @@ async function updateCompanyActionImpl(formData: FormData) {
         district: district || null,
         category: category || null,
         attendanceFinalizationDelayMinutes,
+        attendanceTrackingMode,
         isActive,
       },
     });

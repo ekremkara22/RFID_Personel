@@ -1,4 +1,4 @@
-import type { AttendanceType } from "@/generated/prisma/client";
+import type { AttendanceTrackingMode, AttendanceType } from "@/generated/prisma/client";
 import { getAppDayRange, getDateOnlyKey } from "@/lib/app-time";
 import { timeToMinutes } from "@/lib/work-calendar-rules";
 
@@ -70,7 +70,7 @@ export function findProbableExitLogId(logs: FinalizationMovement[], shiftEnd: Da
   return last.scannedAt.getTime() >= shiftEnd.getTime() - PROBABLE_EXIT_WINDOW_MINUTES * 60_000 ? last.id : null;
 }
 
-export function buildFinalizedMovementTypes(logs: FinalizationMovement[]) {
+export function buildFinalizedMovementTypes(logs: FinalizationMovement[], trackingMode: AttendanceTrackingMode = "BREAK_TRACKING") {
   const sorted = [...logs].sort(
     (first, second) => first.scannedAt.getTime() - second.scannedAt.getTime() || first.id - second.id,
   );
@@ -80,6 +80,15 @@ export function buildFinalizedMovementTypes(logs: FinalizationMovement[]) {
 
   const duplicateIds = findDuplicateScanIds(sorted);
   const firstDecision = { id: sorted[0].id, type: "ENTRY" as AttendanceType };
+  if (trackingMode === "ENTRY_EXIT_ONLY") {
+    // Mola ölçülmez: ilk okutma giriş, son okutma çıkış; aradakiler hesaba katılmayan ara okutmadır.
+    if (sorted.length === 1 || duplicateIds.length > 0) return { status: "REVIEW" as const, decisions: [firstDecision], duplicateIds };
+    const decisions = sorted.map((log, index) => ({
+      id: log.id,
+      type: (index === 0 ? "ENTRY" : index === sorted.length - 1 ? "EXIT" : "INTERMEDIATE") as AttendanceType,
+    }));
+    return { status: "FINALIZED" as const, decisions, duplicateIds };
+  }
   if (duplicateIds.length > 0 || sorted.length === 1 || sorted.length % 2 === 1) {
     return {
       status: "REVIEW" as const,

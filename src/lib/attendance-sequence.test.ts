@@ -44,3 +44,16 @@ test("açık mola için varsayımsal süre üretmez", () => {
     unmatchedLogIds: [2],
   });
 });
+
+test("sadece giris-cikis modunda girişten sonraki okutmalar ara okutmadır ve mola sayılmaz", () => {
+  assert.equal(inferBidirectionalMovement({ logs: [], trackingMode: "ENTRY_EXIT_ONLY" }), "ENTRY");
+  assert.equal(inferBidirectionalMovement({ logs: [{ type: "ENTRY" }], trackingMode: "ENTRY_EXIT_ONLY" }), "INTERMEDIATE");
+  const day = (hour: number) => new Date(Date.UTC(2026, 9, 8, hour - 3));
+  const analysis = analyzeAttendanceSequence([
+    { id: 1, type: "ENTRY", scannedAt: day(8) },
+    { id: 2, type: "INTERMEDIATE", scannedAt: day(12) },
+    { id: 3, type: "EXIT", scannedAt: day(18) },
+  ], { requireExit: true });
+  assert.equal(analysis.isValid, true);
+  assert.equal(analysis.totalMinutes, 0);
+});

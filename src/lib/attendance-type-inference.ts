@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AttendanceType, DevicePurpose } from "@/generated/prisma/client";
+import { AttendanceTrackingMode, AttendanceType, DevicePurpose } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAppDayRange } from "@/lib/app-time";
 import { resolveEmployeeAttendanceCalendar } from "@/lib/work-calendar";
@@ -12,6 +12,7 @@ export async function inferAttendanceType(params: {
   devicePurpose: DevicePurpose;
   scannedAt: Date;
   finalizationDelayMinutes: number;
+  trackingMode: AttendanceTrackingMode;
 }) {
   const day = getAppDayRange(params.scannedAt);
   const resolved = await resolveEmployeeAttendanceCalendar(
@@ -35,8 +36,9 @@ export async function inferAttendanceType(params: {
 
   if (params.devicePurpose === DevicePurpose.ENTRY) return AttendanceType.ENTRY;
   if (params.devicePurpose === DevicePurpose.EXIT) return AttendanceType.EXIT;
+  if (params.trackingMode === AttendanceTrackingMode.ENTRY_EXIT_ONLY) return AttendanceType.INTERMEDIATE;
   if (params.devicePurpose === DevicePurpose.BREAK_START) return AttendanceType.BREAK_START;
   if (params.devicePurpose === DevicePurpose.BREAK_END) return AttendanceType.BREAK_END;
 
-  return inferBidirectionalMovement({ logs: todayLogs });
+  return inferBidirectionalMovement({ logs: todayLogs, trackingMode: params.trackingMode });
 }

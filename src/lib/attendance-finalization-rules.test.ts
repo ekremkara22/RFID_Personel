@@ -7,7 +7,7 @@ import {
   getScheduledShiftBounds,
 } from "./attendance-finalization-rules";
 
-function movement(id: number, type: "ENTRY" | "EXIT" | "BREAK_START" | "BREAK_END", hour: number, minute = 0) {
+function movement(id: number, type: "ENTRY" | "EXIT" | "BREAK_START" | "BREAK_END" | "INTERMEDIATE", hour: number, minute = 0) {
   return {
     id,
     type,
@@ -93,4 +93,28 @@ test("muhtemel cikis yalniz uygun gunlerde onerilir", () => {
   assert.equal(findProbableExitLogId([movement(1, "ENTRY", 18, 20)], shiftEnd), null);
   assert.equal(findProbableExitLogId([movement(1, "ENTRY", 8), movement(2, "EXIT", 18, 30), movement(3, "BREAK_START", 18, 40)], shiftEnd), null);
   assert.equal(findProbableExitLogId([movement(1, "ENTRY", 8), movement(2, "BREAK_START", 18, 29)], null), null);
+});
+
+test("sadece giris-cikis modunda ilk okutma giris, son okutma cikis, aradakiler ara okutma olur", () => {
+  const result = buildFinalizedMovementTypes([
+    movement(1, "ENTRY", 8, 40),
+    movement(2, "BREAK_START", 12),
+    movement(3, "BREAK_END", 17, 55),
+  ], "ENTRY_EXIT_ONLY");
+  assert.equal(result.status, "FINALIZED");
+  assert.deepEqual(result.decisions, [
+    { id: 1, type: "ENTRY" },
+    { id: 2, type: "INTERMEDIATE" },
+    { id: 3, type: "EXIT" },
+  ]);
+});
+
+test("sadece giris-cikis modunda tek okutmali gun incelemeye gider", () => {
+  assert.equal(buildFinalizedMovementTypes([movement(1, "ENTRY", 8)], "ENTRY_EXIT_ONLY").status, "REVIEW");
+});
+
+test("sadece giris-cikis modunda tekrarli okutma incelemeye gider", () => {
+  const first = movement(1, "ENTRY", 8);
+  const duplicate = { ...movement(2, "INTERMEDIATE", 8), scannedAt: new Date(first.scannedAt.getTime() + 5_000) };
+  assert.equal(buildFinalizedMovementTypes([first, duplicate], "ENTRY_EXIT_ONLY").status, "REVIEW");
 });
