@@ -20,8 +20,9 @@
 .kpi {
   min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   border: 1px solid #e4e7ec;
   border-radius: 12px;
   background: #fff;
@@ -60,6 +61,7 @@
   margin: 4px 0 0;
   color: #101828;
   font-size: 22px;
+  white-space: nowrap;
   font-weight: 720;
   line-height: 1.2;
   letter-spacing: -0.01em;
@@ -500,7 +502,6 @@
   }
 
   .kpi {
-    flex-direction: column;
     gap: 8px;
     padding: 12px;
   }

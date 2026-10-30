@@ -48,7 +48,7 @@ export default async function PayrollPage(props: { searchParams: Promise<ReportS
         <Kpi icon={<TimerReset size={18} />} label="Fazla mesai" value={`${formatHours(total((row) => row.overtimeMinutes))} sa`} hint={`Tatil çalışması ${formatHours(total((row) => row.holidayWorkMinutes))} sa`} tone="info" />
         <Kpi icon={<AlarmClock size={18} />} label="Eksik süre" value={`${formatHours(total((row) => row.missingMinutes))} sa`} hint={`${total((row) => row.missingDays)} devamsız gün`} tone="warning" />
         <Kpi icon={<CalendarCheck2 size={18} />} label="Geç kalma" value={formatDuration(total((row) => row.lateMinutes))} hint={`${total((row) => row.lateDays)} gün`} tone="warning" />
-        <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken gün" value={total((row) => row.errorDays)} hint="Eksik çıkış, eşleşmeyen hareket, gecikmeli kayıt (devamsızlık hariç)" tone={total((row) => row.errorDays) ? "danger" : "success"} />
+        <Kpi icon={<AlertTriangle size={18} />} label="Kontrol gereken gün" value={total((row) => row.errorDays)} hint="Devamsızlık hariç hareket sorunları" tone={total((row) => row.errorDays) ? "danger" : "success"} />
       </KpiGrid>
 
       <section className={ui.surface} aria-label="Dönem durumu">
