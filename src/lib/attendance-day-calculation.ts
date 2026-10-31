@@ -207,7 +207,9 @@ export function calculateAttendanceDay(params: {
     result.workedMinutes = Math.max(0, minutesBetween(entry, exit) - result.breakMinutes);
     if (isRestDay) result.holidayWorkMinutes = result.workedMinutes;
     else if (plannedMinutes > 0) {
-      result.overtimeMinutes = Math.max(0, result.workedMinutes - plannedMinutes);
+      // Vardiya başlamadan önce geçen süre fazla mesai sayılmaz.
+      const earlyArrivalMinutes = bounds ? minutesBetween(entry, bounds.shiftStart) : 0;
+      result.overtimeMinutes = Math.max(0, result.workedMinutes - plannedMinutes - earlyArrivalMinutes);
       result.missingMinutes = Math.max(0, plannedMinutes - result.workedMinutes);
     }
   }

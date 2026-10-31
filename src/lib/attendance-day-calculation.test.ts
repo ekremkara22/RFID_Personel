@@ -74,6 +74,15 @@ test("mola takibi acikken planlanandan kisa mola puantaji artirmaz, fazla mesai 
   assert.equal(result.overtimeMinutes, 60);
 });
 
+test("vardiyadan once gelinen sure fazla mesai sayilmaz, vardiya sonrasi kalinan sure sayilir", () => {
+  const base = { trackingMode: "ENTRY_EXIT_ONLY" as const, calendar: calendar(), leave: null, ...past };
+  const early = calculateAttendanceDay({ ...base, logs: [log(1, "ENTRY", 7, 40), log(2, "EXIT", 18)] });
+  assert.equal(early.workedMinutes, 560);
+  assert.equal(early.overtimeMinutes, 0);
+  const earlyAndLate = calculateAttendanceDay({ ...base, logs: [log(1, "ENTRY", 7, 40), log(2, "EXIT", 18, 30)] });
+  assert.equal(earlyAndLate.overtimeMinutes, 30);
+});
+
 test("planlanan molayi asan sure yalniz secildiyse puantajdan dusulur", () => {
   const input = {
     trackingMode: "BREAK_TRACKING" as const,
