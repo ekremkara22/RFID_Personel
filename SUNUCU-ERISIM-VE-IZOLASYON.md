@@ -102,4 +102,3 @@ Görev açıkça RFID Personel veya Flodeska ile ilgili olsa bile:
 ## Ajan için kısa ve bağlayıcı talimat
 
 > Bu sunucu paylaşımlıdır. Görev açıkça RFID Personel veya Flodeska projesini kapsamıyorsa `/var/www/rfid-personel-takip`, `/var/www/rfid-personel-staging`, Flodeska/RFID servisleri, veritabanları, Nginx tanımları, port `3002` ve `3003`, firmware dizinleri, ortam dosyaları ve yedekler kesinlikle kapsam dışıdır. Bunları inceleme, değiştirme, yeniden başlatma veya silme. Yeni proje için tamamen ayrı kaynaklar oluştur. Bir çakışmayı mevcut kaynağı değiştirerek çözme; dur ve kullanıcıya bildir. Canlı Flodeska işlemleri her zaman ayrıca açık kullanıcı onayı gerektirir.
-
