@@ -81,7 +81,8 @@ async function measureInternetSpeed(): Promise<InternetSpeedSnapshot> {
     ]);
     const cachedUntil = new Date(measuredAt.getTime() + SUCCESS_CACHE_MS);
     return { available: true, level, latencyMs, downloadMbps, uploadMbps, measuredAt, cachedUntil };
-  } catch {
+  } catch (error) {
+    console.error("Internet speed test failed:", error, error instanceof Error ? error.cause : undefined);
     const cachedUntil = new Date(measuredAt.getTime() + FAILURE_CACHE_MS);
     return {
       available: false,
