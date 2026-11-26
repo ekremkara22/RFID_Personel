@@ -4,6 +4,7 @@ import { BudgetReportPreview } from "@/components/marketing/budget-report-previe
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { ModuleActions } from "@/components/marketing/module-actions";
 import { ModuleBuyBar, ModuleSideCard } from "@/components/marketing/module-card";
+import { blogPosts } from "@/lib/marketing/blog-posts";
 import { getMarketingModule } from "@/lib/marketing/modules";
 import { MODULES } from "@/modules/registry";
 import styles from "../../marketing.module.css";
@@ -91,7 +92,7 @@ export default async function AccountingModulePage() {
           <div className={styles.faq}>{FAQ.map((item) => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}</div>
 
           <h2>Devamını okuyun</h2>
-          <p><Link href="/blog/brutten-nete-maas-hesaplama-ve-isveren-maliyeti">Brütten nete maaş hesaplama ve işveren maliyeti: 2026 rehberi</Link></p>
+          <ul>{blogPosts.filter((post) => post.relatedModule === MODULES.ACCOUNTING).map((post) => <li key={post.slug}><Link href={`/blog/${post.slug}`}>{post.title}</Link></li>)}</ul>
         </article>
         <ModuleSideCard module={accounting} note="Maaş hesaplama, bordro parametreleri ve yıllık personel bütçe raporu." />
       </div></section>
